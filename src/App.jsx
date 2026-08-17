@@ -66,13 +66,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('lakshya_employees');
       let parsed = saved ? JSON.parse(saved) : COUNSELORS;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure standard counselors exist if missing
-        COUNSELORS.forEach((c) => {
-          if (!parsed.some((e) => e && isCounselorMatch(e.name, c.name))) {
-            parsed.push(c);
-          }
-        });
+      if (Array.isArray(parsed)) {
         return parsed;
       }
       return COUNSELORS;
@@ -192,10 +186,10 @@ export default function App() {
       const unsubscribe = onValue(crmRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.leads && Array.isArray(data.leads) && data.leads.length > 0) setLeads(data.leads);
-          if (data.employees && Array.isArray(data.employees) && data.employees.length > 0) setEmployees(data.employees);
-          if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) setTasks(data.tasks);
-          if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) setCourses(data.courses);
+          if (data.leads && Array.isArray(data.leads)) setLeads(data.leads);
+          if (data.employees && Array.isArray(data.employees)) setEmployees(data.employees);
+          if (data.tasks && Array.isArray(data.tasks)) setTasks(data.tasks);
+          if (data.courses && Array.isArray(data.courses)) setCourses(data.courses);
           if (data.activityLogs) setActivityLogs(data.activityLogs);
           if (data.notifications) setNotifications(data.notifications);
           if (data.attendanceRecords && typeof data.attendanceRecords === 'object') {
