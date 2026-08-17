@@ -12,7 +12,10 @@ export default function Navbar({
   onLogout,
   tasks = [],
   leads = [],
-  notifications = []
+  notifications = [],
+  countdownFormatted = '20:00',
+  isIdle = false,
+  isTransferring = false
 }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [dismissedNotifIds, setDismissedNotifIds] = useState([]);
@@ -179,9 +182,50 @@ export default function Navbar({
         />
       </div>
 
-      {/* Right Controls */}
+      {/* Right Controls Container */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-        
+        {/* ⏱️ Dynamic Session Auto-Logout Countdown Badge (Appears when inactive) */}
+        {isTransferring ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              border: '1px solid #93c5fd',
+              padding: '0.35rem 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.78rem',
+              fontWeight: 700
+            }}
+            title="File Upload/Download Active: Session logout paused"
+          >
+            <Clock size={15} className="pulse-glow" color="#1d4ed8" />
+            <span>Transferring File...</span>
+          </div>
+        ) : isIdle ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: '#fef2f2',
+              color: '#b91c1c',
+              border: '1px solid #fecaca',
+              padding: '0.35rem 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.15)'
+            }}
+            title="No cursor/user activity detected. Move mouse to reset 20-min timer."
+          >
+            <Clock size={15} color="#dc2626" />
+            <span>Auto-Logout in: {countdownFormatted}</span>
+          </div>
+        ) : null}
+
         {/* Secure Active User Session Badge */}
         <div
           style={{

@@ -353,8 +353,10 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
-  // Inactivity Auto-Logout System (20 minutes of no user interaction)
+  // Inactivity Auto-Logout System (20 minutes of no user interaction with dynamic Header timer)
   const [isTransferring, setIsTransferring] = useState(false);
+  const [idleSeconds, setIdleSeconds] = useState(0);
+  const [isIdle, setIsIdle] = useState(false);
 
   // Global window listeners to signal ongoing file uploads / downloads
   useEffect(() => {
@@ -373,36 +375,53 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    let inactivityTimer;
-    const INACTIVITY_LIMIT_MS = 20 * 60 * 1000; // 20 Minutes
+    const INACTIVITY_LIMIT_SEC = 20 * 60; // 20 Minutes (1200 Seconds)
 
-    const resetInactivityTimer = () => {
-      if (inactivityTimer) clearTimeout(inactivityTimer);
+    // Reset timer on any cursor movement, click, keypress
+    const handleUserActivity = () => {
+      setIdleSeconds(0);
+      setIsIdle(false);
+    };
 
-      inactivityTimer = setTimeout(() => {
-        // Safety check: Do NOT auto-logout if an active upload or download is in progress
-        if (window.isLakshyaUploading || window.isLakshyaDownloading || isTransferring) {
-          resetInactivityTimer(); // Postpone timer if file transfer is active
-          return;
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(evt => window.addEventListener(evt, handleUserActivity, { passive: true }));
+
+    // 1-second interval to tick idle time
+    const interval = setInterval(() => {
+      setIdleSeconds((prev) => {
+        const nextSec = prev + 1;
+
+        // Show countdown badge if inactive for 5 seconds or more
+        if (nextSec >= 5) {
+          setIsIdle(true);
         }
 
-        alert('⏱️ Session Expired: You have been automatically logged out due to 20 minutes of inactivity.');
-        handleLogout();
-      }, INACTIVITY_LIMIT_MS);
-    };
+        // Auto-logout trigger at 20 minutes (1200s)
+        if (nextSec >= INACTIVITY_LIMIT_SEC) {
+          // Safety check: Do NOT auto-logout if an active upload or download is in progress
+          if (window.isLakshyaUploading || window.isLakshyaDownloading || isTransferring) {
+            return INACTIVITY_LIMIT_SEC - 60; // Extend by 1 min during file transfers
+          }
 
-    // User activity event triggers
-    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-    events.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
-
-    // Start timer on mount
-    resetInactivityTimer();
+          alert('⏱️ Session Expired: Auto-logged out due to 20 minutes of inactivity.');
+          handleLogout();
+          return 0;
+        }
+        return nextSec;
+      });
+    }, 1000);
 
     return () => {
-      if (inactivityTimer) clearTimeout(inactivityTimer);
-      events.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
+      clearInterval(interval);
+      events.forEach(evt => window.removeEventListener(evt, handleUserActivity));
     };
   }, [isAuthenticated, isTransferring]);
+
+  // Format remaining seconds into MM:SS format
+  const remainingSec = Math.max(0, 1200 - idleSeconds);
+  const remainingMinStr = String(Math.floor(remainingSec / 60)).padStart(2, '0');
+  const remainingSecStr = String(remainingSec % 60).padStart(2, '0');
+  const countdownFormatted = `${remainingMinStr}:${remainingSecStr}`;
 
   // Logout handler
   const handleLogout = () => {
@@ -653,6 +672,9 @@ export default function App() {
           tasks={tasks}
           leads={leads}
           notifications={notifications}
+          countdownFormatted={countdownFormatted}
+          isIdle={isIdle}
+          isTransferring={isTransferring}
         />
 
 
