@@ -26,6 +26,7 @@ import EmployeeSettingsManager from './components/EmployeeSettingsManager';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
+import { db as firebaseDB, ref, onValue, set } from './firebase';
 
 export default function App() {
   // Load state from localStorage to persist across browser refresh
@@ -184,40 +185,38 @@ export default function App() {
     localStorage.setItem('lakshya_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
-  // Central Database API Sync Engine (Supports Localhost & Cloud Serverless Sync)
-  const syncWithCentralDB = async () => {
+  // Central Database API Sync Engine (Firebase Realtime Cloud Database Sync)
+  useEffect(() => {
     try {
-      // Try local server or cloud API endpoint
-      const apiEndpoint = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000/api/data'
-        : '/api/data';
-
-      const res = await fetch(apiEndpoint);
-      if (res.ok) {
-        const db = await res.json();
-        if (db.leads && Array.isArray(db.leads) && db.leads.length > 0) setLeads(db.leads);
-        if (db.employees && Array.isArray(db.employees) && db.employees.length > 0) setEmployees(db.employees);
-        if (db.tasks && Array.isArray(db.tasks) && db.tasks.length > 0) setTasks(db.tasks);
-        if (db.courses && Array.isArray(db.courses) && db.courses.length > 0) setCourses(db.courses);
-        if (db.activityLogs) setActivityLogs(db.activityLogs);
-        if (db.notifications) setNotifications(db.notifications);
-        if (db.attendanceRecords && typeof db.attendanceRecords === 'object') {
-          setAttendanceRecords((prev) => {
-            const merged = { ...prev };
-            Object.keys(db.attendanceRecords).forEach((dStr) => {
-              merged[dStr] = {
-                ...(prev[dStr] || {}),
-                ...(db.attendanceRecords[dStr] || {})
-              };
+      const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
+      const unsubscribe = onValue(crmRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          if (data.leads && Array.isArray(data.leads) && data.leads.length > 0) setLeads(data.leads);
+          if (data.employees && Array.isArray(data.employees) && data.employees.length > 0) setEmployees(data.employees);
+          if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) setTasks(data.tasks);
+          if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) setCourses(data.courses);
+          if (data.activityLogs) setActivityLogs(data.activityLogs);
+          if (data.notifications) setNotifications(data.notifications);
+          if (data.attendanceRecords && typeof data.attendanceRecords === 'object') {
+            setAttendanceRecords((prev) => {
+              const merged = { ...prev };
+              Object.keys(data.attendanceRecords).forEach((dStr) => {
+                merged[dStr] = {
+                  ...(prev[dStr] || {}),
+                  ...(data.attendanceRecords[dStr] || {})
+                };
+              });
+              return merged;
             });
-            return merged;
-          });
+          }
         }
-      }
-    } catch {
-      // Offline fallback to localStorage
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Firebase Realtime listener setup:', e);
     }
-  };
+  }, []);
 
   const saveToCentralDB = async (override = {}) => {
     try {
@@ -231,27 +230,22 @@ export default function App() {
         attendanceRecords,
         ...override
       };
-      const apiEndpoint = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000/api/data'
-        : '/api/data';
+      // Write to Firebase Realtime Cloud Database
+      const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
+      await set(crmRef, payload);
 
-      await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      // Local fallback server if available
+      if (window.location.hostname === 'localhost') {
+        fetch('http://localhost:5000/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      }
     } catch {
       // Offline fallback
     }
   };
-
-
-  // Poll Central DB every 1.5s so all browsers stay 100% in sync
-  useEffect(() => {
-    syncWithCentralDB();
-    const dbInterval = setInterval(syncWithCentralDB, 1500);
-    return () => clearInterval(dbInterval);
-  }, []);
 
   // Sync to Central DB on state changes
   useEffect(() => {
