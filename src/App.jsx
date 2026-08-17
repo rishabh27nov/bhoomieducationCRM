@@ -186,23 +186,44 @@ export default function App() {
       const unsubscribe = onValue(crmRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.leads && Array.isArray(data.leads)) setLeads(data.leads);
-          if (data.employees && Array.isArray(data.employees)) setEmployees(data.employees);
-          if (data.tasks && Array.isArray(data.tasks)) setTasks(data.tasks);
-          if (data.courses && Array.isArray(data.courses)) setCourses(data.courses);
-          if (data.activityLogs) setActivityLogs(data.activityLogs);
-          if (data.notifications) setNotifications(data.notifications);
+          if (data.leads && Array.isArray(data.leads)) {
+            setLeads(data.leads);
+            localStorage.setItem('lakshya_leads', JSON.stringify(data.leads));
+          }
+          if (data.employees && Array.isArray(data.employees)) {
+            setEmployees(data.employees);
+            localStorage.setItem('lakshya_employees', JSON.stringify(data.employees));
+
+            // Auto-Kick & Logout Safety: If current logged in employee was deleted by Admin from Firebase
+            if (currentUser && currentUser.role !== 'Admin' && currentUser.role !== 'Institute') {
+              const stillExists = data.employees.some(
+                (e) => e.id === currentUser.id || isCounselorMatch(e.name, currentUser.name)
+              );
+              if (!stillExists) {
+                alert('⚠️ Account Disabled: Your employee account has been deleted by Administrator.');
+                handleLogout();
+              }
+            }
+          }
+          if (data.tasks && Array.isArray(data.tasks)) {
+            setTasks(data.tasks);
+            localStorage.setItem('lakshya_tasks', JSON.stringify(data.tasks));
+          }
+          if (data.courses && Array.isArray(data.courses)) {
+            setCourses(data.courses);
+            localStorage.setItem('lakshya_courses', JSON.stringify(data.courses));
+          }
+          if (data.activityLogs) {
+            setActivityLogs(data.activityLogs);
+            localStorage.setItem('lakshya_activities', JSON.stringify(data.activityLogs));
+          }
+          if (data.notifications) {
+            setNotifications(data.notifications);
+            localStorage.setItem('lakshya_notifications', JSON.stringify(data.notifications));
+          }
           if (data.attendanceRecords && typeof data.attendanceRecords === 'object') {
-            setAttendanceRecords((prev) => {
-              const merged = { ...prev };
-              Object.keys(data.attendanceRecords).forEach((dStr) => {
-                merged[dStr] = {
-                  ...(prev[dStr] || {}),
-                  ...(data.attendanceRecords[dStr] || {})
-                };
-              });
-              return merged;
-            });
+            setAttendanceRecords(data.attendanceRecords);
+            localStorage.setItem('lakshya_attendance', JSON.stringify(data.attendanceRecords));
           }
         }
       });
@@ -210,7 +231,7 @@ export default function App() {
     } catch (e) {
       console.warn('Firebase Realtime listener setup:', e);
     }
-  }, []);
+  }, [currentUser]);
 
   const saveToCentralDB = async (override = {}) => {
     try {
