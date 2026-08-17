@@ -353,6 +353,57 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  // Inactivity Auto-Logout System (20 minutes of no user interaction)
+  const [isTransferring, setIsTransferring] = useState(false);
+
+  // Global window listeners to signal ongoing file uploads / downloads
+  useEffect(() => {
+    const handleStart = () => setIsTransferring(true);
+    const handleEnd = () => setIsTransferring(false);
+
+    window.addEventListener('lakshya_transfer_start', handleStart);
+    window.addEventListener('lakshya_transfer_end', handleEnd);
+
+    return () => {
+      window.removeEventListener('lakshya_transfer_start', handleStart);
+      window.removeEventListener('lakshya_transfer_end', handleEnd);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let inactivityTimer;
+    const INACTIVITY_LIMIT_MS = 20 * 60 * 1000; // 20 Minutes
+
+    const resetInactivityTimer = () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+
+      inactivityTimer = setTimeout(() => {
+        // Safety check: Do NOT auto-logout if an active upload or download is in progress
+        if (window.isLakshyaUploading || window.isLakshyaDownloading || isTransferring) {
+          resetInactivityTimer(); // Postpone timer if file transfer is active
+          return;
+        }
+
+        alert('⏱️ Session Expired: You have been automatically logged out due to 20 minutes of inactivity.');
+        handleLogout();
+      }, INACTIVITY_LIMIT_MS);
+    };
+
+    // User activity event triggers
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(evt => window.addEventListener(evt, resetInactivityTimer, { passive: true }));
+
+    // Start timer on mount
+    resetInactivityTimer();
+
+    return () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      events.forEach(evt => window.removeEventListener(evt, resetInactivityTimer));
+    };
+  }, [isAuthenticated, isTransferring]);
+
   // Logout handler
   const handleLogout = () => {
     setIsAuthenticated(false);
