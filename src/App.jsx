@@ -66,8 +66,10 @@ export default function App() {
     try {
       const saved = localStorage.getItem('lakshya_employees');
       let parsed = saved ? JSON.parse(saved) : COUNSELORS;
-      if (Array.isArray(parsed)) {
-        return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Filter out legacy demo employees if present in local browser cache
+        const cleaned = parsed.filter(e => e && e.name && !['Ananya Sharma', 'Rahul Verma', 'Priya Nair', 'Vikram Mehta'].includes(e.name));
+        return cleaned.length > 0 ? cleaned : COUNSELORS;
       }
       return COUNSELORS;
     } catch {
@@ -648,10 +650,16 @@ export default function App() {
   // Handle delete employee
   const handleDeleteEmployee = (empId) => {
     const targetEmp = employees.find((e) => e.id === empId);
-    setEmployees(employees.filter(e => e.id !== empId));
+    const updatedEmployees = employees.filter(e => e.id !== empId);
+    setEmployees(updatedEmployees);
+    localStorage.setItem('lakshya_employees', JSON.stringify(updatedEmployees));
+
     if (targetEmp) {
       logActivity('Employee Deleted', `Deleted employee ID for ${targetEmp.name}`);
     }
+
+    // Force immediate write to Firebase Realtime Database
+    saveToCentralDB({ employees: updatedEmployees });
   };
 
   // If not authenticated, render Login Page
