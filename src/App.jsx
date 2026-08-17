@@ -184,10 +184,15 @@ export default function App() {
     localStorage.setItem('lakshya_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
-  // Central Database HTTP API Sync Engine (http://localhost:5000/api/data)
+  // Central Database API Sync Engine (Supports Localhost & Cloud Serverless Sync)
   const syncWithCentralDB = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/data');
+      // Try local server or cloud API endpoint
+      const apiEndpoint = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000/api/data'
+        : '/api/data';
+
+      const res = await fetch(apiEndpoint);
       if (res.ok) {
         const db = await res.json();
         if (db.leads && Array.isArray(db.leads) && db.leads.length > 0) setLeads(db.leads);
@@ -226,7 +231,11 @@ export default function App() {
         attendanceRecords,
         ...override
       };
-      await fetch('http://localhost:5000/api/data', {
+      const apiEndpoint = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000/api/data'
+        : '/api/data';
+
+      await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -237,7 +246,7 @@ export default function App() {
   };
 
 
-  // Poll Central DB every 1.5s so all browsers (Chrome, Edge, Firefox, Incognito) stay 100% in sync
+  // Poll Central DB every 1.5s so all browsers stay 100% in sync
   useEffect(() => {
     syncWithCentralDB();
     const dbInterval = setInterval(syncWithCentralDB, 1500);
