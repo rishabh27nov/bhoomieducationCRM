@@ -70,62 +70,6 @@ export const COUNSELORS = [
     "conversion": "100%",
     "status": "Active",
     "joinedDate": "2025-02-01"
-  },
-  {
-    "id": "EMP-101",
-    "name": "Ananya Sharma",
-    "role": "Manager",
-    "email": "ananya.s@lakshyaedu.com",
-    "phone": "+91 98765 11122",
-    "username": "ananya101",
-    "password": "emp123",
-    "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-    "activeLeads": 0,
-    "conversion": "78%",
-    "status": "Active",
-    "joinedDate": "2024-03-15"
-  },
-  {
-    "id": "EMP-102",
-    "name": "Rahul Verma",
-    "role": "Employee",
-    "email": "rahul.v@lakshyaedu.com",
-    "phone": "+91 98765 22233",
-    "username": "rahul102",
-    "password": "emp123",
-    "avatar": "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
-    "activeLeads": 0,
-    "conversion": "82%",
-    "status": "Active",
-    "joinedDate": "2024-06-01"
-  },
-  {
-    "id": "EMP-103",
-    "name": "Priya Nair",
-    "role": "Manager",
-    "email": "priya.n@lakshyaedu.com",
-    "phone": "+91 98765 33344",
-    "username": "priya103",
-    "password": "emp123",
-    "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-    "activeLeads": 0,
-    "conversion": "71%",
-    "status": "Active",
-    "joinedDate": "2023-11-10"
-  },
-  {
-    "id": "EMP-104",
-    "name": "Vikram Mehta",
-    "role": "Employee",
-    "email": "vikram.m@lakshyaedu.com",
-    "phone": "+91 98765 44455",
-    "username": "vikram104",
-    "password": "emp123",
-    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    "activeLeads": 0,
-    "conversion": "85%",
-    "status": "Active",
-    "joinedDate": "2025-01-20"
   }
 ];
 
