@@ -210,7 +210,7 @@ export default function StaffAttendanceCalendar({
   // Fallback virtual employee for current user if not matched in counselors array
   const displayEmployees = (!isAdmin && visibleEmployees.length === 0 && currentUser)
     ? [{
-        id: currentUser.id || `EMP-${currentUser.name ? currentUser.name.replace(/\s+/g, '').toUpperCase() : 'SELF'}`,
+        id: (employees.find(e => isCounselorMatch(e.name, currentUser.name))?.id) || currentUser.id || `EMP-${currentUser.name ? currentUser.name.replace(/\s+/g, '').toUpperCase() : 'SELF'}`,
         name: currentUser.name || 'Current Staff',
         phone: currentUser.phone || '',
         role: currentUser.role || 'Employee',
