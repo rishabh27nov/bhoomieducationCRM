@@ -30,9 +30,49 @@ export default function handler(req, res) {
 
       console.log(`📩 Received ${platform} Payload:`, JSON.stringify(payload));
 
+      // Extract lead details if sent from Meta LeadGen event
+      let leadName = 'Meta Lead Student';
+      let leadPhone = '+91 98765 43210';
+      let leadEmail = 'meta.lead@bhoomieducation.com';
+      let leadCourse = 'NEET / JEE Enquiry';
+
+      if (payload.entry && payload.entry[0] && payload.entry[0].changes) {
+        const changeVal = payload.entry[0].changes[0]?.value;
+        if (changeVal?.field_data) {
+          changeVal.field_data.forEach(f => {
+            if (f.name === 'full_name' || f.name === 'name') leadName = f.values[0];
+            if (f.name === 'phone_number' || f.name === 'phone') leadPhone = f.values[0];
+            if (f.name === 'email') leadEmail = f.values[0];
+            if (f.name === 'course' || f.name === 'select_course') leadCourse = f.values[0];
+          });
+        }
+      }
+
+      const newLead = {
+        id: `LEAD-META-${Date.now()}`,
+        name: payload.name || leadName,
+        phone: payload.phone || leadPhone,
+        email: payload.email || leadEmail,
+        course: payload.course || leadCourse,
+        city: payload.city || 'Online Meta Lead',
+        source: platform,
+        status: 'New Lead',
+        createdAt: new Date().toISOString(),
+        notes: `Auto-ingested via Live Meta Lead Ads Webhook.`
+      };
+
+      // Push to Firebase Realtime Database via REST API
+      const firebaseDbUrl = "https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/leads.json";
+      fetch(firebaseDbUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLead)
+      }).catch(e => console.error("Firebase sync error:", e));
+
       return res.status(200).json({
         success: true,
         message: 'Lead received successfully by Bhoomi CRM',
+        lead: newLead,
         timestamp: new Date().toISOString()
       });
     } catch (err) {
