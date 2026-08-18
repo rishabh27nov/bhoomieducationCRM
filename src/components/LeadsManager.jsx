@@ -615,6 +615,7 @@ export default function LeadsManager({
                   />
                 </th>
                 <th>Student ID & Name</th>
+                <th>Source</th>
                 <th>Target Course & Batch</th>
                 <th>Fee / Budget</th>
                 <th>Pipeline Stage</th>
@@ -645,6 +646,27 @@ export default function LeadsManager({
                       <span>•</span>
                       <span>{lead.phone}</span>
                     </div>
+                  </td>
+
+                  <td>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '12px',
+                      backgroundColor: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
+                        ? '#eff6ff'
+                        : '#f8fafc',
+                      color: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
+                        ? '#1d4ed8'
+                        : '#475569',
+                      border: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
+                        ? '1px solid #bfdbfe'
+                        : '1px solid #e2e8f0',
+                      display: 'inline-block'
+                    }}>
+                      {lead.source || 'Website / Direct'}
+                    </span>
                   </td>
 
                   <td>
