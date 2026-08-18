@@ -13,7 +13,8 @@ import {
   Award,
   CalendarCheck,
   UploadCloud,
-  UserCog
+  UserCog,
+  Share2
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, employeeCount = 4, currentUser }) {
@@ -22,6 +23,7 @@ export default function Sidebar({ activeTab, setActiveTab, employeeCount = 4, cu
   let menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'leads', label: 'Student Enquiries', icon: Users },
+    { id: 'meta_connectors', label: 'Meta (FB & IG) Ads', icon: Share2, badge: 'LIVE' },
     { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: '4' },
     { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: String(employeeCount) },
     { id: 'vault', label: 'Student Academic Vault', icon: FolderOpen },

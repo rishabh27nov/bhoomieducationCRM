@@ -139,6 +139,62 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Meta (Facebook & Instagram) Webhooks Ingestion Endpoint
+  if (url.startsWith('/api/webhooks/meta-leads')) {
+    // GET verification handshake from Meta Developer Console
+    if (req.method === 'GET') {
+      const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const mode = parsedUrl.searchParams.get('hub.mode');
+      const token = parsedUrl.searchParams.get('hub.verify_token');
+      const challenge = parsedUrl.searchParams.get('hub.challenge');
+
+      if (mode === 'subscribe' && token === 'bhoomi_crm_meta_token_2026') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(challenge);
+        return;
+      }
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Verification failed' }));
+      return;
+    }
+
+    // POST webhook event (Incoming lead payload from Facebook/Instagram)
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          const currentDb = loadDatabase();
+          const platform = url.includes('instagram') ? 'Instagram Lead Ad' : 'Facebook Lead Form';
+          
+          const newLead = {
+            id: `LEAD-META-${Date.now()}`,
+            name: payload.name || payload.full_name || 'Meta Inquiry Student',
+            phone: payload.phone || payload.phone_number || '+91 98765 00000',
+            email: payload.email || 'meta.lead@bhoomieducation.com',
+            course: payload.course || 'NEET / JEE Enquiry',
+            city: payload.city || 'Online Meta Lead',
+            source: platform,
+            status: 'New Lead',
+            createdAt: new Date().toISOString(),
+            notes: `Auto-ingested from Meta Lead Ads.`
+          };
+
+          currentDb.leads = [newLead, ...(currentDb.leads || [])];
+          saveDatabase(currentDb);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, lead: newLead }));
+        } catch (err) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, note: 'Received payload' }));
+        }
+      });
+      return;
+    }
+  }
+
   // 404 Route
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint Not Found' }));

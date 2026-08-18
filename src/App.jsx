@@ -23,6 +23,7 @@ import StaffAttendanceCalendar from './components/StaffAttendanceCalendar';
 import LeadModal from './components/LeadModal';
 import DocumentUploadManager from './components/DocumentUploadManager';
 import EmployeeSettingsManager from './components/EmployeeSettingsManager';
+import MetaLeadConnectors from './components/MetaLeadConnectors';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -789,6 +790,14 @@ export default function App() {
             />
           )}
 
+
+          {activeTab === 'meta_connectors' && (
+            <MetaLeadConnectors
+              leads={leads}
+              onAddLead={handleAddLead}
+              counselors={employees}
+            />
+          )}
 
           {activeTab === 'analytics' && (
             <Analytics
