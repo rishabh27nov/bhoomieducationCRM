@@ -5,7 +5,7 @@
       "destination": "/api/webhooks/meta-leads.js"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
