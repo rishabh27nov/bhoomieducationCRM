@@ -61,8 +61,8 @@ export default function handler(req, res) {
         notes: `Auto-ingested via Live Meta Lead Ads Webhook.`
       };
 
-      // Push to Firebase Realtime Database via REST API
-      const firebaseDbUrl = "https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/leads.json";
+      // Push to Firebase Realtime Database lakshya_crm_central_db node
+      const firebaseDbUrl = "https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/leads.json";
       fetch(firebaseDbUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
