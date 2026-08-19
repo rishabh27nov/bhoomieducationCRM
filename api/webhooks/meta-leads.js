@@ -62,11 +62,31 @@ export default function handler(req, res) {
       };
 
       // Push to Firebase Realtime Database lakshya_crm_central_db node
-      const firebaseDbUrl = "https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/leads.json";
+      const newLeadId = `LEAD-META-${Date.now()}`;
+      const firebaseLeadObject = {
+        id: newLeadId,
+        name: payload.name || leadName,
+        phone: payload.phone || leadPhone,
+        email: payload.email || leadEmail,
+        targetCourse: payload.course || leadCourse,
+        course: payload.course || leadCourse,
+        batch: `Batch ${(payload.course || leadCourse).split(' ')[0]} (Online)`,
+        feeBudget: '₹1,20,000 / year',
+        stage: 'New Lead',
+        score: 88,
+        counselor: 'Niharika',
+        city: payload.city || 'Online Meta Lead',
+        source: platform,
+        status: 'New Lead',
+        createdAt: new Date().toISOString(),
+        notes: `Auto-ingested via Live Meta Lead Ads Webhook.`
+      };
+
+      const firebaseDbUrl = `https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/leads/${newLeadId}.json`;
       fetch(firebaseDbUrl, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newLead)
+        body: JSON.stringify(firebaseLeadObject)
       }).catch(e => console.error("Firebase sync error:", e));
 
       return res.status(200).json({

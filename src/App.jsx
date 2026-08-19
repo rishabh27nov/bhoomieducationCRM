@@ -189,9 +189,17 @@ export default function App() {
       const unsubscribe = onValue(crmRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.leads && Array.isArray(data.leads)) {
-            setLeads(data.leads);
-            localStorage.setItem('lakshya_leads', JSON.stringify(data.leads));
+          if (data.leads) {
+            let parsedLeads = [];
+            if (Array.isArray(data.leads)) {
+              parsedLeads = data.leads.filter(Boolean);
+            } else if (typeof data.leads === 'object') {
+              parsedLeads = Object.values(data.leads).filter(Boolean);
+            }
+            if (parsedLeads.length > 0) {
+              setLeads(parsedLeads);
+              localStorage.setItem('lakshya_leads', JSON.stringify(parsedLeads));
+            }
           }
           if (data.employees && Array.isArray(data.employees)) {
             setEmployees(data.employees);
