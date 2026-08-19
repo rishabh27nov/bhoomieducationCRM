@@ -686,6 +686,73 @@ export default function LeadsManager({
         </div>
       )}
 
+      {/* Floating Bulk Delete Action Bar when checkboxes are selected */}
+      {selectedLeadIds.length > 0 && isAdmin && (
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1.5px solid #fca5a5',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.75rem 1.25rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+          animation: 'fadeIn 0.2s ease-in-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              color: '#991b1b',
+              backgroundColor: '#fee2e2',
+              padding: '0.25rem 0.6rem',
+              borderRadius: '9999px'
+            }}>
+              {selectedLeadIds.length} Enquiry Selected
+            </span>
+            <span style={{ fontSize: '0.85rem', color: '#7f1d1d', fontWeight: 600 }}>
+              Select lead checkboxes to delete single or multiple student enquiries at once.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              className="btn"
+              style={{
+                backgroundColor: '#dc2626',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                padding: '0.45rem 1rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.85rem'
+              }}
+              onClick={() => {
+                if (window.confirm(`⚠️ Warning: Are you sure you want to delete ${selectedLeadIds.length} selected lead(s)?`)) {
+                  onBulkDeleteLeads(selectedLeadIds);
+                  setSelectedLeadIds([]);
+                }
+              }}
+            >
+              <Trash2 size={16} /> Delete Selected ({selectedLeadIds.length}) Leads
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
+              onClick={() => setSelectedLeadIds([])}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* View 1: Table View */}
       {viewMode === 'table' && (
         <div className="custom-table-container">
