@@ -16,7 +16,7 @@ export default function AddLeadModal({
     phone: '',
     targetCourse: courses[0] || 'NEET Class 11',
     batch: 'Class 11/12 Morning Batch',
-    feeBudget: '₹1,20,000 / year',
+    feeBudget: 'N/A',
     counselor: counselors.length > 0 ? counselors[0].name : '',
     leadSource: 'School Seminar Walk-in',
     notes: '',
@@ -242,6 +242,17 @@ export default function AddLeadModal({
                 <option value="Excel Import">Excel Import</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Fee / Budget (Default: N/A)</label>
+            <input
+              type="text"
+              placeholder="e.g. N/A or ₹1,50,000 / year"
+              value={formData.feeBudget}
+              onChange={(e) => setFormData({ ...formData, feeBudget: e.target.value })}
+              className="form-input"
+            />
           </div>
 
           <div>
