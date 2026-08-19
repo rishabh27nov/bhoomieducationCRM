@@ -818,6 +818,8 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                   }}
                 >
                   <option value="NEET Dropper Batch 2026">NEET Dropper Batch 2026</option>
+                  <option value="NEET Class 12th Batch">NEET Class 12th Batch</option>
+                  <option value="JEE Dropper / Repeater Batch 2026">JEE Dropper / Repeater Batch 2026</option>
                   <option value="JEE Main + Advanced 2026">JEE Main + Advanced 2026</option>
                   <option value="Class 11th Foundation NEET">Class 11th Foundation NEET</option>
                   <option value="Class 12th Board + JEE">Class 12th Board + JEE</option>
