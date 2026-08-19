@@ -44,6 +44,7 @@ export default function LeadsManager({
   const [stageFilter, setStageFilter] = useState('ALL');
   const [courseFilter, setCourseFilter] = useState('ALL');
   const [counselorFilter, setCounselorFilter] = useState('ALL');
+  const [sourceFilter, setSourceFilter] = useState('ALL'); // 'ALL', 'FACEBOOK', 'INSTAGRAM', 'META_ALL'
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [showAddCoursePrompt, setShowAddCoursePrompt] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
@@ -230,7 +231,16 @@ export default function LeadsManager({
     const matchesCourse = courseFilter === 'ALL' || lead.targetCourse.includes(courseFilter);
     const matchesCounselor = isEmployeeRole || counselorFilter === 'ALL' || isCounselorMatch(lead.counselor, counselorFilter);
 
-    return matchesSearch && matchesStage && matchesCourse && matchesCounselor;
+    let matchesSource = true;
+    if (sourceFilter === 'FACEBOOK') {
+      matchesSource = lead.source && lead.source.toLowerCase().includes('facebook');
+    } else if (sourceFilter === 'INSTAGRAM') {
+      matchesSource = lead.source && lead.source.toLowerCase().includes('instagram');
+    } else if (sourceFilter === 'META_ALL') {
+      matchesSource = lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'));
+    }
+
+    return matchesSearch && matchesStage && matchesCourse && matchesCounselor && matchesSource;
   });
 
 
@@ -596,6 +606,82 @@ export default function LeadsManager({
                 </div>
               );
             })}
+
+            {/* Social Media Lead Filter Box */}
+            <div
+              style={{
+                padding: '0.65rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: sourceFilter !== 'ALL' ? 'rgba(24, 119, 242, 0.1)' : '#ffffff',
+                border: sourceFilter !== 'ALL' ? '2px solid #1877F2' : '1px dashed #cbd5e1',
+                minWidth: '240px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem',
+                boxShadow: sourceFilter !== 'ALL' ? '0 4px 12px rgba(24, 119, 242, 0.15)' : 'none'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>
+                  🌐 Social Media Ads
+                </span>
+                {sourceFilter !== 'ALL' && (
+                  <span
+                    onClick={() => setSourceFilter('ALL')}
+                    style={{ fontSize: '0.7rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    Clear Filter
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setSourceFilter(sourceFilter === 'FACEBOOK' ? 'ALL' : 'FACEBOOK')}
+                  style={{
+                    flex: 1,
+                    padding: '0.3rem 0.4rem',
+                    borderRadius: '6px',
+                    border: sourceFilter === 'FACEBOOK' ? '2px solid #1877F2' : '1px solid #e2e8f0',
+                    background: sourceFilter === 'FACEBOOK' ? '#1877F2' : '#f8fafc',
+                    color: sourceFilter === 'FACEBOOK' ? '#ffffff' : '#334155',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  Facebook ({leads.filter(l => l.source && l.source.toLowerCase().includes('facebook')).length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSourceFilter(sourceFilter === 'INSTAGRAM' ? 'ALL' : 'INSTAGRAM')}
+                  style={{
+                    flex: 1,
+                    padding: '0.3rem 0.4rem',
+                    borderRadius: '6px',
+                    border: sourceFilter === 'INSTAGRAM' ? '2px solid #E4405F' : '1px solid #e2e8f0',
+                    background: sourceFilter === 'INSTAGRAM' ? 'linear-gradient(135deg, #833AB4, #E4405F)' : '#f8fafc',
+                    color: sourceFilter === 'INSTAGRAM' ? '#ffffff' : '#334155',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  Instagram ({leads.filter(l => l.source && l.source.toLowerCase().includes('instagram')).length})
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
