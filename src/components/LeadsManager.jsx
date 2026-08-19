@@ -37,7 +37,8 @@ export default function LeadsManager({
   onAddCourse,
   currentUser = { role: 'Admin' },
   onAddLead,
-  employees = []
+  employees = [],
+  onUpdateLeadFee
 }) {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'kanban'
   const [stageFilter, setStageFilter] = useState('ALL');
@@ -674,8 +675,30 @@ export default function LeadsManager({
                   </td>
 
                   <td>
-                    <div style={{ fontWeight: 600, color: lead.feeBudget && lead.feeBudget !== 'N/A' ? 'var(--color-brand-emerald)' : 'var(--text-muted)' }}>
-                      {lead.feeBudget || 'N/A'}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const currentVal = lead.feeBudget && lead.feeBudget !== 'N/A' ? lead.feeBudget : '';
+                        const newVal = window.prompt(`Edit Fee / Budget for ${lead.name}:`, currentVal);
+                        if (newVal !== null && onUpdateLeadFee) {
+                          onUpdateLeadFee(lead.id, newVal.trim() || 'N/A');
+                        }
+                      }}
+                      style={{
+                        fontWeight: 600,
+                        color: lead.feeBudget && lead.feeBudget !== 'N/A' ? 'var(--color-brand-emerald)' : '#94a3b8',
+                        cursor: 'pointer',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                        border: '1px dashed rgba(82, 183, 136, 0.4)',
+                        backgroundColor: lead.feeBudget && lead.feeBudget !== 'N/A' ? '#f0fdf4' : '#f8fafc',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}
+                      title="Click to edit Fee / Budget"
+                    >
+                      ✏️ {lead.feeBudget && lead.feeBudget !== '' ? lead.feeBudget : 'N/A'}
                     </div>
                   </td>
 

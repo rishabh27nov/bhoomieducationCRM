@@ -592,6 +592,15 @@ export default function App() {
     }
   };
 
+  // Handle direct fee/budget update
+  const handleUpdateLeadFee = (leadId, newFeeBudget) => {
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, feeBudget: newFeeBudget } : l));
+    if (selectedLead && selectedLead.id === leadId) {
+      setSelectedLead(prev => ({ ...prev, feeBudget: newFeeBudget }));
+    }
+    logActivity('Fee/Budget Updated', `Updated Fee/Budget for lead ${leadId} to "${newFeeBudget}"`);
+  };
+
   // Handle direct notes update/edit/delete
   const handleUpdateLeadNotes = (leadId, newNotesText) => {
     setLeads(leads.map(l => l.id === leadId ? { ...l, notes: newNotesText } : l));
@@ -751,6 +760,7 @@ export default function App() {
               currentUser={currentUser}
               onAddLead={handleAddLead}
               employees={employees}
+              onUpdateLeadFee={handleUpdateLeadFee}
             />
           )}
 
