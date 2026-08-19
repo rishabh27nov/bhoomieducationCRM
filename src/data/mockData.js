@@ -107,7 +107,7 @@ export const INITIAL_LEADS = [
     "createdAt": "2026-08-11",
     "lastContact": "Today",
     "notes": "B2C Lead from Sarahanpur. Preparing for NEET",
-    "feeBudget": "₹1,20,000 / year"
+    "feeBudget": "N/A"
   },
   {
     "id": "LKD-1002",
@@ -123,7 +123,7 @@ export const INITIAL_LEADS = [
     "createdAt": "2026-08-11",
     "lastContact": "Today",
     "notes": "B2C Lead from Rajsthan. Preparing for NEET",
-    "feeBudget": "₹1,20,000 / year"
+    "feeBudget": "N/A"
   },
   {
     "id": "LKD-1003",
@@ -139,7 +139,7 @@ export const INITIAL_LEADS = [
     "createdAt": "2026-08-11",
     "lastContact": "Today",
     "notes": "B2C Lead from MP. Preparing for NEET",
-    "feeBudget": "₹1,20,000 / year"
+    "feeBudget": "N/A"
   },
   {
     "id": "LKD-1004",
