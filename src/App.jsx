@@ -53,13 +53,13 @@ export default function App() {
   const [leads, setLeads] = useState(() => {
     try {
       const saved = localStorage.getItem('lakshya_leads');
-      let parsed = saved ? JSON.parse(saved) : [];
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      let parsed = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(parsed)) {
         return parsed;
       }
-      return INITIAL_LEADS;
+      return [];
     } catch {
-      return INITIAL_LEADS;
+      return [];
     }
   });
 
@@ -189,17 +189,18 @@ export default function App() {
       const unsubscribe = onValue(crmRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.leads) {
+          if (data.leads !== undefined) {
             let parsedLeads = [];
             if (Array.isArray(data.leads)) {
               parsedLeads = data.leads.filter(Boolean);
-            } else if (typeof data.leads === 'object') {
+            } else if (typeof data.leads === 'object' && data.leads !== null) {
               parsedLeads = Object.values(data.leads).filter(Boolean);
             }
-            if (parsedLeads.length > 0) {
-              setLeads(parsedLeads);
-              localStorage.setItem('lakshya_leads', JSON.stringify(parsedLeads));
-            }
+            setLeads(parsedLeads);
+            localStorage.setItem('lakshya_leads', JSON.stringify(parsedLeads));
+          } else {
+            setLeads([]);
+            localStorage.setItem('lakshya_leads', JSON.stringify([]));
           }
           if (data.employees && Array.isArray(data.employees)) {
             setEmployees(data.employees);
