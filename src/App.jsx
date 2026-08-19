@@ -541,7 +541,10 @@ export default function App() {
   // Handle stage change
   const handleUpdateLeadStage = (leadId, newStage) => {
     const targetLead = leads.find((l) => l.id === leadId);
-    setLeads(leads.map(l => l.id === leadId ? { ...l, stage: newStage, lastContact: 'Just now' } : l));
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, stage: newStage, lastContact: 'Just now' } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, stage: newStage, lastContact: 'Just now' }));
     }
@@ -558,8 +561,10 @@ export default function App() {
     const timeStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const noteEntry = `\n\n[Log - ${timeStamp}]: ${noteText}`;
     const targetLead = leads.find((l) => l.id === leadId);
-
-    setLeads(leads.map(l => l.id === leadId ? { ...l, notes: l.notes + noteEntry } : l));
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, notes: l.notes + noteEntry } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, notes: prev.notes + noteEntry }));
     }
@@ -574,7 +579,10 @@ export default function App() {
   // Handle counselor reassignment
   const handleUpdateLeadCounselor = (leadId, newCounselor) => {
     const targetLead = leads.find((l) => l.id === leadId);
-    setLeads(leads.map(l => l.id === leadId ? { ...l, counselor: newCounselor } : l));
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, counselor: newCounselor } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, counselor: newCounselor }));
     }
@@ -594,7 +602,10 @@ export default function App() {
 
   // Handle direct fee/budget update
   const handleUpdateLeadFee = (leadId, newFeeBudget) => {
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, feeBudget: newFeeBudget } : l));
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, feeBudget: newFeeBudget } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, feeBudget: newFeeBudget }));
     }
@@ -603,7 +614,10 @@ export default function App() {
 
   // Handle direct notes update/edit/delete
   const handleUpdateLeadNotes = (leadId, newNotesText) => {
-    setLeads(leads.map(l => l.id === leadId ? { ...l, notes: newNotesText } : l));
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, notes: newNotesText } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => ({ ...prev, notes: newNotesText }));
     }
@@ -611,14 +625,16 @@ export default function App() {
   };
 
 
-  // Handle add lead
   // Handle add lead (Admin action only)
   const handleAddLead = (newLeadData) => {
     if (currentUser?.role !== 'Admin') {
       alert('Permission Denied: Only Admin has authority to create new student enquiries.');
       return;
     }
-    setLeads([newLeadData, ...leads]);
+    const updatedLeads = [newLeadData, ...leads];
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     logActivity(
       'New Lead Created',
       `Admin created new lead for student ${newLeadData.name} (${newLeadData.targetCourse})`
@@ -650,7 +666,10 @@ export default function App() {
   // Handle delete lead
   const handleDeleteLead = (leadId) => {
     const targetLead = leads.find((l) => l.id === leadId);
-    setLeads(leads.filter(l => l.id !== leadId));
+    const updatedLeads = leads.filter(l => l.id !== leadId);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     if (targetLead) {
       logActivity('Lead Deleted', `Deleted lead record ${targetLead.name} (${targetLead.id})`);
     }
@@ -660,7 +679,10 @@ export default function App() {
   const handleBulkDeleteLeads = (leadIds) => {
     if (!Array.isArray(leadIds) || leadIds.length === 0) return;
     const idsSet = new Set(leadIds);
-    setLeads((prev) => prev.filter((l) => !idsSet.has(l.id)));
+    const updatedLeads = leads.filter((l) => !idsSet.has(l.id));
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
     logActivity('Bulk Leads Deleted', `Admin deleted ${leadIds.length} student enquiries`);
   };
 
