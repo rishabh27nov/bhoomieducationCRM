@@ -619,7 +619,6 @@ export default function LeadsManager({
                 <th>Target Course & Batch</th>
                 <th>Fee / Budget</th>
                 <th>Pipeline Stage</th>
-                <th>L-SAT Score</th>
                 <th>Counselor</th>
                 <th>Last Contact</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -675,8 +674,8 @@ export default function LeadsManager({
                   </td>
 
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--color-brand-emerald)' }}>
-                      {lead.feeBudget}
+                    <div style={{ fontWeight: 600, color: lead.feeBudget && lead.feeBudget !== 'N/A' ? 'var(--color-brand-emerald)' : 'var(--text-muted)' }}>
+                      {lead.feeBudget || 'N/A'}
                     </div>
                   </td>
 
@@ -698,13 +697,6 @@ export default function LeadsManager({
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
-                  </td>
-
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700, color: '#d97706' }}>
-                      <Star size={14} fill="#fef08a" />
-                      {lead.score}/100
-                    </div>
                   </td>
 
                   <td>
