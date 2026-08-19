@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -38,6 +38,8 @@ export default function handler(req, res) {
 
       if (payload.entry && payload.entry[0] && payload.entry[0].changes) {
         const changeVal = payload.entry[0].changes[0]?.value;
+        
+        // 1. Direct Field Data Extraction
         if (changeVal?.field_data) {
           changeVal.field_data.forEach(f => {
             if (f.name === 'full_name' || f.name === 'name') leadName = f.values[0];
@@ -45,6 +47,28 @@ export default function handler(req, res) {
             if (f.name === 'email') leadEmail = f.values[0];
             if (f.name === 'course' || f.name === 'select_course') leadCourse = f.values[0];
           });
+        }
+        
+        // 2. Real Graph API leadgen_id resolution if Meta sends leadgen_id
+        const leadgenId = changeVal?.leadgen_id;
+        if (leadgenId) {
+          try {
+            const pageToken = process.env.META_PAGE_ACCESS_TOKEN || '';
+            if (pageToken) {
+              const graphRes = await fetch(`https://graph.facebook.com/v19.0/${leadgenId}?access_token=${pageToken}`);
+              const graphData = await graphRes.json();
+              if (graphData && graphData.field_data) {
+                graphData.field_data.forEach(f => {
+                  if (f.name === 'full_name' || f.name === 'name') leadName = f.values[0];
+                  if (f.name === 'phone_number' || f.name === 'phone') leadPhone = f.values[0];
+                  if (f.name === 'email') leadEmail = f.values[0];
+                  if (f.name === 'course' || f.name === 'select_course') leadCourse = f.values[0];
+                });
+              }
+            }
+          } catch (e) {
+            console.error("Meta Graph API fetch error:", e);
+          }
         }
       }
 

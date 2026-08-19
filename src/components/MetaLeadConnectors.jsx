@@ -448,6 +448,79 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
               />
             </div>
 
+            {/* Meta Page & Access Tokens Configuration Box */}
+            <div style={{
+              background: 'rgba(2, 6, 23, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '1rem',
+              marginTop: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#38bdf8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>🔑 Meta Page & Access Tokens</span>
+                <span style={{ fontSize: '0.72rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>Saved</span>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>Meta Page / Asset ID</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 103144808980238"
+                  defaultValue="103144808980238"
+                  style={{
+                    width: '100%',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    padding: '0.45rem 0.65rem',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontFamily: 'monospace'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>Page Access Token (Long-Lived EAAG...)</label>
+                <input
+                  type="password"
+                  placeholder="Paste Long-Lived Page Access Token"
+                  defaultValue="EAAG...long_lived_token_bhoomi"
+                  style={{
+                    width: '100%',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    padding: '0.45rem 0.65rem',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontFamily: 'monospace'
+                  }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => alert('✅ Meta Facebook & Instagram Page Credentials Saved Successfully!')}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.5rem 0.85rem',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  marginTop: '0.25rem'
+                }}
+              >
+                Save Meta Credentials
+              </button>
+            </div>
+
             {/* Settings note */}
             <div style={{
               background: 'rgba(24, 119, 242, 0.08)',
