@@ -21,8 +21,8 @@ export default function Dashboard({
   employees = [],
   tasks = []
 }) {
-  const displayLeads = leads.length > 0 ? leads : INITIAL_LEADS;
-  const displayTasks = tasks.length > 0 ? tasks : INITIAL_TASKS;
+  const displayLeads = leads;
+  const displayTasks = tasks;
   const recentLeads = displayLeads.slice(0, 4);
   const pendingTasks = displayTasks.filter(t => !t.completed);
 
@@ -176,22 +176,32 @@ export default function Dashboard({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {[
-                { program: 'NEET UG Dropper & Repeater Batch', percent: 45, count: '112 Students', color: '#059669' },
-                { program: 'IIT-JEE Advanced (Class 12 Regular)', percent: 25, count: '62 Students', color: '#2563eb' },
-                { program: 'JEE Main Crash Course 2026', percent: 18, count: '45 Students', color: '#d97706' },
-                { program: 'Foundation Class 9 & 10 (NTSE/Olympiad)', percent: 12, count: '29 Students', color: '#7c3aed' }
-              ].map((prog, idx) => (
-                <div key={idx}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                    <span>{prog.program}</span>
-                    <span style={{ color: 'var(--text-muted)' }}>{prog.count} ({prog.percent}%)</span>
+              {(() => {
+                const total = displayLeads.length || 1;
+                const neetCount = displayLeads.filter(l => l.targetCourse && l.targetCourse.toLowerCase().includes('neet')).length;
+                const jeeCount = displayLeads.filter(l => l.targetCourse && l.targetCourse.toLowerCase().includes('jee')).length;
+                const foundationCount = displayLeads.filter(l => l.targetCourse && l.targetCourse.toLowerCase().includes('foundation')).length;
+                const otherCount = displayLeads.length - (neetCount + jeeCount + foundationCount);
+
+                const progs = [
+                  { program: 'NEET Coaching Programs', count: neetCount, percent: displayLeads.length ? Math.round((neetCount / total) * 100) : 0, color: '#059669' },
+                  { program: 'JEE Coaching Programs', count: jeeCount, percent: displayLeads.length ? Math.round((jeeCount / total) * 100) : 0, color: '#2563eb' },
+                  { program: 'Foundation Batches', count: foundationCount, percent: displayLeads.length ? Math.round((foundationCount / total) * 100) : 0, color: '#d97706' },
+                  { program: 'Other Coaching Courses', count: Math.max(0, otherCount), percent: displayLeads.length ? Math.round((Math.max(0, otherCount) / total) * 100) : 0, color: '#7c3aed' }
+                ];
+
+                return progs.map((prog, idx) => (
+                  <div key={idx}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                      <span>{prog.program}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{prog.count} Students ({prog.percent}%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '9999px', overflow: 'hidden' }}>
+                      <div style={{ width: `${prog.percent}%`, height: '100%', backgroundColor: prog.color, borderRadius: '9999px' }}></div>
+                    </div>
                   </div>
-                  <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '9999px', overflow: 'hidden' }}>
-                    <div style={{ width: `${prog.percent}%`, height: '100%', backgroundColor: prog.color, borderRadius: '9999px' }}></div>
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
 
