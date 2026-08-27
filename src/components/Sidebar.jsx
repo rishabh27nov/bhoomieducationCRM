@@ -61,7 +61,8 @@ export default function Sidebar({
 
   return (
     <aside style={{
-      width: '280px',
+      width: '240px',
+      minWidth: '240px',
       backgroundColor: 'var(--bg-sidebar)',
       color: '#ffffff',
       display: 'flex',
@@ -73,27 +74,27 @@ export default function Sidebar({
     }}>
       {/* Brand Header */}
       <div style={{
-        padding: '1.5rem 1.25rem',
+        padding: '1.25rem 1rem',
         borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         background: 'linear-gradient(180deg, rgba(20,56,41,0.5) 0%, rgba(10,28,20,0) 100%)'
       }}>
-        <LakshyaLogo size={46} showTagline={true} />
+        <LakshyaLogo size={40} showTagline={true} />
       </div>
 
       {/* Main Navigation */}
-      <nav style={{ padding: '1.25rem 0.85rem', flex: 1 }}>
+      <nav style={{ padding: '1rem 0.65rem', flex: 1 }}>
         <div style={{
-          fontSize: '0.68rem',
+          fontSize: '0.64rem',
           fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: '0.1em',
+          letterSpacing: '0.08em',
           color: '#52b788',
-          padding: '0 0.75rem 0.75rem 0.75rem'
+          padding: '0 0.6rem 0.6rem 0.6rem'
         }}>
           NEET & JEE Coaching Portal
         </div>
 
-        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -106,13 +107,13 @@ export default function Sidebar({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.75rem 0.85rem',
+                    padding: '0.6rem 0.75rem',
                     borderRadius: 'var(--radius-md)',
                     border: 'none',
                     backgroundColor: isActive ? '#1b4332' : 'transparent',
                     color: isActive ? '#ffffff' : '#94a3b8',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: '0.82rem',
                     fontWeight: isActive ? 600 : 500,
                     transition: 'all 0.2s ease',
                     boxShadow: isActive ? '0 4px 12px rgba(27, 67, 50, 0.4)' : 'none',
