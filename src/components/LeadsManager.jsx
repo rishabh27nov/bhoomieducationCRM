@@ -374,7 +374,7 @@ export default function LeadsManager({
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           {/* Export Buttons */}
           <button
             className="btn btn-secondary"
@@ -431,7 +431,7 @@ export default function LeadsManager({
           </div>
 
           {isAdmin && (
-            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <>
               <button
                 className="btn"
                 style={{
@@ -478,9 +478,8 @@ export default function LeadsManager({
               <button className="btn btn-primary" onClick={onOpenAddLead} title="Create New Student Enquiry (Admin Only)">
                 <Plus size={18} /> New Student Enquiry
               </button>
-            </div>
+            </>
           )}
-
         </div>
       </div>
 
