@@ -595,34 +595,35 @@ export default function LeadsManager({
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.35rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
             {/* All Staff Card */}
             <div
               onClick={() => setCounselorFilter('ALL')}
               style={{
-                padding: '0.65rem 1rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: counselorFilter === 'ALL' ? 'var(--color-brand-primary)' : '#ffffff',
                 color: counselorFilter === 'ALL' ? '#ffffff' : 'var(--text-main)',
                 border: '1px solid var(--border-light)',
                 cursor: 'pointer',
-                minWidth: '150px',
+                flex: '1 1 0px',
+                minWidth: '120px',
                 boxShadow: counselorFilter === 'ALL' ? 'var(--shadow-md)' : 'none',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '0.5rem'
+                gap: '0.4rem'
               }}
             >
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>👥 All Counselors</div>
-                <div style={{ fontSize: '0.72rem', opacity: 0.8, marginTop: '1px' }}>Entire Database</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>👥 All Counselors</div>
+                <div style={{ fontSize: '0.68rem', opacity: 0.8, marginTop: '1px' }}>Entire Database</div>
               </div>
               <span style={{
-                fontSize: '0.75rem',
+                fontSize: '0.7rem',
                 fontWeight: 800,
-                padding: '0.15rem 0.45rem',
+                padding: '0.12rem 0.4rem',
                 borderRadius: '9999px',
                 backgroundColor: counselorFilter === 'ALL' ? '#ffffff' : 'var(--color-brand-soft)',
                 color: counselorFilter === 'ALL' ? 'var(--color-brand-primary)' : 'var(--color-brand-emerald)'
@@ -641,37 +642,39 @@ export default function LeadsManager({
                   key={emp.id}
                   onClick={() => setCounselorFilter(emp.name)}
                   style={{
-                    padding: '0.65rem 1rem',
+                    padding: '0.5rem 0.65rem',
                     borderRadius: 'var(--radius-md)',
                     backgroundColor: isSelected ? '#1b4332' : '#ffffff',
                     color: isSelected ? '#ffffff' : 'var(--text-main)',
                     border: isSelected ? '2px solid #52b788' : '1px solid var(--border-light)',
                     cursor: 'pointer',
-                    minWidth: '220px',
+                    flex: '1.2 1 0px',
+                    minWidth: '150px',
                     boxShadow: isSelected ? '0 4px 12px rgba(27, 67, 50, 0.25)' : 'none',
                     transition: 'all 0.2s ease',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.4rem'
+                    justifyContent: 'space-between',
+                    gap: '0.35rem'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <img
                         src={emp.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
                         alt={emp.name}
-                        style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
                       />
                       <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 800 }}>{emp.name}</div>
-                        <div style={{ fontSize: '0.7rem', color: isSelected ? '#b7e4c7' : 'var(--text-muted)' }}>{emp.role}</div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, lineHeight: 1.1 }}>{emp.name}</div>
+                        <div style={{ fontSize: '0.66rem', color: isSelected ? '#b7e4c7' : 'var(--text-muted)' }}>{emp.role}</div>
                       </div>
                     </div>
 
                     <span style={{
-                      fontSize: '0.75rem',
+                      fontSize: '0.7rem',
                       fontWeight: 800,
-                      padding: '0.15rem 0.45rem',
+                      padding: '0.1rem 0.35rem',
                       borderRadius: '9999px',
                       backgroundColor: isSelected ? '#52b788' : '#f1f5f9',
                       color: isSelected ? '#081c15' : '#475569'
@@ -690,9 +693,9 @@ export default function LeadsManager({
                       setShowAssignModal(true);
                     }}
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.68rem',
                       fontWeight: 700,
-                      padding: '0.25rem 0.5rem',
+                      padding: '0.2rem 0.35rem',
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#f0fdf4',
                       color: isSelected ? '#ffffff' : '#15803d',
@@ -701,13 +704,12 @@ export default function LeadsManager({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.3rem',
-                      marginTop: '0.2rem',
+                      gap: '0.25rem',
                       whiteSpace: 'nowrap'
                     }}
                     title={`Bulk Upload Excel Sheet directly to ${emp.name}`}
                   >
-                    <FileSpreadsheet size={13} style={{ flexShrink: 0 }} /> Bulk Upload Leads to {emp.name.split(' ')[0]}
+                    <FileSpreadsheet size={12} style={{ flexShrink: 0 }} /> Bulk Upload Leads to {emp.name.split(' ')[0]}
                   </button>
                 </div>
               );
@@ -716,49 +718,51 @@ export default function LeadsManager({
             {/* Social Media Lead Filter Box */}
             <div
               style={{
-                padding: '0.65rem 1rem',
+                padding: '0.5rem 0.65rem',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: sourceFilter !== 'ALL' ? 'rgba(24, 119, 242, 0.1)' : '#ffffff',
                 border: sourceFilter !== 'ALL' ? '2px solid #1877F2' : '1px dashed #cbd5e1',
-                minWidth: '240px',
+                flex: '1.2 1 0px',
+                minWidth: '170px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.35rem',
+                justifyContent: 'space-between',
+                gap: '0.3rem',
                 boxShadow: sourceFilter !== 'ALL' ? '0 4px 12px rgba(24, 119, 242, 0.15)' : 'none'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1e293b' }}>
                   🌐 Social Media Ads
                 </span>
                 {sourceFilter !== 'ALL' && (
                   <span
                     onClick={() => setSourceFilter('ALL')}
-                    style={{ fontSize: '0.7rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                    style={{ fontSize: '0.66rem', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
                   >
                     Clear Filter
                   </span>
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
                 <button
                   type="button"
                   onClick={() => setSourceFilter(sourceFilter === 'FACEBOOK' ? 'ALL' : 'FACEBOOK')}
                   style={{
                     flex: 1,
-                    padding: '0.3rem 0.4rem',
-                    borderRadius: '6px',
+                    padding: '0.2rem 0.3rem',
+                    borderRadius: '4px',
                     border: sourceFilter === 'FACEBOOK' ? '2px solid #1877F2' : '1px solid #e2e8f0',
                     background: sourceFilter === 'FACEBOOK' ? '#1877F2' : '#f8fafc',
                     color: sourceFilter === 'FACEBOOK' ? '#ffffff' : '#334155',
-                    fontSize: '0.72rem',
+                    fontSize: '0.68rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.25rem',
+                    gap: '0.2rem',
                     whiteSpace: 'nowrap'
                   }}
                 >
@@ -770,18 +774,18 @@ export default function LeadsManager({
                   onClick={() => setSourceFilter(sourceFilter === 'INSTAGRAM' ? 'ALL' : 'INSTAGRAM')}
                   style={{
                     flex: 1,
-                    padding: '0.3rem 0.4rem',
-                    borderRadius: '6px',
+                    padding: '0.2rem 0.3rem',
+                    borderRadius: '4px',
                     border: sourceFilter === 'INSTAGRAM' ? '2px solid #E4405F' : '1px solid #e2e8f0',
                     background: sourceFilter === 'INSTAGRAM' ? 'linear-gradient(135deg, #833AB4, #E4405F)' : '#f8fafc',
                     color: sourceFilter === 'INSTAGRAM' ? '#ffffff' : '#334155',
-                    fontSize: '0.72rem',
+                    fontSize: '0.68rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.25rem',
+                    gap: '0.2rem',
                     whiteSpace: 'nowrap'
                   }}
                 >
@@ -789,7 +793,6 @@ export default function LeadsManager({
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}
