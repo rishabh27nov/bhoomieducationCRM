@@ -901,17 +901,17 @@ export default function LeadsManager({
                     />
                   </td>
                   <td>
-                    <div style={{ fontWeight: 700, color: 'var(--color-brand-primary)', fontSize: '0.92rem', cursor: 'pointer' }} onClick={() => onSelectLead(lead)}>
+                    <div style={{ fontWeight: 700, color: 'var(--color-brand-primary)', fontSize: '0.85rem', cursor: 'pointer' }} onClick={() => onSelectLead(lead)}>
                       {lead.name}
                     </div>
 
-                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
-                      <Phone size={13} color="var(--color-brand-emerald)" />
+                    <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '1px' }}>
+                      <Phone size={12} color="var(--color-brand-emerald)" />
                       <span>{lead.phone || 'N/A'}</span>
                     </div>
 
                     {lead.schoolName && (
-                      <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '1px' }}>
                         🏫 {lead.schoolName}
                       </div>
                     )}

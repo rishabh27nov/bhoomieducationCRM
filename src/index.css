@@ -209,8 +209,8 @@ body {
 
 .custom-table th {
   background: #f8fafc;
-  padding: 0.875rem 1.25rem;
-  font-size: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -219,8 +219,8 @@ body {
 }
 
 .custom-table td {
-  padding: 1rem 1.25rem;
-  font-size: 0.875rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-main);
   border-bottom: 1px solid var(--border-subtle);
 }
