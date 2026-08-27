@@ -758,7 +758,8 @@ export default function LeadsManager({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.25rem'
+                    gap: '0.25rem',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Facebook ({leads.filter(l => l.source && l.source.toLowerCase().includes('facebook')).length})
@@ -780,7 +781,8 @@ export default function LeadsManager({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '0.25rem'
+                    gap: '0.25rem',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   Instagram ({leads.filter(l => l.source && l.source.toLowerCase().includes('instagram')).length})
