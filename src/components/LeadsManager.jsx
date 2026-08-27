@@ -702,11 +702,12 @@ export default function LeadsManager({
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.3rem',
-                      marginTop: '0.2rem'
+                      marginTop: '0.2rem',
+                      whiteSpace: 'nowrap'
                     }}
                     title={`Bulk Upload Excel Sheet directly to ${emp.name}`}
                   >
-                    <FileSpreadsheet size={13} /> Bulk Upload Leads to {emp.name.split(' ')[0]}
+                    <FileSpreadsheet size={13} style={{ flexShrink: 0 }} /> Bulk Upload Leads to {emp.name.split(' ')[0]}
                   </button>
                 </div>
               );
