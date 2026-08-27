@@ -82,29 +82,43 @@ export default function Analytics({ employees = [], leads = [] }) {
       </div>
 
 
-      {/* Lead Acquisition Channels */}
+      {/* Dynamic Lead Acquisition Channels & Dynamic Session Admission Target */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
         
         <div className="glass-card" style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
           <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>Coaching Lead Acquisition Channels</h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[
-              { source: 'School Seminars & Walk-ins', count: '92 Leads (37%)', percent: 37, color: '#10b981' },
-              { source: 'Newspaper Advertisements & Banners', count: '60 Leads (24%)', percent: 24, color: '#3b82f6' },
-              { source: 'Google & Website Demo Requests', count: '52 Leads (21%)', percent: 21, color: '#8b5cf6' },
-              { source: 'Student & Alumni Referrals', count: '44 Leads (18%)', percent: 18, color: '#f59e0b' },
-            ].map((channel, i) => (
-              <div key={i}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                  <span>{channel.source}</span>
-                  <span style={{ color: 'var(--text-muted)' }}>{channel.count}</span>
-                </div>
-                <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '9999px', overflow: 'hidden' }}>
-                  <div style={{ width: `${channel.percent}%`, height: '100%', backgroundColor: channel.color, borderRadius: '9999px' }}></div>
-                </div>
-              </div>
-            ))}
+            {(() => {
+              const total = leads.length;
+              if (total === 0) {
+                return (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    No student enquiries uploaded yet (0 Leads in Database).
+                  </div>
+                );
+              }
+              const channelCounts = {};
+              leads.forEach((l) => {
+                const src = l.leadSource || l.source || 'Website / Direct';
+                channelCounts[src] = (channelCounts[src] || 0) + 1;
+              });
+              const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+              return Object.entries(channelCounts).map(([src, count], i) => {
+                const percent = Math.round((count / total) * 100);
+                return (
+                  <div key={src}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                      <span>{src}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{count} Leads ({percent}%)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '9999px', overflow: 'hidden' }}>
+                      <div style={{ width: `${percent}%`, height: '100%', backgroundColor: colors[i % colors.length], borderRadius: '9999px' }}></div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -113,18 +127,25 @@ export default function Analytics({ employees = [], leads = [] }) {
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.5rem' }}>Session Admission Target</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Target vs Enrolled Students for Session 2026-2027</p>
 
-            <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--color-brand-primary)' }}>
-                92%
-              </div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-brand-emerald)' }}>
-                132 of 150 Target Admissions Enrolled
-              </div>
-            </div>
+            {(() => {
+              const totalEnrolled = leads.filter((l) => l.stage === 'Fee Paid & Enrolled' || l.stage === 'Admitted' || l.stage === 'Enrolled').length;
+              const targetGoal = 150;
+              const percentAchieved = Math.round((totalEnrolled / targetGoal) * 100);
+              return (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                  <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--color-brand-primary)' }}>
+                    {percentAchieved}%
+                  </div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-brand-emerald)' }}>
+                    {totalEnrolled} of {targetGoal} Target Admissions Enrolled
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div style={{ padding: '1rem', borderRadius: 'var(--radius-md)', backgroundColor: '#f8faf9', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            Batch admissions running full. L-SAT Scholarship batch filling rapidly.
+            Real-time calculations based on student enquiries in central database.
           </div>
         </div>
 

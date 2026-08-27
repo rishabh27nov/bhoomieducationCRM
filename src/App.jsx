@@ -55,10 +55,30 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  const [courses, setCourses] = useState([]);
-  const [leads, setLeads] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [tasks, setTasks] = useState([]);
+  const [courses, setCourses] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lakshya_courses');
+      return saved ? JSON.parse(saved) : DEFAULT_COURSES;
+    } catch { return DEFAULT_COURSES; }
+  });
+  const [leads, setLeads] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lakshya_leads');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [employees, setEmployees] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lakshya_employees');
+      return saved ? JSON.parse(saved) : COUNSELORS;
+    } catch { return COUNSELORS; }
+  });
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lakshya_tasks');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [activityLogs, setActivityLogs] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState({});
@@ -132,42 +152,7 @@ export default function App() {
     localStorage.setItem('lakshya_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
-  // One-time Cloud Database Purge to wipe remote sample data (144 leads, tasks, notifications) from Firebase
-  useEffect(() => {
-    if (!localStorage.getItem('lakshya_cloud_wipe_v100')) {
-      const cleanPayload = {
-        courses: DEFAULT_COURSES,
-        employees: COUNSELORS,
-        leads: [],
-        tasks: [],
-        activityLogs: [],
-        notifications: [],
-        attendanceRecords: {},
-        documents: []
-      };
-      setLeads([]);
-      setTasks([]);
-      setActivityLogs([]);
-      setNotifications([]);
-      setDocuments([]);
-      setEmployees(COUNSELORS);
 
-      localStorage.setItem('lakshya_cloud_wipe_v100', 'true');
-      localStorage.setItem('lakshya_leads', JSON.stringify([]));
-      localStorage.setItem('lakshya_tasks', JSON.stringify([]));
-      localStorage.setItem('lakshya_activities', JSON.stringify([]));
-      localStorage.setItem('lakshya_notifications', JSON.stringify([]));
-      localStorage.setItem('lakshya_uploaded_documents', JSON.stringify([]));
-      localStorage.setItem('lakshya_employees', JSON.stringify(COUNSELORS));
-
-      try {
-        const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
-        set(crmRef, cleanPayload).catch((err) => console.error('Firebase wipe error:', err));
-      } catch (err) {
-        console.error('Firebase reset error:', err);
-      }
-    }
-  }, []);
 
   // Central Database API Sync Engine (Firebase Realtime Cloud Database Sync)
   useEffect(() => {
@@ -183,11 +168,10 @@ export default function App() {
             } else if (typeof data.leads === 'object' && data.leads !== null) {
               parsedLeads = Object.values(data.leads).filter(Boolean);
             }
-            setLeads(parsedLeads);
-            localStorage.setItem('lakshya_leads', JSON.stringify(parsedLeads));
-          } else {
-            setLeads([]);
-            localStorage.setItem('lakshya_leads', JSON.stringify([]));
+            if (parsedLeads.length > 0 || Array.isArray(data.leads)) {
+              setLeads(parsedLeads);
+              localStorage.setItem('lakshya_leads', JSON.stringify(parsedLeads));
+            }
           }
           if (data.employees && Array.isArray(data.employees)) {
             setEmployees(data.employees);
@@ -288,15 +272,6 @@ export default function App() {
       // Write to Firebase Realtime Cloud Database
       const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
       await set(crmRef, payload);
-
-      // Local fallback server if available
-      if (window.location.hostname === 'localhost') {
-        fetch('http://localhost:5000/api/data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(() => {});
-      }
     } catch {
       // Offline fallback
     }
@@ -762,19 +737,34 @@ export default function App() {
   };
 
 
-  // Handle delete employee
+  // Handle delete employee (with safe lead reassignment & immediate Firebase deletion)
   const handleDeleteEmployee = (empId) => {
     const targetEmp = employees.find((e) => e.id === empId);
     const updatedEmployees = employees.filter(e => e.id !== empId);
     setEmployees(updatedEmployees);
     localStorage.setItem('lakshya_employees', JSON.stringify(updatedEmployees));
 
-    if (targetEmp) {
-      logActivity('Employee Deleted', `Deleted employee ID for ${targetEmp.name}`);
+    try {
+      set(ref(firebaseDB, 'lakshya_crm_central_db/employees'), updatedEmployees);
+    } catch (e) {
+      console.error('Firebase employee delete error:', e);
     }
 
-    // Force immediate write to Firebase Realtime Database
-    saveToCentralDB({ employees: updatedEmployees });
+    if (targetEmp) {
+      const deletedName = targetEmp.name;
+      const fallbackCounselor = updatedEmployees.length > 0 ? updatedEmployees[0].name : 'System Admin';
+
+      const reassignedLeads = leads.map((l) =>
+        l.counselor && isCounselorMatch(l.counselor, deletedName)
+          ? { ...l, counselor: fallbackCounselor }
+          : l
+      );
+
+      setLeads(reassignedLeads);
+      localStorage.setItem('lakshya_leads', JSON.stringify(reassignedLeads));
+      logActivity('Employee Deleted & Leads Reassigned', `Deleted employee ${deletedName} and reassigned their student leads to ${fallbackCounselor}`);
+      saveToCentralDB({ employees: updatedEmployees, leads: reassignedLeads });
+    }
   };
 
   // If not authenticated, render Login Page
