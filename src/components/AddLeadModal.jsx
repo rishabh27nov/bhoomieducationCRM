@@ -14,6 +14,7 @@ export default function AddLeadModal({
     name: '',
     email: '',
     phone: '',
+    leadType: 'B2C',
     targetCourse: courses[0] || 'NEET Class 11',
     batch: 'Class 11/12 Morning Batch',
     feeBudget: 'N/A',
@@ -103,6 +104,62 @@ export default function AddLeadModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>Enquiry Segment (B2C vs B2B2C) *</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, leadType: 'B2C' })}
+                style={{
+                  flex: 1,
+                  padding: '0.45rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: formData.leadType === 'B2C' ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                  backgroundColor: formData.leadType === 'B2C' ? '#f0fdf4' : '#ffffff',
+                  color: formData.leadType === 'B2C' ? '#15803d' : '#475569',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                🎓 B2C (Direct Student)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, leadType: 'B2B2C' })}
+                style={{
+                  flex: 1,
+                  padding: '0.45rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: (formData.leadType === 'B2B2C' || formData.leadType === 'B2B') ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                  backgroundColor: (formData.leadType === 'B2B2C' || formData.leadType === 'B2B') ? '#eff6ff' : '#ffffff',
+                  color: (formData.leadType === 'B2B2C' || formData.leadType === 'B2B') ? '#1d4ed8' : '#475569',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer'
+                }}
+              >
+                🏫 B2B2C (School Tie-up)
+              </button>
+            </div>
+
+            {(formData.leadType === 'B2B2C' || formData.leadType === 'B2B') && (
+              <div style={{ marginTop: '0.6rem' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1d4ed8', marginBottom: '0.25rem', display: 'block' }}>
+                  🏫 School / Institution Name (Tie-up Partner Name) *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. St. Xavier Senior Secondary School"
+                  value={formData.schoolName || ''}
+                  onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                  className="form-input"
+                  style={{ width: '100%', padding: '0.45rem', fontSize: '0.85rem', borderColor: '#93c5fd', backgroundColor: '#eff6ff' }}
+                />
+              </div>
+            )}
+          </div>
+
           <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Student Full Name *</label>
             <input

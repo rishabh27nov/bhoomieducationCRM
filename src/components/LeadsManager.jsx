@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
-import { PIPELINE_STAGES, isCounselorMatch } from '../data/mockData';
+import { PIPELINE_STAGES, getPipelineStagesForLead, isCounselorMatch } from '../data/mockData';
 import {
   Search,
   Plus,
@@ -62,23 +62,25 @@ export default function LeadsManager({
   const handleDownloadSampleTemplate = () => {
     const sampleData = [
       {
-        'Student Name': 'Rohan Sharma',
-        'Phone Number': '9876543210',
-        'Email': 'rohan.sharma@gmail.com',
-        'Target Course': 'NEET Class 11',
-        'Fee Budget': '₹1,20,000 / year',
-        'Notes': 'Interested in weekend classroom batch'
+        'Name': 'Rohan Sharma',
+        'contact no': '9876543210',
+        'email': 'rohan.sharma@gmail.com',
+        'courseapply': 'NEET Class 11',
+        'current class': '10th Passed',
+        'class 10%': '92.4%',
+        'state': 'Uttar Pradesh'
       },
       {
-        'Student Name': 'Ananya Patel',
-        'Phone Number': '9812345678',
-        'Email': 'ananya.patel@gmail.com',
-        'Target Course': 'JEE Main 12th',
-        'Fee Budget': '₹1,50,000 / year',
-        'Notes': 'Needs demo class schedule'
+        'Name': 'Ananya Patel',
+        'contact no': '9812345678',
+        'email': 'ananya.patel@gmail.com',
+        'courseapply': 'JEE Main 12th',
+        'current class': '11th Studying',
+        'class 10%': '88.5%',
+        'state': 'Bihar'
       }
     ];
-    exportToExcel(sampleData, 'Student_Enquiries_Bulk_Upload_Template.csv');
+    exportToExcel(sampleData, 'Student_Leads_Bulk_Upload_Template.csv');
   };
 
   const handleExcelUpload = (e) => {
@@ -114,27 +116,44 @@ export default function LeadsManager({
             return '';
           };
 
-          const name = getVal(['student name', 'name', 'full name', 'student', 'candidate name']);
-          const phone = getVal(['phone number', 'phone', 'mobile', 'contact', 'mobile number']);
+          const name = getVal(['name', 'student name', 'full name', 'candidate name']);
+          const phone = getVal(['contact no', 'contactno', 'contact', 'phone number', 'phone', 'mobile', 'mobile number']);
           const email = getVal(['email', 'email address']);
-          const targetCourse = getVal(['target course', 'course', 'class', 'targetcourse', 'batch']) || 'NEET Class 11';
+          const courseapply = getVal(['courseapply', 'course apply', 'target course', 'course']) || 'NEET Class 11';
+          const currentClass = getVal(['current class', 'currentclass', 'class']);
+          const class10Perc = getVal(['class 10%', 'class 10 %', '10th %', '10th percentage', 'class10%']);
+          const state = getVal(['state', 'location']);
+          
           const counselor = getVal(['counselor', 'assigned counselor', 'assigned to']);
           const stage = getVal(['stage', 'status']) || 'New Enquiry';
-          const notes = getVal(['notes', 'remarks', 'comments']) || 'Uploaded from Bulk Excel File';
-          const feeBudget = getVal(['fee budget', 'budget', 'feebudget']) || '₹1,20,000 / year';
+          const feeBudget = getVal(['fee budget', 'budget', 'feebudget']) || 'N/A';
           const dateInRow = getVal(['date', 'created at', 'createddate']);
+          const leadTypeInRow = getVal(['leadtype', 'type', 'segment', 'category', 'b2b2c', 'b2b/b2c', 'b2b b2c', 'b2b']);
+          const schoolNameInRow = getVal(['school name', 'schoolname', 'school', 'institution', 'college']);
+
+          // Construct notes including extra fields if available
+          let notesList = [];
+          if (currentClass) notesList.push(`Current Class: ${currentClass}`);
+          if (class10Perc) notesList.push(`10th Marks: ${class10Perc}`);
+          if (state) notesList.push(`State: ${state}`);
+          const notes = notesList.length > 0 ? notesList.join(' | ') : 'Uploaded via Bulk Excel/CSV';
 
           if (name) {
             rowsParsed.push({
               name,
-              phone: phone || '+91 98765 00000',
-              email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
-              targetCourse,
-              batch: getVal(['batch']) || `Batch (${targetCourse})`,
+              phone: phone || 'N/A',
+              email: email || 'N/A',
+              targetCourse: courseapply,
+              currentClass,
+              class10Perc,
+              state,
+              leadType: (leadTypeInRow && (leadTypeInRow.toUpperCase().includes('B2B2C') || leadTypeInRow.toUpperCase().includes('B2B'))) ? 'B2B2C' : 'B2C',
+              schoolName: schoolNameInRow || '',
+              batch: getVal(['batch']) || `Batch (${courseapply})`,
               stage,
               score: parseInt(getVal(['score'])) || 85,
               counselor,
-              leadSource: getVal(['lead source', 'source']) || 'Excel Upload',
+              leadSource: getVal(['lead source', 'source']) || 'CSV Bulk Upload',
               notes,
               feeBudget,
               rowDate: dateInRow
@@ -158,27 +177,41 @@ export default function LeadsManager({
     e.target.value = '';
   };
 
+  const [selectedLeadType, setSelectedLeadType] = useState('B2C');
+  const [customSchoolName, setCustomSchoolName] = useState('');
+
   const handleConfirmImportWithCounselor = () => {
     if (!importedRowsData.length || !onAddLead) return;
 
-    let count = 0;
-    importedRowsData.forEach((row) => {
-      // Explicitly override counselor and date with Admin's chosen values from modal
+    const formattedRows = importedRowsData.map((row, index) => {
       const finalCounselor = selectedAssignCounselor || row.counselor || employees[0]?.name || 'Rishabh yadav';
       const finalDate = customImportDate || row.rowDate || todayStr;
-      onAddLead({
-        id: `LKD-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      const finalSchoolName = customSchoolName.trim() || row.schoolName || '';
+
+      // Append school name to notes if available
+      let updatedNotes = row.notes || '';
+      if (finalSchoolName && !updatedNotes.includes(finalSchoolName)) {
+        updatedNotes = updatedNotes ? `${updatedNotes} | School: ${finalSchoolName}` : `School: ${finalSchoolName}`;
+      }
+
+      return {
+        id: `LKD-${Date.now()}-${index}-${Math.floor(Math.random() * 10000)}`,
         ...row,
+        leadType: selectedLeadType || row.leadType || 'B2C',
+        schoolName: finalSchoolName,
         counselor: finalCounselor,
         createdAt: finalDate,
+        notes: updatedNotes,
         lastContact: 'Just now'
-      });
-      count++;
+      };
     });
 
-    alert(`🎉 Successfully imported ${count} student enquiries on Date [${customImportDate}] and assigned to Employee [${selectedAssignCounselor}]!`);
+    onAddLead(formattedRows);
+
+    alert(`🎉 Successfully imported ${formattedRows.length} [${selectedLeadType}] student enquiries on Date [${customImportDate}] and assigned to Employee [${selectedAssignCounselor}]!`);
     setShowAssignModal(false);
     setImportedRowsData([]);
+    setCustomSchoolName('');
   };
 
 
@@ -213,6 +246,14 @@ export default function LeadsManager({
     }
   }, [currentUser?.name, isEmployeeRole]);
 
+  const [segmentFilter, setSegmentFilter] = useState('ALL'); // 'ALL', 'B2C', 'B2B2C'
+  const [schoolFilter, setSchoolFilter] = useState('ALL');
+
+  // Extract unique school names from leads for filter dropdown
+  const uniqueSchoolNames = Array.from(
+    new Set(leads.map((l) => l.schoolName).filter(Boolean))
+  );
+
   // Filter Leads
   const filteredLeads = leads.filter(lead => {
     // Employee Role Restriction: Employee CANNOT view any other counselor's leads!
@@ -225,11 +266,19 @@ export default function LeadsManager({
       lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.targetCourse.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lead.schoolName && lead.schoolName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (lead.phone && lead.phone.includes(searchQuery));
 
     const matchesStage = stageFilter === 'ALL' || lead.stage === stageFilter;
     const matchesCourse = courseFilter === 'ALL' || lead.targetCourse.includes(courseFilter);
     const matchesCounselor = isEmployeeRole || counselorFilter === 'ALL' || isCounselorMatch(lead.counselor, counselorFilter);
+
+    const matchesSegment =
+      segmentFilter === 'ALL' ||
+      (segmentFilter === 'B2B2C' && (lead.leadType === 'B2B2C' || lead.leadType === 'B2B' || (lead.leadSource && (lead.leadSource.toUpperCase().includes('B2B2C') || lead.leadSource.toUpperCase().includes('B2B'))))) ||
+      (segmentFilter === 'B2C' && (lead.leadType !== 'B2B2C' && lead.leadType !== 'B2B' && (!lead.leadSource || (!lead.leadSource.toUpperCase().includes('B2B2C') && !lead.leadSource.toUpperCase().includes('B2B')))));
+
+    const matchesSchool = schoolFilter === 'ALL' || (lead.schoolName && lead.schoolName === schoolFilter);
 
     let matchesSource = true;
     if (sourceFilter === 'FACEBOOK') {
@@ -240,7 +289,7 @@ export default function LeadsManager({
       matchesSource = lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'));
     }
 
-    return matchesSearch && matchesStage && matchesCourse && matchesCounselor && matchesSource;
+    return matchesSearch && matchesStage && matchesCourse && matchesCounselor && matchesSource && matchesSegment && matchesSchool;
   });
 
 
@@ -384,7 +433,27 @@ export default function LeadsManager({
           {isAdmin && (
             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
               <button
-                className="btn btn-secondary"
+                className="btn"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '0.45rem 0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  color: '#15803d',
+                  borderColor: '#b7e4c7',
+                  backgroundColor: '#ffffff',
+                  cursor: 'pointer',
+                  fontWeight: 700
+                }}
+                onClick={handleDownloadSampleTemplate}
+                title="Download CSV Format Sample File"
+              >
+                <Download size={16} /> Sample CSV Format
+              </button>
+
+              <button
+                className="btn"
                 style={{
                   fontSize: '0.8rem',
                   padding: '0.45rem 0.85rem',
@@ -417,9 +486,46 @@ export default function LeadsManager({
 
       {/* Filter Bar */}
       <div className="glass-card" style={{ padding: '1rem 1.25rem', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>
-          <Filter size={16} /> Filters:
-        </div>
+        {/* Segment Filter (B2C vs B2B2C) */}
+        <select
+          className="form-select"
+          style={{ width: 'auto', minWidth: '150px', fontWeight: 700, borderColor: segmentFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
+          value={segmentFilter}
+          onChange={(e) => {
+            setSegmentFilter(e.target.value);
+            if (e.target.value !== 'B2B2C') {
+              setSchoolFilter('ALL');
+            }
+          }}
+        >
+          <option value="ALL">🏢 All Segments (B2B2C & B2C)</option>
+          <option value="B2C">🎓 B2C Only</option>
+          <option value="B2B2C">🏫 B2B2C Only</option>
+        </select>
+
+        {/* Dynamic School Filter (Shows when B2B2C is selected or when school records exist) */}
+        {(segmentFilter === 'B2B2C' || (segmentFilter === 'ALL' && uniqueSchoolNames.length > 0)) && (
+          <select
+            className="form-select"
+            style={{
+              width: 'auto',
+              minWidth: '180px',
+              fontWeight: 700,
+              backgroundColor: '#eff6ff',
+              borderColor: schoolFilter !== 'ALL' ? '#2563eb' : '#bfdbfe',
+              color: '#1d4ed8'
+            }}
+            value={schoolFilter}
+            onChange={(e) => setSchoolFilter(e.target.value)}
+          >
+            <option value="ALL">🏫 All Schools / Institutions ({uniqueSchoolNames.length})</option>
+            {uniqueSchoolNames.map((sch) => (
+              <option key={sch} value={sch}>
+                📍 {sch}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Stage Filter */}
         <select
@@ -774,7 +880,7 @@ export default function LeadsManager({
                 <th>Fee / Budget</th>
                 <th>Pipeline Stage</th>
                 <th>Counselor</th>
-                <th>Last Contact</th>
+                <th>Lead Date</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -790,36 +896,53 @@ export default function LeadsManager({
                     />
                   </td>
                   <td>
-                    <div style={{ fontWeight: 700, color: 'var(--color-brand-primary)', cursor: 'pointer' }} onClick={() => onSelectLead(lead)}>
+                    <div style={{ fontWeight: 700, color: 'var(--color-brand-primary)', fontSize: '0.92rem', cursor: 'pointer' }} onClick={() => onSelectLead(lead)}>
                       {lead.name}
                     </div>
 
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', marginTop: '2px' }}>
-                      <span>{lead.id}</span>
-                      <span>•</span>
-                      <span>{lead.phone}</span>
+                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '2px' }}>
+                      <Phone size={13} color="var(--color-brand-emerald)" />
+                      <span>{lead.phone || 'N/A'}</span>
                     </div>
+
+                    {lead.schoolName && (
+                      <div style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '2px' }}>
+                        🏫 {lead.schoolName}
+                      </div>
+                    )}
                   </td>
 
                   <td>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      padding: '0.2rem 0.6rem',
-                      borderRadius: '12px',
-                      backgroundColor: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
-                        ? '#eff6ff'
-                        : '#f8fafc',
-                      color: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
-                        ? '#1d4ed8'
-                        : '#475569',
-                      border: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
-                        ? '1px solid #bfdbfe'
-                        : '1px solid #e2e8f0',
-                      display: 'inline-block'
-                    }}>
-                      {lead.source || 'Website / Direct'}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                        backgroundColor: lead.leadType === 'B2B2C' || lead.leadType === 'B2B' || (lead.leadSource && (lead.leadSource.toUpperCase().includes('B2B2C') || lead.leadSource.toUpperCase().includes('B2B'))) ? '#eff6ff' : '#f0fdf4',
+                        color: lead.leadType === 'B2B2C' || lead.leadType === 'B2B' || (lead.leadSource && (lead.leadSource.toUpperCase().includes('B2B2C') || lead.leadSource.toUpperCase().includes('B2B'))) ? '#1d4ed8' : '#15803d',
+                        border: lead.leadType === 'B2B2C' || lead.leadType === 'B2B' || (lead.leadSource && (lead.leadSource.toUpperCase().includes('B2B2C') || lead.leadSource.toUpperCase().includes('B2B'))) ? '1px solid #bfdbfe' : '1px solid #b7e4c7'
+                      }}>
+                        {lead.leadType === 'B2B2C' || lead.leadType === 'B2B' || (lead.leadSource && (lead.leadSource.toUpperCase().includes('B2B2C') || lead.leadSource.toUpperCase().includes('B2B'))) ? '🏫 B2B2C' : '🎓 B2C'}
+                      </span>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '12px',
+                        backgroundColor: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
+                          ? '#eff6ff'
+                          : '#f8fafc',
+                        color: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
+                          ? '#1d4ed8'
+                          : '#475569',
+                        border: lead.source && (lead.source.toLowerCase().includes('facebook') || lead.source.toLowerCase().includes('instagram') || lead.source.toLowerCase().includes('meta'))
+                          ? '1px solid #bfdbfe'
+                          : '1px solid #e2e8f0'
+                      }}>
+                        {lead.source || 'Website / Direct'}
+                      </span>
+                    </div>
                   </td>
 
                   <td>
@@ -869,7 +992,7 @@ export default function LeadsManager({
                         backgroundColor: '#f8faf9'
                       }}
                     >
-                      {PIPELINE_STAGES.map(s => (
+                      {getPipelineStagesForLead(lead.leadType).map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
@@ -901,8 +1024,8 @@ export default function LeadsManager({
                     )}
                   </td>
 
-                  <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {lead.lastContact}
+                  <td style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-brand-emerald)' }}>
+                    📅 {lead.createdAt || lead.rowDate || todayStr}
                   </td>
 
                   <td style={{ textAlign: 'right' }}>
@@ -944,7 +1067,7 @@ export default function LeadsManager({
           overflowX: 'auto',
           paddingBottom: '1rem'
         }}>
-          {PIPELINE_STAGES.slice(0, 6).map(stage => {
+          {(segmentFilter === 'B2B' ? PIPELINE_STAGES_B2B2C : PIPELINE_STAGES_B2C).map(stage => {
             const stageLeads = filteredLeads.filter(l => l.stage === stage);
             return (
               <div key={stage} style={{
@@ -1142,7 +1265,65 @@ export default function LeadsManager({
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', display: 'block' }}>
-                  2. 📅 Select Lead Assignment Date *
+                  2. 🏢 Select Lead Category / Segment (B2C vs B2B2C) *
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLeadType('B2C')}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      borderRadius: 'var(--radius-md)',
+                      border: selectedLeadType === 'B2C' ? '2px solid #16a34a' : '1px solid #cbd5e1',
+                      backgroundColor: selectedLeadType === 'B2C' ? '#f0fdf4' : '#ffffff',
+                      color: selectedLeadType === 'B2C' ? '#15803d' : '#475569',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🎓 B2C (Direct Student / Parent)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLeadType('B2B2C')}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      borderRadius: 'var(--radius-md)',
+                      border: (selectedLeadType === 'B2B2C' || selectedLeadType === 'B2B') ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                      backgroundColor: (selectedLeadType === 'B2B2C' || selectedLeadType === 'B2B') ? '#eff6ff' : '#ffffff',
+                      color: (selectedLeadType === 'B2B2C' || selectedLeadType === 'B2B') ? '#1d4ed8' : '#475569',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🏫 B2B2C (School / Institutional Tie-up)
+                  </button>
+                </div>
+
+                {(selectedLeadType === 'B2B2C' || selectedLeadType === 'B2B') && (
+                  <div style={{ marginTop: '0.65rem' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1d4ed8', marginBottom: '0.25rem', display: 'block' }}>
+                      🏫 School / Institution Name (B2B2C Tie-up Partner Name):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. DPS Public School / St. Xavier International..."
+                      value={customSchoolName}
+                      onChange={(e) => setCustomSchoolName(e.target.value)}
+                      className="form-input"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderColor: '#93c5fd', backgroundColor: '#eff6ff' }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', display: 'block' }}>
+                  3. 📅 Select Lead Assignment Date *
                 </label>
                 <input
                   type="date"
@@ -1155,7 +1336,7 @@ export default function LeadsManager({
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', display: 'block' }}>
-                  3. 📊 Select Excel (.xlsx / .xls) or CSV File * {importedRowsData.length > 0 && <span style={{ color: '#15803d', fontWeight: 800 }}>({importedRowsData.length} Leads Read)</span>}
+                  4. 📊 Select Excel (.xlsx / .xls) or CSV File * {importedRowsData.length > 0 && <span style={{ color: '#15803d', fontWeight: 800 }}>({importedRowsData.length} Leads Read)</span>}
                 </label>
                 <input
                   type="file"

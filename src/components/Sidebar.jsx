@@ -17,17 +17,24 @@ import {
   Share2
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, employeeCount = 4, currentUser }) {
+export default function Sidebar({
+  activeTab,
+  setActiveTab,
+  employeeCount = 0,
+  taskCount = 0,
+  batchCount = 0,
+  currentUser
+}) {
   const isEmployeeRole = currentUser?.role === 'Employee';
 
   let menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'leads', label: 'Student Enquiries', icon: Users },
     { id: 'meta_connectors', label: 'Meta (FB & IG) Ads', icon: Share2, badge: 'LIVE' },
-    { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: '4' },
-    { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: String(employeeCount) },
+    { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: batchCount > 0 ? String(batchCount) : null },
+    { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: employeeCount > 0 ? String(employeeCount) : null },
     { id: 'vault', label: 'Student Academic Vault', icon: FolderOpen },
-    { id: 'tasks', label: 'Counseling Tasks', icon: CheckSquare, badge: '4' },
+    { id: 'tasks', label: 'Counseling Tasks', icon: CheckSquare, badge: taskCount > 0 ? String(taskCount) : null },
     { id: 'analytics', label: 'Performance Analytics', icon: BarChart3 },
     { id: 'attendance', label: 'Calendar Attendance', icon: CalendarCheck, badge: 'NEW' },
     { id: 'documents', label: 'Document Upload', icon: UploadCloud, badge: 'UPLOAD' },

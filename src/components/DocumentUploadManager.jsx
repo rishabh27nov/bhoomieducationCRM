@@ -18,62 +18,9 @@ import {
 } from 'lucide-react';
 import { downloadDocumentFile } from '../utils/pdfGenerator';
 
-const INITIAL_DOCUMENTS = [
-  {
-    id: 'DOC-101',
-    title: 'Staff Identity Proof - Supriya',
-    fileName: 'Supriya_Aadhaar_Card.pdf',
-    category: 'Employee Records',
-    uploadedBy: 'Supriya',
-    uploadDate: '2026-08-10 10:30 AM',
-    size: '1.4 MB',
-    fileType: 'pdf',
-    status: 'Verified'
-  },
-  {
-    id: 'DOC-102',
-    title: 'Faculty Appointment Letter - Rishabh',
-    fileName: 'Rishabh_Yadav_OfferLetter.pdf',
-    category: 'Offer Letter',
-    uploadedBy: 'System Admin',
-    uploadDate: '2026-08-08 04:15 PM',
-    size: '2.1 MB',
-    fileType: 'pdf',
-    status: 'Verified'
-  },
-  {
-    id: 'DOC-103',
-    title: 'NEET Batch Schedule Q3 2026',
-    fileName: 'NEET_Batch_Timetable.docx',
-    category: 'Academic Verification',
-    uploadedBy: 'Niharika',
-    uploadDate: '2026-08-11 11:00 AM',
-    size: '850 KB',
-    fileType: 'docx',
-    status: 'Active'
-  },
-  {
-    id: 'DOC-104',
-    title: 'Staff Experience Certificate - Niharika',
-    fileName: 'Niharika_Certificates.png',
-    category: 'Certificates',
-    uploadedBy: 'Niharika',
-    uploadDate: '2026-08-05 02:45 PM',
-    size: '3.2 MB',
-    fileType: 'image',
-    status: 'Verified'
-  }
-];
+const INITIAL_DOCUMENTS = [];
 
-export default function DocumentUploadManager({ currentUser, employees = [] }) {
-  const [documents, setDocuments] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_uploaded_documents');
-      return saved ? JSON.parse(saved) : INITIAL_DOCUMENTS;
-    } catch {
-      return INITIAL_DOCUMENTS;
-    }
-  });
+export default function DocumentUploadManager({ currentUser, employees = [], documents = [], setDocuments }) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');

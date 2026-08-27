@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PIPELINE_STAGES } from '../data/mockData';
+import { PIPELINE_STAGES, getPipelineStagesForLead } from '../data/mockData';
 import {
   X,
   Phone,
@@ -18,10 +18,32 @@ import {
   RotateCcw
 } from 'lucide-react';
 
-export default function LeadModal({ lead, onClose, onUpdateStage, onUpdateCounselor, onAddNote, onDeleteLead, onUpdateLeadNotes, employees = [] }) {
+export default function LeadModal({
+  lead,
+  onClose,
+  onUpdateStage,
+  onUpdateCounselor,
+  onAddNote,
+  onDeleteLead,
+  onUpdateLeadNotes,
+  onUpdateLeadProfile,
+  employees = [],
+  currentUser = {},
+  courses = []
+}) {
   const [noteText, setNoteText] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedNotes, setEditedNotes] = useState(lead?.notes || '');
+
+  // Edit Student Profile State
+  const [isEditingStudent, setIsEditingStudent] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: lead?.name || '',
+    phone: lead?.phone || '',
+    email: lead?.email || '',
+    feeBudget: lead?.feeBudget || 'N/A',
+    targetCourse: lead?.targetCourse || ''
+  });
 
   if (!lead) return null;
 
@@ -29,7 +51,11 @@ export default function LeadModal({ lead, onClose, onUpdateStage, onUpdateCounse
     e.preventDefault();
     if (!noteText.trim()) return;
     onAddNote(lead.id, noteText);
-    setEditedNotes((prev) => prev + `\n\n[Log - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]: ${noteText}`);
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const authorName = currentUser?.name || 'User';
+    setEditedNotes((prev) => (prev || '') + `\n\n[Log - ${dateStr} ${timeStr} by ${authorName}]: ${noteText}`);
     setNoteText('');
   };
 
@@ -50,6 +76,13 @@ export default function LeadModal({ lead, onClose, onUpdateStage, onUpdateCounse
     }
   };
 
+  const handleSaveStudentProfile = (e) => {
+    e.preventDefault();
+    if (onUpdateLeadProfile) {
+      onUpdateLeadProfile(lead.id, editForm);
+    }
+    setIsEditingStudent(false);
+  };
 
   return (
     <div style={{
@@ -84,12 +117,12 @@ export default function LeadModal({ lead, onClose, onUpdateStage, onUpdateCounse
       >
         {/* Modal Header */}
         <div style={{
-          padding: '1.5rem',
+          padding: '1.25rem 1.5rem',
           background: 'linear-gradient(135deg, #0c2017 0%, #143829 100%)',
           color: '#ffffff',
           display: 'flex',
-          justify: 'space-between',
-          alignItems: 'flex-start'
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#74c69d', marginBottom: '0.25rem' }}>
@@ -102,6 +135,36 @@ export default function LeadModal({ lead, onClose, onUpdateStage, onUpdateCounse
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              className="btn"
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '0.3rem 0.65rem',
+                backgroundColor: isEditingStudent ? '#52b788' : 'rgba(255,255,255,0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+              onClick={() => {
+                setEditForm({
+                  name: lead.name,
+                  phone: lead.phone,
+                  email: lead.email,
+                  feeBudget: lead.feeBudget || 'N/A',
+                  targetCourse: lead.targetCourse
+                });
+                setIsEditingStudent(!isEditingStudent);
+              }}
+              title="Edit Student Info"
+            >
+              <Edit3 size={15} /> {isEditingStudent ? 'Cancel Edit' : 'Edit Student'}
+            </button>
+
             {onDeleteLead && (
               <button
                 className="btn-icon"
@@ -126,60 +189,166 @@ export default function LeadModal({ lead, onClose, onUpdateStage, onUpdateCounse
         {/* Modal Body */}
         <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
           
-          {/* Quick Info Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '1rem',
-            padding: '1rem',
-            borderRadius: 'var(--radius-lg)',
-            backgroundColor: '#f8faf9',
-            border: '1px solid var(--border-light)'
-          }}>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Contact Info</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Phone size={14} color="var(--color-brand-emerald)" /> {lead.phone}
+          {/* Quick Info Grid / Edit Form */}
+          {isEditingStudent ? (
+            <form onSubmit={handleSaveStudentProfile} style={{
+              padding: '1rem',
+              borderRadius: 'var(--radius-lg)',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #b7e4c7',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.85rem'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                ✏️ Edit Student Details
               </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Mail size={14} color="var(--color-brand-emerald)" /> {lead.email}
-              </div>
-            </div>
 
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Counseling Details</div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span>Counselor:</span>
-                {onUpdateCounselor && employees.length > 0 ? (
-                  <select
-                    value={lead.counselor || ''}
-                    onChange={(e) => onUpdateCounselor(lead.id, e.target.value)}
-                    className="form-select"
-                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: 'var(--radius-md)' }}
-                  >
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.name}>
-                        👤 {emp.name} ({emp.role})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span>{lead.counselor}</span>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Student Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Contact No. *</label>
+                  <input
+                    type="text"
+                    required
+                    className="form-input"
+                    style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Email Address</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="N/A"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Fee / Budget</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                    value={editForm.feeBudget}
+                    onChange={(e) => setEditForm({ ...editForm, feeBudget: e.target.value })}
+                    placeholder="N/A"
+                  />
+                </div>
               </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Fee Budget: {lead.feeBudget} • Source: {lead.leadSource}
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '3px' }}>Target Course</label>
+                <select
+                  className="form-select"
+                  style={{ width: '100%', padding: '0.4rem', fontSize: '0.85rem' }}
+                  value={editForm.targetCourse}
+                  onChange={(e) => setEditForm({ ...editForm, targetCourse: e.target.value })}
+                >
+                  {courses.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  {!courses.includes(editForm.targetCourse) && editForm.targetCourse && (
+                    <option value={editForm.targetCourse}>{editForm.targetCourse}</option>
+                  )}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
+                  onClick={() => setIsEditingStudent(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.78rem', padding: '0.3rem 0.75rem', fontWeight: 800 }}
+                >
+                  <Save size={14} /> Save Profile
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+              padding: '1rem',
+              borderRadius: 'var(--radius-lg)',
+              backgroundColor: '#f8faf9',
+              border: '1px solid var(--border-light)'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Contact Info</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Phone size={14} color="var(--color-brand-emerald)" /> {lead.phone || 'N/A'}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Mail size={14} color="var(--color-brand-emerald)" /> {lead.email || 'N/A'}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Counseling Details</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>Counselor:</span>
+                  {onUpdateCounselor && employees.length > 0 ? (
+                    <select
+                      value={lead.counselor || ''}
+                      onChange={(e) => onUpdateCounselor(lead.id, e.target.value)}
+                      className="form-select"
+                      style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', fontWeight: 700, borderRadius: 'var(--radius-md)' }}
+                    >
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.name}>
+                          👤 {emp.name} ({emp.role})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span>{lead.counselor}</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Fee Budget: {lead.feeBudget || 'N/A'} • Source: {lead.leadSource}
+                  {lead.schoolName && (
+                    <div style={{ color: '#1d4ed8', fontWeight: 700, marginTop: '3px' }}>
+                      🏫 School: {lead.schoolName}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Pipeline Stage Change */}
           <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '0.5rem' }}>
-              Update Admission Pipeline Stage:
+              Update Admission Pipeline Stage ({lead.leadType === 'B2B' || lead.leadType === 'B2B2C' ? '🏫 B2B2C Pipeline' : '🎓 B2C Pipeline'}):
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {PIPELINE_STAGES.map(stage => {
+              {getPipelineStagesForLead(lead.leadType).map(stage => {
                 const isActive = lead.stage === stage;
                 return (
                   <button

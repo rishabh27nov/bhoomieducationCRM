@@ -32,7 +32,7 @@ function loadDatabase() {
     if (fs.existsSync(DB_FILE)) {
       const data = fs.readFileSync(DB_FILE, 'utf8');
       const dbObj = JSON.parse(data);
-      if (dbObj && Array.isArray(dbObj.leads) && dbObj.leads.length > 0) {
+      if (dbObj && Array.isArray(dbObj.leads)) {
         return dbObj;
       }
     }

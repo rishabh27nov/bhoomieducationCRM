@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { INITIAL_TASKS, COUNSELORS } from '../data/mockData';
+import { COUNSELORS } from '../data/mockData';
 import {
   CheckSquare,
   Plus,
@@ -39,11 +39,11 @@ export default function TasksManager({
   });
 
   const toggleTask = (id) => {
-    const targetTask = tasks.find(t => t.id === id);
+    const targetTask = tasks.find(t => String(t.id) === String(id));
     const nextCompleted = !targetTask?.completed;
 
     if (setTasks) {
-      setTasks(tasks.map(t => t.id === id ? { ...t, completed: nextCompleted } : t));
+      setTasks(tasks.map(t => String(t.id) === String(id) ? { ...t, completed: nextCompleted } : t));
     }
 
     if (logActivity && targetTask) {
@@ -55,14 +55,13 @@ export default function TasksManager({
   };
 
   const deleteTask = (id) => {
-    const targetTask = tasks.find(t => t.id === id);
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      if (setTasks) {
-        setTasks(tasks.filter(t => t.id !== id));
-      }
-      if (logActivity && targetTask) {
-        logActivity('Task Deleted', `Deleted task: "${targetTask.title}"`);
-      }
+    const targetTask = tasks.find(t => String(t.id) === String(id));
+    const updatedTasks = tasks.filter(t => String(t.id) !== String(id));
+    if (setTasks) {
+      setTasks(updatedTasks);
+    }
+    if (logActivity && targetTask) {
+      logActivity('Task Deleted', `Deleted task: "${targetTask?.title || id}"`);
     }
   };
 
@@ -140,9 +139,23 @@ export default function TasksManager({
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={18} /> Schedule Task
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          {tasks.length > 0 && (
+            <button
+              className="btn btn-outline"
+              style={{ color: '#ef4444', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
+              onClick={() => {
+                if (setTasks) setTasks([]);
+                if (logActivity) logActivity('All Tasks Cleared', 'Cleared all counseling tasks');
+              }}
+            >
+              <Trash2 size={16} /> Clear All Tasks ({tasks.length})
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+            <Plus size={18} /> Schedule Task
+          </button>
+        </div>
       </div>
 
       {/* 🔔 Reminder Notification Banner */}
@@ -246,16 +259,14 @@ export default function TasksManager({
                   <span>📅 {task.dueDate} at {task.dueTime}</span>
                 </div>
 
-                {isAdmin && (
-                  <button
-                    className="btn-icon"
-                    style={{ color: '#ef4444' }}
-                    title="Delete Task (Admin Only)"
-                    onClick={() => deleteTask(task.id)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <button
+                  className="btn-icon"
+                  style={{ color: '#ef4444' }}
+                  title="Delete Task"
+                  onClick={() => deleteTask(task.id)}
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
           ))

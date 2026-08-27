@@ -29,6 +29,20 @@ import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
 import { db as firebaseDB, ref, onValue, set } from './firebase';
 
+// Automatic cache cleanup for sample/mock data reset
+try {
+  if (!localStorage.getItem('lakshya_mock_data_cleared_v2')) {
+    localStorage.removeItem('lakshya_leads');
+    localStorage.removeItem('lakshya_tasks');
+    localStorage.removeItem('lakshya_activities');
+    localStorage.removeItem('lakshya_notifications');
+    localStorage.removeItem('lakshya_uploaded_documents');
+    localStorage.setItem('lakshya_mock_data_cleared_v2', 'true');
+  }
+} catch (e) {
+  console.warn('LocalStorage cache clear error:', e);
+}
+
 export default function App() {
   // Load state from localStorage to persist across browser refresh
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -41,77 +55,14 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  const [courses, setCourses] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_courses');
-      return saved ? JSON.parse(saved) : DEFAULT_COURSES;
-    } catch {
-      return DEFAULT_COURSES;
-    }
-  });
-
-  const [leads, setLeads] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_leads');
-      let parsed = saved ? JSON.parse(saved) : null;
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-      return [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [employees, setEmployees] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_employees');
-      let parsed = saved ? JSON.parse(saved) : COUNSELORS;
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Filter out legacy demo employees if present in local browser cache
-        const cleaned = parsed.filter(e => e && e.name && !['Ananya Sharma', 'Rahul Verma', 'Priya Nair', 'Vikram Mehta'].includes(e.name));
-        return cleaned.length > 0 ? cleaned : COUNSELORS;
-      }
-      return COUNSELORS;
-    } catch {
-      return COUNSELORS;
-    }
-  });
-
-
-
-  const [tasks, setTasks] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_tasks');
-      return saved ? JSON.parse(saved) : INITIAL_TASKS;
-    } catch {
-      return INITIAL_TASKS;
-    }
-  });
-
-  const [activityLogs, setActivityLogs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_activities');
-      return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
-    } catch {
-      return INITIAL_ACTIVITIES;
-    }
-  });
-
-
-  const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('lakshya_notifications');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [attendanceRecords, setAttendanceRecords] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lakshya_attendance');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [courses, setCourses] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState({});
+  const [documents, setDocuments] = useState([]);
 
   const handleSaveAttendance = (dateStr, dailyStatusObj) => {
     const existingForDate = attendanceRecords[dateStr] || {};
@@ -124,9 +75,8 @@ export default function App() {
       [dateStr]: mergedForDate
     };
     setAttendanceRecords(updated);
-    localStorage.setItem('lakshya_attendance', JSON.stringify(updated));
     logActivity('Staff Attendance Updated', `Staff marked/updated attendance register for date ${dateStr}`);
-    broadcastStateSync({ attendanceRecords: updated });
+    saveToCentralDB({ attendanceRecords: updated });
     try {
       window.dispatchEvent(new CustomEvent('lakshya_attendance_updated', { detail: updated }));
     } catch {}
@@ -182,6 +132,43 @@ export default function App() {
     localStorage.setItem('lakshya_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  // One-time Cloud Database Purge to wipe remote sample data (144 leads, tasks, notifications) from Firebase
+  useEffect(() => {
+    if (!localStorage.getItem('lakshya_cloud_wipe_v100')) {
+      const cleanPayload = {
+        courses: DEFAULT_COURSES,
+        employees: COUNSELORS,
+        leads: [],
+        tasks: [],
+        activityLogs: [],
+        notifications: [],
+        attendanceRecords: {},
+        documents: []
+      };
+      setLeads([]);
+      setTasks([]);
+      setActivityLogs([]);
+      setNotifications([]);
+      setDocuments([]);
+      setEmployees(COUNSELORS);
+
+      localStorage.setItem('lakshya_cloud_wipe_v100', 'true');
+      localStorage.setItem('lakshya_leads', JSON.stringify([]));
+      localStorage.setItem('lakshya_tasks', JSON.stringify([]));
+      localStorage.setItem('lakshya_activities', JSON.stringify([]));
+      localStorage.setItem('lakshya_notifications', JSON.stringify([]));
+      localStorage.setItem('lakshya_uploaded_documents', JSON.stringify([]));
+      localStorage.setItem('lakshya_employees', JSON.stringify(COUNSELORS));
+
+      try {
+        const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
+        set(crmRef, cleanPayload).catch((err) => console.error('Firebase wipe error:', err));
+      } catch (err) {
+        console.error('Firebase reset error:', err);
+      }
+    }
+  }, []);
+
   // Central Database API Sync Engine (Firebase Realtime Cloud Database Sync)
   useEffect(() => {
     try {
@@ -217,25 +204,65 @@ export default function App() {
               }
             }
           }
-          if (data.tasks && Array.isArray(data.tasks)) {
-            setTasks(data.tasks);
-            localStorage.setItem('lakshya_tasks', JSON.stringify(data.tasks));
+          if (data.tasks !== undefined) {
+            let parsedTasks = [];
+            if (Array.isArray(data.tasks)) {
+              parsedTasks = data.tasks.filter(Boolean);
+            } else if (typeof data.tasks === 'object' && data.tasks !== null) {
+              parsedTasks = Object.values(data.tasks).filter(Boolean);
+            }
+            setTasks(parsedTasks);
+            localStorage.setItem('lakshya_tasks', JSON.stringify(parsedTasks));
+          } else {
+            setTasks([]);
+            localStorage.setItem('lakshya_tasks', JSON.stringify([]));
           }
           if (data.courses && Array.isArray(data.courses)) {
             setCourses(data.courses);
             localStorage.setItem('lakshya_courses', JSON.stringify(data.courses));
           }
-          if (data.activityLogs) {
-            setActivityLogs(data.activityLogs);
-            localStorage.setItem('lakshya_activities', JSON.stringify(data.activityLogs));
+          if (data.activityLogs !== undefined) {
+            let parsedLogs = [];
+            if (Array.isArray(data.activityLogs)) {
+              parsedLogs = data.activityLogs.filter(Boolean);
+            } else if (typeof data.activityLogs === 'object' && data.activityLogs !== null) {
+              parsedLogs = Object.values(data.activityLogs).filter(Boolean);
+            }
+            setActivityLogs(parsedLogs);
+            localStorage.setItem('lakshya_activities', JSON.stringify(parsedLogs));
+          } else {
+            setActivityLogs([]);
+            localStorage.setItem('lakshya_activities', JSON.stringify([]));
           }
-          if (data.notifications) {
-            setNotifications(data.notifications);
-            localStorage.setItem('lakshya_notifications', JSON.stringify(data.notifications));
+          if (data.notifications !== undefined) {
+            let parsedNotifs = [];
+            if (Array.isArray(data.notifications)) {
+              parsedNotifs = data.notifications.filter(Boolean);
+            } else if (typeof data.notifications === 'object' && data.notifications !== null) {
+              parsedNotifs = Object.values(data.notifications).filter(Boolean);
+            }
+            setNotifications(parsedNotifs);
+            localStorage.setItem('lakshya_notifications', JSON.stringify(parsedNotifs));
+          } else {
+            setNotifications([]);
+            localStorage.setItem('lakshya_notifications', JSON.stringify([]));
           }
           if (data.attendanceRecords && typeof data.attendanceRecords === 'object') {
             setAttendanceRecords(data.attendanceRecords);
             localStorage.setItem('lakshya_attendance', JSON.stringify(data.attendanceRecords));
+          }
+          if (data.documents !== undefined) {
+            let parsedDocs = [];
+            if (Array.isArray(data.documents)) {
+              parsedDocs = data.documents.filter(Boolean);
+            } else if (typeof data.documents === 'object' && data.documents !== null) {
+              parsedDocs = Object.values(data.documents).filter(Boolean);
+            }
+            setDocuments(parsedDocs);
+            localStorage.setItem('lakshya_uploaded_documents', JSON.stringify(parsedDocs));
+          } else {
+            setDocuments([]);
+            localStorage.setItem('lakshya_uploaded_documents', JSON.stringify([]));
           }
         }
       });
@@ -255,6 +282,7 @@ export default function App() {
         activityLogs,
         notifications,
         attendanceRecords,
+        documents,
         ...override
       };
       // Write to Firebase Realtime Cloud Database
@@ -274,10 +302,7 @@ export default function App() {
     }
   };
 
-  // Sync to Central DB on state changes
-  useEffect(() => {
-    saveToCentralDB();
-  }, [courses, employees, leads, tasks, activityLogs, notifications, attendanceRecords]);
+
 
   // Multi-window Real-Time Broadcast Sync Engine & Storage Listener
   useEffect(() => {
@@ -559,20 +584,23 @@ export default function App() {
 
   // Handle note addition
   const handleAddNote = (leadId, noteText) => {
-    const timeStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const noteEntry = `\n\n[Log - ${timeStamp}]: ${noteText}`;
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timeStr = today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const authorName = currentUser?.name || 'User';
+    const noteEntry = `\n\n[Log - ${dateStr} ${timeStr} by ${authorName}]: ${noteText}`;
     const targetLead = leads.find((l) => l.id === leadId);
-    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, notes: l.notes + noteEntry } : l);
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, notes: (l.notes || '') + noteEntry } : l);
     setLeads(updatedLeads);
     localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
     saveToCentralDB({ leads: updatedLeads });
     if (selectedLead && selectedLead.id === leadId) {
-      setSelectedLead(prev => ({ ...prev, notes: prev.notes + noteEntry }));
+      setSelectedLead(prev => ({ ...prev, notes: (prev.notes || '') + noteEntry }));
     }
     if (targetLead) {
       logActivity(
         'Note Added to Lead',
-        `Added note to ${targetLead.name}: "${noteText}"`
+        `Added note to ${targetLead.name} by ${authorName}: "${noteText}"`
       );
     }
   };
@@ -613,6 +641,18 @@ export default function App() {
     logActivity('Fee/Budget Updated', `Updated Fee/Budget for lead ${leadId} to "${newFeeBudget}"`);
   };
 
+  // Handle direct full student profile edit
+  const handleUpdateLeadProfile = (leadId, updatedFields) => {
+    const updatedLeads = leads.map(l => l.id === leadId ? { ...l, ...updatedFields } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
+    if (selectedLead && selectedLead.id === leadId) {
+      setSelectedLead(prev => ({ ...prev, ...updatedFields }));
+    }
+    logActivity('Student Profile Edited', `Updated details for lead ${leadId}`);
+  };
+
   // Handle direct notes update/edit/delete
   const handleUpdateLeadNotes = (leadId, newNotesText) => {
     const updatedLeads = leads.map(l => l.id === leadId ? { ...l, notes: newNotesText } : l);
@@ -626,37 +666,58 @@ export default function App() {
   };
 
 
-  // Handle add lead (Admin action only)
+  // Handle add lead / bulk add leads (Admin action only)
   const handleAddLead = (newLeadData) => {
     if (currentUser?.role !== 'Admin') {
       alert('Permission Denied: Only Admin has authority to create new student enquiries.');
       return;
     }
-    const updatedLeads = [newLeadData, ...leads];
+
+    let updatedLeads = [];
+    if (Array.isArray(newLeadData)) {
+      updatedLeads = [...newLeadData, ...leads];
+    } else {
+      updatedLeads = [newLeadData, ...leads];
+    }
+
     setLeads(updatedLeads);
     localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
     saveToCentralDB({ leads: updatedLeads });
-    logActivity(
-      'New Lead Created',
-      `Admin created new lead for student ${newLeadData.name} (${newLeadData.targetCourse})`
-    );
-    if (newLeadData.counselor) {
-      sendRealtimeNotification({
-        targetUser: newLeadData.counselor,
-        title: '📄 New Lead Assigned',
-        details: `Admin assigned new student enquiry "${newLeadData.name}" (${newLeadData.targetCourse}) to your profile!`,
-        type: 'LeadAssigned'
-      });
+
+    if (Array.isArray(newLeadData)) {
+      logActivity(
+        'Bulk Leads Created',
+        `Admin imported ${newLeadData.length} student enquiries via Excel/CSV`
+      );
+    } else {
+      logActivity(
+        'New Lead Created',
+        `Admin created new lead for student ${newLeadData.name} (${newLeadData.targetCourse})`
+      );
+      if (newLeadData.counselor) {
+        sendRealtimeNotification({
+          targetUser: newLeadData.counselor,
+          title: '📄 New Lead Assigned',
+          details: `Admin assigned new student enquiry "${newLeadData.name}" (${newLeadData.targetCourse}) to your profile!`,
+          type: 'LeadAssigned'
+        });
+      }
     }
   };
 
-  // Handle add employee (Admin action only)
+  // Add Employee Handler (Write directly to Firebase)
   const handleAddEmployee = (newEmployeeData) => {
     if (currentUser?.role !== 'Admin') {
       alert('Permission Denied: Only Admin has authority to create new employee IDs.');
       return;
     }
-    setEmployees([newEmployeeData, ...employees]);
+    const updatedEmployees = [newEmployeeData, ...employees];
+    setEmployees(updatedEmployees);
+    try {
+      set(ref(firebaseDB, 'lakshya_crm_central_db/employees'), updatedEmployees);
+    } catch (e) {
+      console.error('Firebase employee add error:', e);
+    }
     logActivity(
       'New Employee ID Created',
       `Admin created new employee ID for ${newEmployeeData.name} with Role "${newEmployeeData.role}"`
@@ -670,7 +731,9 @@ export default function App() {
     const updatedLeads = leads.filter(l => l.id !== leadId);
     setLeads(updatedLeads);
     localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-    saveToCentralDB({ leads: updatedLeads });
+    try {
+      set(ref(firebaseDB, 'lakshya_crm_central_db/leads'), updatedLeads);
+    } catch (e) {}
     if (targetLead) {
       logActivity('Lead Deleted', `Deleted lead record ${targetLead.name} (${targetLead.id})`);
     }
@@ -683,8 +746,19 @@ export default function App() {
     const updatedLeads = leads.filter((l) => !idsSet.has(l.id));
     setLeads(updatedLeads);
     localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-    saveToCentralDB({ leads: updatedLeads });
+    try {
+      set(ref(firebaseDB, 'lakshya_crm_central_db/leads'), updatedLeads);
+    } catch (e) {}
     logActivity('Bulk Leads Deleted', `Admin deleted ${leadIds.length} student enquiries`);
+  };
+
+  // Handle tasks updates (add, toggle, delete) with immediate Firebase & LocalStorage sync
+  const handleUpdateTasks = (newTasks) => {
+    setTasks(newTasks);
+    localStorage.setItem('lakshya_tasks', JSON.stringify(newTasks));
+    try {
+      set(ref(firebaseDB, 'lakshya_crm_central_db/tasks'), newTasks);
+    } catch (e) {}
   };
 
 
@@ -720,6 +794,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         employeeCount={employees.length}
+        taskCount={tasks.length}
+        batchCount={0}
         currentUser={currentUser}
       />
 
@@ -823,7 +899,7 @@ export default function App() {
           {activeTab === 'tasks' && (
             <TasksManager
               tasks={tasks}
-              setTasks={setTasks}
+              setTasks={handleUpdateTasks}
               logActivity={logActivity}
               counselors={employees}
               searchQuery={searchQuery}
@@ -862,6 +938,8 @@ export default function App() {
             <DocumentUploadManager
               currentUser={currentUser}
               employees={employees}
+              documents={documents}
+              setDocuments={setDocuments}
             />
           )}
 
@@ -889,7 +967,10 @@ export default function App() {
           onAddNote={handleAddNote}
           onDeleteLead={handleDeleteLead}
           onUpdateLeadNotes={handleUpdateLeadNotes}
+          onUpdateLeadProfile={handleUpdateLeadProfile}
           employees={employees}
+          currentUser={currentUser}
+          courses={courses}
         />
       )}
 
