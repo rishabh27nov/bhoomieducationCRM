@@ -364,69 +364,71 @@ export default function LeadsManager({
     <div className="animate-fade-in" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* Header & Controls Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ minWidth: '240px' }}>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
             Student Enquiries (NEET & JEE)
           </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             Manage prospective student admission pipeline & counseling stages
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {/* Export Buttons */}
           <button
             className="btn btn-secondary"
-            style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#15803d', borderColor: '#b7e4c7', backgroundColor: '#f0fdf4' }}
+            style={{ fontSize: '0.78rem', padding: '0.4rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#15803d', borderColor: '#b7e4c7', backgroundColor: '#f0fdf4', whiteSpace: 'nowrap' }}
             onClick={handleExportExcel}
             title="Download Student Enquiries as Excel Sheet (.csv)"
           >
-            <FileSpreadsheet size={16} /> Export Excel
+            <FileSpreadsheet size={15} /> Export Excel
           </button>
 
           <button
             className="btn btn-secondary"
-            style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#b91c1c', borderColor: '#fecaca', backgroundColor: '#fef2f2' }}
+            style={{ fontSize: '0.78rem', padding: '0.4rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#b91c1c', borderColor: '#fecaca', backgroundColor: '#fef2f2', whiteSpace: 'nowrap' }}
             onClick={handleExportPDF}
             title="Download PDF Report"
           >
-            <FileText size={16} /> Download PDF
+            <FileText size={15} /> Download PDF
           </button>
 
           {/* View Toggle */}
-          <div style={{ display: 'flex', backgroundColor: 'var(--color-brand-soft)', padding: '3px', borderRadius: 'var(--radius-md)' }}>
+          <div style={{ display: 'flex', backgroundColor: 'var(--color-brand-soft)', padding: '2px', borderRadius: 'var(--radius-md)' }}>
             <button
               onClick={() => setViewMode('table')}
               style={{
-                padding: '0.4rem 0.75rem',
+                padding: '0.35rem 0.65rem',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
                 backgroundColor: viewMode === 'table' ? '#ffffff' : 'transparent',
                 color: viewMode === 'table' ? 'var(--color-brand-primary)' : 'var(--text-muted)',
                 fontWeight: 600,
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
-                boxShadow: viewMode === 'table' ? 'var(--shadow-sm)' : 'none'
+                boxShadow: viewMode === 'table' ? 'var(--shadow-sm)' : 'none',
+                whiteSpace: 'nowrap'
               }}
             >
-              <TableIcon size={16} /> Table
+              <TableIcon size={15} /> Table
             </button>
             <button
               onClick={() => setViewMode('kanban')}
               style={{
-                padding: '0.4rem 0.75rem',
+                padding: '0.35rem 0.65rem',
                 borderRadius: 'var(--radius-sm)',
                 border: 'none',
                 backgroundColor: viewMode === 'kanban' ? '#ffffff' : 'transparent',
                 color: viewMode === 'kanban' ? 'var(--color-brand-primary)' : 'var(--text-muted)',
                 fontWeight: 600,
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
-                boxShadow: viewMode === 'kanban' ? 'var(--shadow-sm)' : 'none'
+                boxShadow: viewMode === 'kanban' ? 'var(--shadow-sm)' : 'none',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Kanban size={16} /> Kanban Pipeline
+              <Kanban size={15} /> Kanban Pipeline
             </button>
           </div>
 
@@ -435,36 +437,38 @@ export default function LeadsManager({
               <button
                 className="btn"
                 style={{
-                  fontSize: '0.8rem',
-                  padding: '0.45rem 0.85rem',
-                  display: 'flex',
+                  fontSize: '0.78rem',
+                  padding: '0.4rem 0.65rem',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
+                  gap: '0.3rem',
                   color: '#15803d',
                   borderColor: '#b7e4c7',
                   backgroundColor: '#ffffff',
                   cursor: 'pointer',
-                  fontWeight: 700
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap'
                 }}
                 onClick={handleDownloadSampleTemplate}
                 title="Download CSV Format Sample File"
               >
-                <Download size={16} /> Sample CSV Format
+                <Download size={15} /> Sample CSV Format
               </button>
 
               <button
                 className="btn"
                 style={{
-                  fontSize: '0.8rem',
-                  padding: '0.45rem 0.85rem',
-                  display: 'flex',
+                  fontSize: '0.78rem',
+                  padding: '0.4rem 0.65rem',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
+                  gap: '0.3rem',
                   color: '#15803d',
                   borderColor: '#b7e4c7',
                   backgroundColor: '#f0fdf4',
                   cursor: 'pointer',
-                  fontWeight: 700
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap'
                 }}
                 onClick={() => {
                   setImportedRowsData([]);
@@ -472,11 +476,11 @@ export default function LeadsManager({
                 }}
                 title="Bulk Upload Excel / CSV Sheet"
               >
-                <FileSpreadsheet size={16} /> Bulk Upload Excel / CSV
+                <FileSpreadsheet size={15} /> Bulk Upload Excel / CSV
               </button>
 
-              <button className="btn btn-primary" onClick={onOpenAddLead} title="Create New Student Enquiry (Admin Only)">
-                <Plus size={18} /> New Student Enquiry
+              <button className="btn btn-primary" style={{ fontSize: '0.78rem', padding: '0.4rem 0.75rem', whiteSpace: 'nowrap' }} onClick={onOpenAddLead} title="Create New Student Enquiry (Admin Only)">
+                <Plus size={16} /> New Student Enquiry
               </button>
             </>
           )}
