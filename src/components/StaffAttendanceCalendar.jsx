@@ -688,19 +688,20 @@ export default function StaffAttendanceCalendar({
                   </td>
 
                   <td>
-                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                       <button
                         type="button"
                         onClick={() => handleStatusToggle(emp.id, 'Present')}
                         style={{
-                          padding: '0.25rem 0.6rem',
+                          padding: '0.25rem 0.5rem',
                           borderRadius: 'var(--radius-md)',
                           fontSize: '0.75rem',
                           fontWeight: 700,
                           border: 'none',
                           cursor: canEdit ? 'pointer' : 'default',
                           backgroundColor: rec.status === 'Present' ? '#22c55e' : '#f1f5f9',
-                          color: rec.status === 'Present' ? '#ffffff' : '#64748b'
+                          color: rec.status === 'Present' ? '#ffffff' : '#64748b',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         🟢 Present
@@ -710,14 +711,15 @@ export default function StaffAttendanceCalendar({
                         type="button"
                         onClick={() => handleStatusToggle(emp.id, 'Absent')}
                         style={{
-                          padding: '0.25rem 0.6rem',
+                          padding: '0.25rem 0.5rem',
                           borderRadius: 'var(--radius-md)',
                           fontSize: '0.75rem',
                           fontWeight: 700,
                           border: 'none',
                           cursor: canEdit ? 'pointer' : 'default',
                           backgroundColor: rec.status === 'Absent' ? '#ef4444' : '#f1f5f9',
-                          color: rec.status === 'Absent' ? '#ffffff' : '#64748b'
+                          color: rec.status === 'Absent' ? '#ffffff' : '#64748b',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         🔴 Absent
@@ -727,14 +729,15 @@ export default function StaffAttendanceCalendar({
                         type="button"
                         onClick={() => handleStatusToggle(emp.id, 'Half Day')}
                         style={{
-                          padding: '0.25rem 0.6rem',
+                          padding: '0.25rem 0.5rem',
                           borderRadius: 'var(--radius-md)',
                           fontSize: '0.75rem',
                           fontWeight: 700,
                           border: 'none',
                           cursor: canEdit ? 'pointer' : 'default',
                           backgroundColor: rec.status === 'Half Day' ? '#f59e0b' : '#f1f5f9',
-                          color: rec.status === 'Half Day' ? '#ffffff' : '#64748b'
+                          color: rec.status === 'Half Day' ? '#ffffff' : '#64748b',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         🟡 Half Day
@@ -744,14 +747,15 @@ export default function StaffAttendanceCalendar({
                         type="button"
                         onClick={() => handleStatusToggle(emp.id, 'On Leave')}
                         style={{
-                          padding: '0.25rem 0.6rem',
+                          padding: '0.25rem 0.5rem',
                           borderRadius: 'var(--radius-md)',
                           fontSize: '0.75rem',
                           fontWeight: 700,
                           border: 'none',
                           cursor: canEdit ? 'pointer' : 'default',
                           backgroundColor: rec.status === 'On Leave' ? '#3b82f6' : '#f1f5f9',
-                          color: rec.status === 'On Leave' ? '#ffffff' : '#64748b'
+                          color: rec.status === 'On Leave' ? '#ffffff' : '#64748b',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         🔵 On Leave
