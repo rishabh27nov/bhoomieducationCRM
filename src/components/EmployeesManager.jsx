@@ -70,33 +70,51 @@ export default function EmployeesManager({
   };
 
   const handleExportExcel = () => {
-    const exportData = filteredEmployees.map((emp) => ({
-      'Employee ID': emp.id,
-      'Full Name': emp.name,
-      'Role': emp.role,
-      'Official Email': emp.email,
-      'Phone Number': emp.phone,
-      'Username': emp.username || emp.id,
-      'Active Leads': emp.activeLeads,
-      'Conversion Rate': emp.conversion,
-      'Status': emp.status,
-      'Joined Date': emp.joinedDate
-    }));
+    const exportData = filteredEmployees.map((emp) => {
+      const empAssignedLeads = leads.filter((l) => isCounselorMatch(l.counselor, emp.name));
+      const activeCount = empAssignedLeads.length;
+      const convertedCount = empAssignedLeads.filter(
+        (l) => l.stage === 'Fee Paid & Enrolled' || l.stage === 'Admitted' || l.stage === 'Enrolled'
+      ).length;
+      const calcConversion = activeCount > 0 ? `${Math.round((convertedCount / activeCount) * 100)}%` : '0%';
+
+      return {
+        'Employee ID': emp.id,
+        'Full Name': emp.name,
+        'Role': emp.role,
+        'Official Email': emp.email,
+        'Phone Number': emp.phone || '',
+        'Username': emp.username || emp.id,
+        'Active Leads': activeCount,
+        'Conversion Rate': calcConversion,
+        'Status': emp.status || 'Active',
+        'Joined Date': emp.joinedDate || ''
+      };
+    });
     exportToExcel(exportData, `Staff_Roster_Excel_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const handleExportPDF = () => {
     const columns = ['ID', 'Name', 'Role', 'Email', 'Phone', 'Active Leads', 'Conversion', 'Status'];
-    const rows = filteredEmployees.map((e) => [
-      e.id,
-      e.name,
-      e.role,
-      e.email,
-      e.phone || '',
-      e.activeLeads,
-      e.conversion,
-      e.status
-    ]);
+    const rows = filteredEmployees.map((emp) => {
+      const empAssignedLeads = leads.filter((l) => isCounselorMatch(l.counselor, emp.name));
+      const activeCount = empAssignedLeads.length;
+      const convertedCount = empAssignedLeads.filter(
+        (l) => l.stage === 'Fee Paid & Enrolled' || l.stage === 'Admitted' || l.stage === 'Enrolled'
+      ).length;
+      const calcConversion = activeCount > 0 ? `${Math.round((convertedCount / activeCount) * 100)}%` : '0%';
+
+      return [
+        emp.id,
+        emp.name,
+        emp.role,
+        emp.email,
+        emp.phone || '',
+        activeCount,
+        calcConversion,
+        emp.status || 'Active'
+      ];
+    });
     exportToPDF('Faculty & Staff Roster Report', columns, rows, 'Staff_Roster_Report.pdf');
   };
 
