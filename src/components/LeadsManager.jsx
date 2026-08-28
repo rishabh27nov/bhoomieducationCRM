@@ -430,37 +430,6 @@ export default function LeadsManager({
             </button>
           </div>
 
-          {isAdmin && (
-            <>
-              <button
-                className="btn"
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '0.45rem 0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-            <button
-              className="btn"
-              style={{
-                fontSize: '0.8rem',
-                padding: '0.45rem 0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                color: '#15803d',
-                borderColor: '#b7e4c7',
-                backgroundColor: '#ffffff',
-                cursor: 'pointer',
-                fontWeight: 700
-              }}
-              onClick={handleDownloadSampleTemplate}
-              title="Download CSV Format Sample File"
-            >
-              <Download size={16} /> Sample CSV Format
-            </button>
-          )}
-
           <button
             className="btn"
             style={{
@@ -471,9 +440,30 @@ export default function LeadsManager({
               gap: '0.35rem',
               color: '#15803d',
               borderColor: '#b7e4c7',
-              backgroundColor: '#f0fdf4',
+              backgroundColor: '#ffffff',
               cursor: 'pointer',
               fontWeight: 700
+            }}
+            onClick={handleDownloadSampleTemplate}
+            title="Download CSV Format Sample File"
+          >
+            <Download size={16} /> Sample CSV Format
+          </button>
+
+          <button
+            className="btn"
+            style={{
+              fontSize: '0.8rem',
+              padding: '0.45rem 0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              color: '#ffffff',
+              borderColor: '#15803d',
+              backgroundColor: '#15803d',
+              cursor: 'pointer',
+              fontWeight: 700,
+              boxShadow: '0 2px 6px rgba(21, 128, 61, 0.3)'
             }}
             onClick={() => {
               setImportedRowsData([]);
