@@ -62,7 +62,7 @@ export default function StaffAttendanceCalendar({
       if (recForDay) {
         targetStaffList.forEach((emp) => {
           if (activeEmpFilter === 'ALL' || activeEmpFilter === emp.id) {
-            const entry = recForDay[emp.id] || { status: 'Present', inTime: '09:30 AM', remarks: '' };
+            const entry = recForDay[emp.id] || { status: 'Absent', inTime: '09:30 AM', remarks: '' };
 
             if (entry.status === 'Present') presentCount++;
             else if (entry.status === 'Absent') absentCount++;
@@ -136,7 +136,7 @@ export default function StaffAttendanceCalendar({
     const initial = {};
     employees.forEach((emp) => {
       initial[emp.id] = (existing && existing[emp.id]) || {
-        status: 'Present',
+        status: 'Absent',
         inTime: '09:30 AM',
         remarks: ''
       };
@@ -150,7 +150,7 @@ export default function StaffAttendanceCalendar({
     const cleaned = {};
     employees.forEach((emp) => {
       cleaned[emp.id] = (recordForDate && recordForDate[emp.id]) || {
-        status: 'Present',
+        status: 'Absent',
         inTime: '09:30 AM',
         remarks: ''
       };
@@ -170,7 +170,7 @@ export default function StaffAttendanceCalendar({
             const cleaned = {};
             employees.forEach((emp) => {
               cleaned[emp.id] = recordForDate[emp.id] || {
-                status: 'Present',
+                status: 'Absent',
                 inTime: '09:30 AM',
                 remarks: ''
               };
@@ -332,8 +332,8 @@ export default function StaffAttendanceCalendar({
   let totalHalfDay = 0;
   let totalLeave = 0;
 
-  targetStaffList.forEach((emp) => {
-    const st = dailyStatus[emp.id]?.status || 'Present';
+  employees.forEach((emp) => {
+    const st = dailyStatus[emp.id]?.status || 'Absent';
     if (st === 'Present') totalPresent++;
     else if (st === 'Absent') totalAbsent++;
     else if (st === 'Half Day') totalHalfDay++;
@@ -658,7 +658,7 @@ export default function StaffAttendanceCalendar({
           </thead>
           <tbody>
             {displayEmployees.map((emp) => {
-              const rec = dailyStatus[emp.id] || { status: 'Present', inTime: '09:30 AM', remarks: '' };
+              const rec = dailyStatus[emp.id] || { status: 'Absent', inTime: '09:30 AM', remarks: '' };
               const canEdit = isAdmin || isEmployeeSelf(emp);
 
               return (
