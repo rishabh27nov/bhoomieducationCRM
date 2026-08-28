@@ -130,16 +130,20 @@ export default function StaffAttendanceCalendar({
 
 
 
+  const formatRecord = (rec) => {
+    if (!rec) return { status: 'Absent', inTime: '09:30 AM', remarks: '' };
+    if (rec.remarks === 'Marked Present') {
+      return { status: 'Absent', inTime: '09:30 AM', remarks: '' };
+    }
+    return rec;
+  };
+
   // Get or initialize attendance for the selected date
   const [dailyStatus, setDailyStatus] = useState(() => {
     const existing = attendanceRecords && attendanceRecords[todayStr];
     const initial = {};
     employees.forEach((emp) => {
-      initial[emp.id] = (existing && existing[emp.id]) || {
-        status: 'Absent',
-        inTime: '09:30 AM',
-        remarks: ''
-      };
+      initial[emp.id] = formatRecord(existing && existing[emp.id]);
     });
     return initial;
   });
@@ -149,11 +153,7 @@ export default function StaffAttendanceCalendar({
     const recordForDate = attendanceRecords && attendanceRecords[selectedDate];
     const cleaned = {};
     employees.forEach((emp) => {
-      cleaned[emp.id] = (recordForDate && recordForDate[emp.id]) || {
-        status: 'Absent',
-        inTime: '09:30 AM',
-        remarks: ''
-      };
+      cleaned[emp.id] = formatRecord(recordForDate && recordForDate[emp.id]);
     });
     setDailyStatus(cleaned);
   }, [attendanceRecords, selectedDate, employees]);
@@ -169,11 +169,7 @@ export default function StaffAttendanceCalendar({
             const recordForDate = parsed[selectedDate];
             const cleaned = {};
             employees.forEach((emp) => {
-              cleaned[emp.id] = recordForDate[emp.id] || {
-                status: 'Absent',
-                inTime: '09:30 AM',
-                remarks: ''
-              };
+              cleaned[emp.id] = formatRecord(recordForDate[emp.id]);
             });
             setDailyStatus(cleaned);
           }

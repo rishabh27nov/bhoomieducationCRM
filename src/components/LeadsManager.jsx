@@ -534,7 +534,7 @@ export default function LeadsManager({
             value={stageFilter}
             onChange={(e) => setStageFilter(e.target.value)}
           >
-            <option value="ALL">All Stages ({assignedFilteredLeads.length})</option>
+            <option value="ALL">All Stages ({filteredLeads.length})</option>
             <option value="New Enquiry">New Enquiry</option>
             <option value="Counseling">Counseling</option>
             <option value="Demo Attended">Demo Attended</option>
