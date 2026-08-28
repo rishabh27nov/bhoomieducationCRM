@@ -542,6 +542,45 @@ export default function LeadsManager({
             <option value="Admitted">Admitted</option>
             <option value="Lost">Lost</option>
           </select>
+
+          {/* Course Filter */}
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '170px' }}
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+          >
+            <option value="ALL">All Courses ({courses.length})</option>
+            {courses.map((course) => (
+              <option key={course} value={course}>
+                {course}
+              </option>
+            ))}
+          </select>
+
+          {/* Counselor / Employee Target Filter */}
+          {isEmployeeRole ? (
+            <div style={{ padding: '0.45rem 0.85rem', backgroundColor: '#f0fdf4', border: '1px solid #b7e4c7', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-brand-emerald)' }} title="Employee Role: Access locked to own assigned student leads only">
+              🔒 👤 My Assigned Leads Only ({currentUser?.name}) ({filteredLeads.length})
+            </div>
+          ) : (
+            <select
+              className="form-select"
+              style={{ width: 'auto', minWidth: '200px', fontWeight: 700, borderColor: counselorFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
+              value={counselorFilter}
+              onChange={(e) => setCounselorFilter(e.target.value)}
+            >
+              <option value="ALL">👥 All Counselors ({leads.length} Leads)</option>
+              {uniqueCounselorNames.map((cName) => {
+                const count = leads.filter((l) => isCounselorMatch(l.counselor, cName)).length;
+                return (
+                  <option key={cName} value={cName}>
+                    👤 {cName} ({count} Leads)
+                  </option>
+                );
+              })}
+            </select>
+          )}
         </div>
 
         {/* Prominent Quick Bulk Upload Button */}
@@ -574,47 +613,6 @@ export default function LeadsManager({
             <FileSpreadsheet size={18} /> 📊 Bulk Upload Excel / CSV Leads
           </button>
         </div>
-      </div>
-
-        {/* Course Filter */}
-        <select
-          className="form-select"
-          style={{ width: 'auto', minWidth: '170px' }}
-          value={courseFilter}
-          onChange={(e) => setCourseFilter(e.target.value)}
-        >
-          <option value="ALL">All Courses ({courses.length})</option>
-          {courses.map((course) => (
-            <option key={course} value={course}>
-              {course}
-            </option>
-          ))}
-        </select>
-
-        {/* Counselor / Employee Target Filter */}
-        {isEmployeeRole ? (
-          <div style={{ padding: '0.45rem 0.85rem', backgroundColor: '#f0fdf4', border: '1px solid #b7e4c7', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-brand-emerald)' }} title="Employee Role: Access locked to own assigned student leads only">
-            🔒 👤 My Assigned Leads Only ({currentUser?.name}) ({filteredLeads.length})
-          </div>
-        ) : (
-          <select
-            className="form-select"
-            style={{ width: 'auto', minWidth: '200px', fontWeight: 700, borderColor: counselorFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
-            value={counselorFilter}
-            onChange={(e) => setCounselorFilter(e.target.value)}
-          >
-            <option value="ALL">👥 All Counselors ({leads.length} Leads)</option>
-            {uniqueCounselorNames.map((cName) => {
-              const count = leads.filter((l) => isCounselorMatch(l.counselor, cName)).length;
-              return (
-                <option key={cName} value={cName}>
-                  👤 {cName} ({count} Leads)
-                </option>
-              );
-            })}
-          </select>
-        )}
-
       </div>
 
       {/* Admin Quick Employee Cards Selection Bar */}
