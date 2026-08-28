@@ -17,6 +17,7 @@ export default function EmployeeProfileModal({
   const [activeTab, setActiveTab] = useState(initialTab);
   const [empIdInput, setEmpIdInput] = useState(employee?.id || '');
   const [nameInput, setNameInput] = useState(employee?.name || '');
+  const [usernameInput, setUsernameInput] = useState(employee?.username || employee?.id || '');
   const [emailInput, setEmailInput] = useState(employee?.email || '');
   const [phoneInput, setPhoneInput] = useState(employee?.phone || '');
   const [roleInput, setRoleInput] = useState(employee?.role || 'Employee');
@@ -50,6 +51,7 @@ export default function EmployeeProfileModal({
       onUpdateEmployee(employee.id, {
         id: empIdInput.trim() || employee.id,
         name: nameInput.trim(),
+        username: usernameInput.trim() || employee.id,
         email: emailInput.trim(),
         phone: phoneInput.trim(),
         role: roleInput,
@@ -465,16 +467,31 @@ export default function EmployeeProfileModal({
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Mobile Phone Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+91 98765 00000"
-                    value={phoneInput}
-                    onChange={(e) => setPhoneInput(e.target.value)}
-                    className="form-input"
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Login Username *</label>
+                    <input
+                      type="text"
+                      required
+                      disabled={!isAdmin}
+                      placeholder="e.g. rajesh105"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Mobile Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 00000"
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
