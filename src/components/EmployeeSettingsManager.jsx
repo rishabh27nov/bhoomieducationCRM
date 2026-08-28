@@ -25,11 +25,13 @@ export default function EmployeeSettingsManager({
   onUpdateEmployee
 }) {
   const isAdmin = currentUser?.role === 'Admin';
-  const canEditProfile = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
+  const isManagerOrAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
+  
+  // Check if target employee matches logged in user
+  const currentMatch = employees.find((e) => isCounselorMatch(e.name, currentUser?.name));
 
   // Selected employee ID to edit (defaults to logged in user if match found, else first employee)
   const [selectedEmpId, setSelectedEmpId] = useState(() => {
-    const currentMatch = employees.find((e) => isCounselorMatch(e.name, currentUser?.name));
     return currentMatch ? currentMatch.id : (employees[0]?.id || 'EMP-101');
   });
 
@@ -42,6 +44,11 @@ export default function EmployeeSettingsManager({
     password: currentUser?.password || 'emp123',
     avatar: currentUser?.avatar
   };
+
+  const isSelf = isCounselorMatch(selectedEmployee.name, currentUser?.name) || selectedEmployee.id === currentUser?.id;
+  const canEditProfile = isManagerOrAdmin || isSelf;
+  const canChangePassword = isManagerOrAdmin || isSelf;
+  const canChangeRole = isManagerOrAdmin;
 
   // Form State
   const [name, setName] = useState(selectedEmployee.name || '');
@@ -324,7 +331,7 @@ export default function EmployeeSettingsManager({
                     style={{ paddingLeft: '2.25rem', width: '100%' }}
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    disabled={!isAdmin}
+                    disabled={!canChangeRole}
                   >
                     <option value="Admin">Admin</option>
                     <option value="Senior Counselor">Senior Counselor</option>
@@ -344,13 +351,13 @@ export default function EmployeeSettingsManager({
               <KeyRound size={18} color="#52b788" /> Security & Password Management
             </h3>
 
-            {!isAdmin && (
+            {!canChangePassword && (
               <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', color: '#92400e', fontSize: '0.825rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin only. (Institute role cannot alter employee passwords).
+                <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin or Employee's own account settings.
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', opacity: isAdmin ? 1 : 0.6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', opacity: canChangePassword ? 1 : 0.6 }}>
               
               {/* New Password */}
               <div>
@@ -364,7 +371,7 @@ export default function EmployeeSettingsManager({
                     className="input-field"
                     style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem', width: '100%' }}
                     value={password}
-                    disabled={!isAdmin}
+                    disabled={!canChangePassword}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter new password"
                     required
@@ -400,7 +407,7 @@ export default function EmployeeSettingsManager({
                     className="input-field"
                     style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem', width: '100%' }}
                     value={confirmPassword}
-                    disabled={!isAdmin}
+                    disabled={!canChangePassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-type new password"
                     required

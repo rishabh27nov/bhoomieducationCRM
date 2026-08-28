@@ -27,7 +27,10 @@ export default function EmployeeProfileModal({
   const [profileSavedMessage, setProfileSavedMessage] = useState(false);
 
   const isAdmin = currentUser?.role === 'Admin';
-  const canEditProfile = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
+  const isSelf = isCounselorMatch(employee?.name, currentUser?.name) || employee?.id === currentUser?.id;
+  const canEditProfile = isAdmin || currentUser?.role === 'Institute' || isSelf;
+  const canChangePassword = isAdmin || isSelf;
+  const canChangeRole = isAdmin || currentUser?.role === 'Institute';
 
   const handleImageFileChange = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -531,7 +534,7 @@ export default function EmployeeProfileModal({
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Role / Designation</label>
                     <select
                       className="form-select"
-                      disabled={!canEditProfile}
+                      disabled={!canChangeRole}
                       value={roleInput}
                       onChange={(e) => setRoleInput(e.target.value)}
                     >
@@ -573,7 +576,7 @@ export default function EmployeeProfileModal({
                   </div>
                 </div>
 
-                {isAdmin ? (
+                {canChangePassword ? (
                   <div>
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Set / Reset Login Password *</label>
                     <div style={{ position: 'relative' }}>
@@ -606,7 +609,7 @@ export default function EmployeeProfileModal({
                   </div>
                 ) : (
                   <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', color: '#92400e', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin only. (Institute role cannot alter employee passwords).
+                    <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin or Employee's own account settings.
                   </div>
                 )}
 
