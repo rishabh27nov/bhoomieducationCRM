@@ -25,6 +25,7 @@ export default function EmployeeSettingsManager({
   onUpdateEmployee
 }) {
   const isAdmin = currentUser?.role === 'Admin';
+  const canEditProfile = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
 
   // Selected employee ID to edit (defaults to logged in user if match found, else first employee)
   const [selectedEmpId, setSelectedEmpId] = useState(() => {
@@ -343,7 +344,13 @@ export default function EmployeeSettingsManager({
               <KeyRound size={18} color="#52b788" /> Security & Password Management
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {!isAdmin && (
+              <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', color: '#92400e', fontSize: '0.825rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin only. (Institute role cannot alter employee passwords).
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', opacity: isAdmin ? 1 : 0.6 }}>
               
               {/* New Password */}
               <div>
@@ -357,6 +364,7 @@ export default function EmployeeSettingsManager({
                     className="input-field"
                     style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem', width: '100%' }}
                     value={password}
+                    disabled={!isAdmin}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter new password"
                     required
@@ -392,6 +400,7 @@ export default function EmployeeSettingsManager({
                     className="input-field"
                     style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem', width: '100%' }}
                     value={confirmPassword}
+                    disabled={!isAdmin}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-type new password"
                     required

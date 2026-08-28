@@ -26,6 +26,7 @@ export default function EmployeeProfileModal({
   const [profileSavedMessage, setProfileSavedMessage] = useState(false);
 
   const isAdmin = currentUser?.role === 'Admin';
+  const canEditProfile = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
 
   // Filter activities for this employee (using flexible matching)
   const employeeActivities = activityLogs.filter(
@@ -447,7 +448,7 @@ export default function EmployeeProfileModal({
                     <input
                       type="text"
                       required
-                      disabled={!isAdmin}
+                      disabled={!canEditProfile}
                       value={empIdInput}
                       onChange={(e) => setEmpIdInput(e.target.value)}
                       className="form-input"
@@ -460,6 +461,7 @@ export default function EmployeeProfileModal({
                     <input
                       type="text"
                       required
+                      disabled={!canEditProfile}
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
                       className="form-input"
@@ -473,7 +475,7 @@ export default function EmployeeProfileModal({
                     <input
                       type="text"
                       required
-                      disabled={!isAdmin}
+                      disabled={!canEditProfile}
                       placeholder="e.g. rajesh105"
                       value={usernameInput}
                       onChange={(e) => setUsernameInput(e.target.value)}
@@ -486,6 +488,7 @@ export default function EmployeeProfileModal({
                     <input
                       type="tel"
                       required
+                      disabled={!canEditProfile}
                       placeholder="+91 98765 00000"
                       value={phoneInput}
                       onChange={(e) => setPhoneInput(e.target.value)}
@@ -500,6 +503,7 @@ export default function EmployeeProfileModal({
                     <input
                       type="email"
                       required
+                      disabled={!canEditProfile}
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
                       className="form-input"
@@ -510,6 +514,7 @@ export default function EmployeeProfileModal({
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Role / Designation</label>
                     <select
                       className="form-select"
+                      disabled={!canEditProfile}
                       value={roleInput}
                       onChange={(e) => setRoleInput(e.target.value)}
                     >
@@ -553,7 +558,7 @@ export default function EmployeeProfileModal({
                   </div>
                 ) : (
                   <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: 'var(--radius-md)', color: '#92400e', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin only. ({currentUser?.role || 'User'} role has read-only security permission).
+                    <KeyRound size={16} /> 🔒 Password changes are restricted to System Admin only. (Institute role cannot alter employee passwords).
                   </div>
                 )}
 
@@ -561,14 +566,13 @@ export default function EmployeeProfileModal({
                   type="submit"
                   className="btn btn-primary"
                   style={{ backgroundColor: '#d97706', alignSelf: 'flex-start' }}
-                  disabled={!isAdmin}
+                  disabled={!canEditProfile}
                 >
-
-                  <Shield size={16} /> Save Profile & Password Changes
+                  <Shield size={16} /> Save Profile Changes
                 </button>
-                {!isAdmin && (
+                {!canEditProfile && (
                   <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>
-                    * Only Admin login has the power to edit profile details and passwords.
+                    * Profile edits are restricted to Admin & Institute Manager logins only.
                   </span>
                 )}
               </form>

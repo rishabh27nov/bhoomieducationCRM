@@ -38,7 +38,7 @@ export default function EmployeesManager({
   const [selectedEmployeeProfile, setSelectedEmployeeProfile] = useState(null);
   const [activeViewMode, setActiveViewMode] = useState('directory'); // 'directory' or 'attendance'
 
-  const isAdmin = currentUser?.role === 'Admin';
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
   const queryText = (searchQuery || search).toLowerCase();
 
 

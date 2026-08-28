@@ -49,7 +49,7 @@ export default function LeadsManager({
   const [showAddCoursePrompt, setShowAddCoursePrompt] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
 
-  const isAdmin = currentUser?.role === 'Admin';
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
 
 
 
