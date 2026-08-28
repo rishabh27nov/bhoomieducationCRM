@@ -21,12 +21,28 @@ export default function EmployeeProfileModal({
   const [emailInput, setEmailInput] = useState(employee?.email || '');
   const [phoneInput, setPhoneInput] = useState(employee?.phone || '');
   const [roleInput, setRoleInput] = useState(employee?.role || 'Employee');
+  const [avatarInput, setAvatarInput] = useState(employee?.avatar || '');
   const [newPasswordInput, setNewPasswordInput] = useState(employee?.password || 'emp123');
   const [showPassword, setShowPassword] = useState(false);
   const [profileSavedMessage, setProfileSavedMessage] = useState(false);
 
   const isAdmin = currentUser?.role === 'Admin';
   const canEditProfile = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        alert('Please choose an image file under 3MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarInput(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Filter activities for this employee (using flexible matching)
   const employeeActivities = activityLogs.filter(
@@ -56,6 +72,7 @@ export default function EmployeeProfileModal({
         email: emailInput.trim(),
         phone: phoneInput.trim(),
         role: roleInput,
+        avatar: avatarInput || employee.avatar,
         password: newPasswordInput.trim()
       });
     } else if (onUpdatePassword) {
@@ -522,6 +539,37 @@ export default function EmployeeProfileModal({
                       <option value="Employee">Employee</option>
                       <option value="Institute">Institute Manager</option>
                     </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>
+                    📷 Profile Photo (Upload Image File or Paste URL)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <img
+                      src={avatarInput || employee.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
+                      alt="Profile Preview"
+                      style={{ width: '52px', height: '52px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #52b788', flexShrink: 0 }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={!canEditProfile}
+                        onChange={handleImageFileChange}
+                        style={{ fontSize: '0.78rem' }}
+                      />
+                      <input
+                        type="url"
+                        disabled={!canEditProfile}
+                        placeholder="Or paste image URL (https://...)"
+                        value={avatarInput}
+                        onChange={(e) => setAvatarInput(e.target.value)}
+                        className="form-input"
+                        style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem' }}
+                      />
+                    </div>
                   </div>
                 </div>
 
