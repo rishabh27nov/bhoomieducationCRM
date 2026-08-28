@@ -316,18 +316,14 @@ export default function StaffAttendanceCalendar({
     setTimeout(() => setSavedSuccessMsg(false), 3000);
   };
 
-  // 1-Click Mark All Absent (Admin Only)
+  // 1-Click Mark All Absent
   const handleMarkAllAbsent = () => {
-    if (!isAdmin) {
-      alert('Permission Denied: Only Admin can mark all staff attendance.');
-      return;
-    }
     const updated = {};
     employees.forEach((emp) => {
       updated[emp.id] = {
         status: 'Absent',
         inTime: '09:30 AM',
-        remarks: dailyStatus[emp.id]?.remarks || 'Marked Absent'
+        remarks: dailyStatus[emp.id]?.remarks || 'Default Absent'
       };
     });
     setDailyStatus(updated);
