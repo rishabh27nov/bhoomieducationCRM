@@ -15,6 +15,7 @@ export default function EmployeeProfileModal({
   initialTab = 'activities'
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [empIdInput, setEmpIdInput] = useState(employee?.id || '');
   const [nameInput, setNameInput] = useState(employee?.name || '');
   const [emailInput, setEmailInput] = useState(employee?.email || '');
   const [phoneInput, setPhoneInput] = useState(employee?.phone || '');
@@ -47,6 +48,7 @@ export default function EmployeeProfileModal({
 
     if (onUpdateEmployee) {
       onUpdateEmployee(employee.id, {
+        id: empIdInput.trim() || employee.id,
         name: nameInput.trim(),
         email: emailInput.trim(),
         phone: phoneInput.trim(),
@@ -423,6 +425,19 @@ export default function EmployeeProfileModal({
               <form onSubmit={handleProfileSaveSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '520px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Employee ID (Code) *</label>
+                    <input
+                      type="text"
+                      required
+                      disabled={!isAdmin}
+                      value={empIdInput}
+                      onChange={(e) => setEmpIdInput(e.target.value)}
+                      className="form-input"
+                      placeholder="e.g. EMP-105"
+                    />
+                  </div>
+
+                  <div>
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Full Name *</label>
                     <input
                       type="text"
@@ -432,18 +447,18 @@ export default function EmployeeProfileModal({
                       className="form-input"
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Mobile Phone Number *</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+91 98765 00000"
-                      value={phoneInput}
-                      onChange={(e) => setPhoneInput(e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Mobile Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+91 98765 00000"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    className="form-input"
+                  />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

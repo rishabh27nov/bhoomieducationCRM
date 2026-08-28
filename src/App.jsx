@@ -504,7 +504,17 @@ export default function App() {
     const newName = updatedFields.name || oldName;
 
     // Update employees array
-    setEmployees(employees.map(e => e.id === empId ? { ...e, ...updatedFields } : e));
+    const updatedEmployeesList = employees.map(e => e.id === empId ? { ...e, ...updatedFields } : e);
+    setEmployees(updatedEmployeesList);
+
+    // Sync currentUser session if logged-in user is updated
+    if (currentUser && currentUser.id === empId) {
+      const updatedUser = { ...currentUser, ...updatedFields };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('lakshya_user', JSON.stringify(updatedUser));
+    }
+
+    saveToCentralDB({ employees: updatedEmployeesList });
 
     // Propagate name change to assigned leads and tasks if name changed
     if (newName !== oldName) {

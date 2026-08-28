@@ -4,6 +4,7 @@ import { X, UserPlus, ShieldCheck, Mail, Phone, Briefcase, Eye, EyeOff } from 'l
 export default function AddEmployeeModal({ onClose, onAddEmployee }) {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
+    id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
     name: '',
     role: 'Employee',
     email: '',
@@ -18,12 +19,12 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
     e.preventDefault();
     if (!formData.name || !formData.email) return;
 
-    const empId = `EMP-${Math.floor(100 + Math.random() * 900)}`;
+    const finalEmpId = formData.id.trim() || `EMP-${Math.floor(100 + Math.random() * 900)}`;
 
     onAddEmployee({
       ...formData,
-      id: empId,
-      username: formData.username || empId.toLowerCase(),
+      id: finalEmpId,
+      username: formData.username || finalEmpId.toLowerCase(),
       password: formData.password || 'emp123',
       activeLeads: 0,
       conversion: '0%',
@@ -82,16 +83,30 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Full Name *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Rajesh Sharma"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="form-input"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Employee ID *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. EMP-105 or 105"
+                value={formData.id}
+                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                className="form-input"
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Full Name *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Rajesh Sharma"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="form-input"
+              />
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
