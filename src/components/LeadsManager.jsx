@@ -483,61 +483,98 @@ export default function LeadsManager({
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="glass-card" style={{ padding: '1rem 1.25rem', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        {/* Segment Filter (B2C vs B2B2C) */}
-        <select
-          className="form-select"
-          style={{ width: 'auto', minWidth: '150px', fontWeight: 700, borderColor: segmentFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
-          value={segmentFilter}
-          onChange={(e) => {
-            setSegmentFilter(e.target.value);
-            if (e.target.value !== 'B2B2C') {
-              setSchoolFilter('ALL');
-            }
-          }}
-        >
-          <option value="ALL">🏢 All Segments (B2B2C & B2C)</option>
-          <option value="B2C">🎓 B2C Only</option>
-          <option value="B2B2C">🏫 B2B2C Only</option>
-        </select>
-
-        {/* Dynamic School Filter (Shows when B2B2C is selected or when school records exist) */}
-        {(segmentFilter === 'B2B2C' || (segmentFilter === 'ALL' && uniqueSchoolNames.length > 0)) && (
+      {/* Filter Bar & Quick Action */}
+      <div className="glass-card" style={{ padding: '1rem 1.25rem', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
+          {/* Segment Filter (B2C vs B2B2C) */}
           <select
             className="form-select"
-            style={{
-              width: 'auto',
-              minWidth: '180px',
-              fontWeight: 700,
-              backgroundColor: '#eff6ff',
-              borderColor: schoolFilter !== 'ALL' ? '#2563eb' : '#bfdbfe',
-              color: '#1d4ed8'
+            style={{ width: 'auto', minWidth: '150px', fontWeight: 700, borderColor: segmentFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
+            value={segmentFilter}
+            onChange={(e) => {
+              setSegmentFilter(e.target.value);
+              if (e.target.value !== 'B2B2C') {
+                setSchoolFilter('ALL');
+              }
             }}
-            value={schoolFilter}
-            onChange={(e) => setSchoolFilter(e.target.value)}
           >
-            <option value="ALL">🏫 All Schools / Institutions ({uniqueSchoolNames.length})</option>
-            {uniqueSchoolNames.map((sch) => (
-              <option key={sch} value={sch}>
-                📍 {sch}
-              </option>
-            ))}
+            <option value="ALL">🏢 All Segments (B2B2C & B2C)</option>
+            <option value="B2C">🎓 B2C Only</option>
+            <option value="B2B2C">🏫 B2B2C Only</option>
           </select>
-        )}
 
-        {/* Stage Filter */}
-        <select
-          className="form-select"
-          style={{ width: 'auto', minWidth: '160px' }}
-          value={stageFilter}
-          onChange={(e) => setStageFilter(e.target.value)}
-        >
-          <option value="ALL">All Stages ({leads.length})</option>
-          {PIPELINE_STAGES.map(stage => (
-            <option key={stage} value={stage}>{stage}</option>
-          ))}
-        </select>
+          {/* Dynamic School Filter (Shows when B2B2C is selected or when school records exist) */}
+          {(segmentFilter === 'B2B2C' || (segmentFilter === 'ALL' && uniqueSchoolNames.length > 0)) && (
+            <select
+              className="form-select"
+              style={{
+                width: 'auto',
+                minWidth: '180px',
+                fontWeight: 700,
+                backgroundColor: '#eff6ff',
+                borderColor: schoolFilter !== 'ALL' ? '#2563eb' : '#bfdbfe',
+                color: '#1d4ed8'
+              }}
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilter(e.target.value)}
+            >
+              <option value="ALL">🏫 All Schools / Institutions ({uniqueSchoolNames.length})</option>
+              {uniqueSchoolNames.map((sch) => (
+                <option key={sch} value={sch}>
+                  📍 {sch}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Stage Filter */}
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '140px', fontWeight: 700, borderColor: stageFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+          >
+            <option value="ALL">All Stages ({assignedFilteredLeads.length})</option>
+            <option value="New Enquiry">New Enquiry</option>
+            <option value="Counseling">Counseling</option>
+            <option value="Demo Attended">Demo Attended</option>
+            <option value="Applied">Applied</option>
+            <option value="Admitted">Admitted</option>
+            <option value="Lost">Lost</option>
+          </select>
+        </div>
+
+        {/* Prominent Quick Bulk Upload Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            className="btn"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#15803d',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: '0 4px 12px rgba(21, 128, 61, 0.3)'
+            }}
+            onClick={() => {
+              setImportedRowsData([]);
+              if (currentUser?.name) {
+                setSelectedAssignCounselor(currentUser.name);
+              }
+              setShowAssignModal(true);
+            }}
+            title="Bulk Upload Excel / CSV Sheet"
+          >
+            <FileSpreadsheet size={18} /> 📊 Bulk Upload Excel / CSV Leads
+          </button>
+        </div>
+      </div>
 
         {/* Course Filter */}
         <select
