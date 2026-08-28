@@ -44,7 +44,21 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
       ) {
         onLoginSuccess(INSTITUTE_CREDENTIALS);
       } else {
-        setErrorMessage('Invalid Institute Credentials. Default: institute / inst123');
+        const matchedInst = employees.find((emp) =>
+          (emp.role === 'Institute' || emp.role === 'Manager') &&
+          (emp.email?.toLowerCase() === cleanUser.toLowerCase() ||
+            emp.username?.toLowerCase() === cleanUser.toLowerCase() ||
+            emp.id?.toLowerCase() === cleanUser.toLowerCase()) &&
+          emp.password === cleanPass
+        );
+        if (matchedInst) {
+          onLoginSuccess({
+            ...matchedInst,
+            role: 'Institute'
+          });
+        } else {
+          setErrorMessage('Invalid Institute Credentials. Default: institute / inst123');
+        }
       }
     } else {
       // Employee login check by Email, Phone Number, Username, or Employee ID

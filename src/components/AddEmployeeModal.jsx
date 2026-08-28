@@ -189,6 +189,7 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
               >
                 <option value="Manager">Manager</option>
                 <option value="Employee">Employee</option>
+                <option value="Institute">Institute Manager</option>
               </select>
             </div>
 
