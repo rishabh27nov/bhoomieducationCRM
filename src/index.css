@@ -197,12 +197,17 @@ body {
   background: #ffffff;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-light);
-  overflow: hidden;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 100%;
+  scrollbar-width: thin;
 }
 
 .custom-table {
   width: 100%;
+  min-width: 820px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -263,6 +268,7 @@ html, body {
 
 /* Ensure all tables are horizontally scrollable on mobile */
 .crm-table-container,
+.custom-table-container,
 [style*="overflowX: 'auto'"],
 .table-responsive {
   width: 100% !important;
@@ -272,8 +278,8 @@ html, body {
   margin-bottom: 0.5rem;
 }
 
-.crm-table {
-  min-width: 650px;
+.crm-table, .custom-table {
+  min-width: 820px;
 }
 
 /* Tablet & Smaller Desktops (<= 1024px) */
