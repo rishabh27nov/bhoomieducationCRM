@@ -316,6 +316,29 @@ export default function StaffAttendanceCalendar({
     setTimeout(() => setSavedSuccessMsg(false), 3000);
   };
 
+  // 1-Click Mark All Absent (Admin Only)
+  const handleMarkAllAbsent = () => {
+    if (!isAdmin) {
+      alert('Permission Denied: Only Admin can mark all staff attendance.');
+      return;
+    }
+    const updated = {};
+    employees.forEach((emp) => {
+      updated[emp.id] = {
+        status: 'Absent',
+        inTime: '09:30 AM',
+        remarks: dailyStatus[emp.id]?.remarks || 'Marked Absent'
+      };
+    });
+    setDailyStatus(updated);
+
+    if (onSaveAttendance) {
+      onSaveAttendance(selectedDate, updated);
+    }
+    setSavedSuccessMsg(true);
+    setTimeout(() => setSavedSuccessMsg(false), 3000);
+  };
+
   // Save Attendance Register
   const handleSave = () => {
     if (onSaveAttendance) {
@@ -612,10 +635,19 @@ export default function StaffAttendanceCalendar({
         </div>
 
         {isAdmin ? (
-          <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
             <button
               className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#15803d', borderColor: '#b7e4c7' }}
+              style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#b91c1c', borderColor: '#fecaca', backgroundColor: '#fef2f2' }}
+              onClick={handleMarkAllAbsent}
+              title="1-Click Mark All Employees Absent"
+            >
+              <XCircle size={16} /> Mark All Absent
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              style={{ fontSize: '0.8rem', padding: '0.45rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#15803d', borderColor: '#b7e4c7', backgroundColor: '#f0fdf4' }}
               onClick={handleMarkAllPresent}
               title="1-Click Mark All Employees Present"
             >
