@@ -595,7 +595,16 @@ export default function LeadsManager({
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+          <div style={{
+            display: 'flex',
+            gap: '0.65rem',
+            alignItems: 'stretch',
+            overflowX: 'auto',
+            paddingBottom: '0.65rem',
+            paddingTop: '0.2rem',
+            scrollbarWidth: 'thin',
+            WebkitOverflowScrolling: 'touch'
+          }}>
             {/* All Staff Card */}
             <div
               onClick={() => setCounselorFilter('ALL')}
@@ -606,8 +615,8 @@ export default function LeadsManager({
                 color: counselorFilter === 'ALL' ? '#ffffff' : 'var(--text-main)',
                 border: '1px solid var(--border-light)',
                 cursor: 'pointer',
-                flex: '1 1 0px',
-                minWidth: '120px',
+                flex: '0 0 auto',
+                minWidth: '150px',
                 boxShadow: counselorFilter === 'ALL' ? 'var(--shadow-md)' : 'none',
                 transition: 'all 0.2s ease',
                 display: 'flex',
@@ -648,8 +657,8 @@ export default function LeadsManager({
                     color: isSelected ? '#ffffff' : 'var(--text-main)',
                     border: isSelected ? '2px solid #52b788' : '1px solid var(--border-light)',
                     cursor: 'pointer',
-                    flex: '1.2 1 0px',
-                    minWidth: '150px',
+                    flex: '0 0 auto',
+                    minWidth: '175px',
                     boxShadow: isSelected ? '0 4px 12px rgba(27, 67, 50, 0.25)' : 'none',
                     transition: 'all 0.2s ease',
                     display: 'flex',
@@ -659,14 +668,14 @@ export default function LeadsManager({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
                       <img
                         src={emp.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
                         alt={emp.name}
-                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
                       />
-                      <div>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 800, lineHeight: 1.1 }}>{emp.name}</div>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.name}</div>
                         <div style={{ fontSize: '0.66rem', color: isSelected ? '#b7e4c7' : 'var(--text-muted)' }}>{emp.role}</div>
                       </div>
                     </div>
@@ -677,7 +686,8 @@ export default function LeadsManager({
                       padding: '0.1rem 0.35rem',
                       borderRadius: '9999px',
                       backgroundColor: isSelected ? '#52b788' : '#f1f5f9',
-                      color: isSelected ? '#081c15' : '#475569'
+                      color: isSelected ? '#081c15' : '#475569',
+                      flexShrink: 0
                     }}>
                       {count}
                     </span>
@@ -695,7 +705,7 @@ export default function LeadsManager({
                     style={{
                       fontSize: '0.68rem',
                       fontWeight: 700,
-                      padding: '0.2rem 0.35rem',
+                      padding: '0.22rem 0.4rem',
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#f0fdf4',
                       color: isSelected ? '#ffffff' : '#15803d',
@@ -705,11 +715,13 @@ export default function LeadsManager({
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.25rem',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
                     }}
                     title={`Bulk Upload Excel Sheet directly to ${emp.name}`}
                   >
-                    <FileSpreadsheet size={12} style={{ flexShrink: 0 }} /> Bulk Upload Leads to {emp.name.split(' ')[0]}
+                    <FileSpreadsheet size={12} style={{ flexShrink: 0 }} /> Bulk Upload to {emp.name.split(' ')[0]}
                   </button>
                 </div>
               );
@@ -722,8 +734,8 @@ export default function LeadsManager({
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: sourceFilter !== 'ALL' ? 'rgba(24, 119, 242, 0.1)' : '#ffffff',
                 border: sourceFilter !== 'ALL' ? '2px solid #1877F2' : '1px dashed #cbd5e1',
-                flex: '1.2 1 0px',
-                minWidth: '170px',
+                flex: '0 0 auto',
+                minWidth: '185px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
