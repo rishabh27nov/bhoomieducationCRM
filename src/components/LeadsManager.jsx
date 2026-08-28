@@ -440,46 +440,56 @@ export default function LeadsManager({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  color: '#15803d',
-                  borderColor: '#b7e4c7',
-                  backgroundColor: '#ffffff',
-                  cursor: 'pointer',
-                  fontWeight: 700
-                }}
-                onClick={handleDownloadSampleTemplate}
-                title="Download CSV Format Sample File"
-              >
-                <Download size={16} /> Sample CSV Format
-              </button>
-
-              <button
-                className="btn"
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '0.45rem 0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  color: '#15803d',
-                  borderColor: '#b7e4c7',
-                  backgroundColor: '#f0fdf4',
-                  cursor: 'pointer',
-                  fontWeight: 700
-                }}
-                onClick={() => {
-                  setImportedRowsData([]);
-                  setShowAssignModal(true);
-                }}
-                title="Bulk Upload Excel / CSV Sheet"
-              >
-                <FileSpreadsheet size={16} /> Bulk Upload Excel / CSV
-              </button>
-
-              <button className="btn btn-primary" onClick={onOpenAddLead} title="Create New Student Enquiry (Admin Only)">
-                <Plus size={18} /> New Student Enquiry
-              </button>
-            </>
+            <button
+              className="btn"
+              style={{
+                fontSize: '0.8rem',
+                padding: '0.45rem 0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: '#15803d',
+                borderColor: '#b7e4c7',
+                backgroundColor: '#ffffff',
+                cursor: 'pointer',
+                fontWeight: 700
+              }}
+              onClick={handleDownloadSampleTemplate}
+              title="Download CSV Format Sample File"
+            >
+              <Download size={16} /> Sample CSV Format
+            </button>
           )}
+
+          <button
+            className="btn"
+            style={{
+              fontSize: '0.8rem',
+              padding: '0.45rem 0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              color: '#15803d',
+              borderColor: '#b7e4c7',
+              backgroundColor: '#f0fdf4',
+              cursor: 'pointer',
+              fontWeight: 700
+            }}
+            onClick={() => {
+              setImportedRowsData([]);
+              if (currentUser?.name) {
+                setSelectedAssignCounselor(currentUser.name);
+              }
+              setShowAssignModal(true);
+            }}
+            title="Bulk Upload Excel / CSV Sheet"
+          >
+            <FileSpreadsheet size={16} /> Bulk Upload Excel / CSV
+          </button>
+
+          <button className="btn btn-primary" onClick={onOpenAddLead} title="Create New Student Enquiry">
+            <Plus size={18} /> New Student Enquiry
+          </button>
         </div>
       </div>
 

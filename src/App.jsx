@@ -982,6 +982,7 @@ export default function App() {
           counselors={employees}
           courses={courses}
           onAddCourse={handleAddCourse}
+          currentUser={currentUser}
         />
       )}
 

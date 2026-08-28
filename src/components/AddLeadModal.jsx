@@ -7,9 +7,14 @@ export default function AddLeadModal({
   onAddLead,
   counselors = COUNSELORS,
   courses = DEFAULT_COURSES,
-  onAddCourse
+  onAddCourse,
+  currentUser
 }) {
   const todayStr = new Date().toISOString().split('T')[0];
+  const defaultCounselor = (currentUser?.role === 'Employee' && currentUser?.name)
+    ? currentUser.name
+    : (counselors.length > 0 ? counselors[0].name : '');
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,7 +23,7 @@ export default function AddLeadModal({
     targetCourse: courses[0] || 'NEET Class 11',
     batch: 'Class 11/12 Morning Batch',
     feeBudget: 'N/A',
-    counselor: counselors.length > 0 ? counselors[0].name : '',
+    counselor: defaultCounselor,
     leadSource: 'School Seminar Walk-in',
     notes: '',
     createdAt: todayStr
