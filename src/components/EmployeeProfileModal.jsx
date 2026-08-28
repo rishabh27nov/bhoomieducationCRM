@@ -121,15 +121,28 @@ export default function EmployeeProfileModal({
               }}
             />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>{employee.name}</h2>
+                <span
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: '#ffffff',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '0.2rem 0.65rem',
+                    borderRadius: '9999px',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  ID: {employee.id}
+                </span>
                 <span
                   style={{
                     backgroundColor: employee.role === 'Manager' ? '#f59e0b' : '#3b82f6',
                     color: '#ffffff',
                     fontSize: '0.7rem',
                     fontWeight: 700,
-                    padding: '0.2rem 0.6rem',
+                    padding: '0.2rem 0.65rem',
                     borderRadius: '9999px',
                     textTransform: 'uppercase'
                   }}
@@ -140,7 +153,10 @@ export default function EmployeeProfileModal({
                   {employee.status || 'Active'}
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#b7e4c7', marginTop: '0.35rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#b7e4c7', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <User size={14} /> Username: {employee.username || employee.id}
+                </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <Mail size={14} /> {employee.email}
                 </span>

@@ -269,13 +269,17 @@ export default function EmployeesManager({
                       <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
                         {emp.name}
                       </h3>
-                      <div style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: emp.role === 'Manager' ? '#d97706' : 'var(--color-brand-emerald)',
-                        marginTop: '2px'
-                      }}>
-                        Role: {emp.role}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '3px', flexWrap: 'wrap' }}>
+                        <span style={{ backgroundColor: 'var(--color-brand-soft)', color: 'var(--color-brand-primary)', fontSize: '0.72rem', fontWeight: 800, padding: '0.12rem 0.5rem', borderRadius: '6px', border: '1px solid #b7e4c7' }}>
+                          ID: {emp.id}
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: emp.role === 'Manager' ? '#d97706' : 'var(--color-brand-emerald)'
+                        }}>
+                          Role: {emp.role}
+                        </span>
                       </div>
                     </div>
                   </div>
