@@ -14,7 +14,9 @@ import {
   Sparkles,
   RefreshCw,
   Lock,
-  UserCheck
+  UserCheck,
+  Camera,
+  UploadCloud
 } from 'lucide-react';
 import { isCounselorMatch } from '../data/mockData';
 
@@ -218,17 +220,85 @@ export default function EmployeeSettingsManager({
           borderBottom: '1px solid var(--border-color)',
           flexWrap: 'wrap'
         }}>
-          <img
-            src={avatar || selectedEmployee.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
-            alt={name}
-            style={{ width: '70px', height: '70px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #52b788' }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ position: 'relative' }}>
+              <img
+                src={avatar || selectedEmployee.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
+                alt={name}
+                style={{ width: '76px', height: '76px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #52b788', boxShadow: '0 4px 12px rgba(82, 183, 136, 0.25)' }}
+              />
+              <label
+                htmlFor="header-profile-image-input"
+                style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  right: '0',
+                  backgroundColor: '#1b4332',
+                  color: '#ffffff',
+                  padding: '0.35rem',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  border: '2px solid #ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                }}
+                title="Upload Photo from Gallery / Device"
+              >
+                <Camera size={14} />
+              </label>
+              <input
+                id="header-profile-image-input"
+                type="file"
+                accept="image/*"
+                disabled={!canEditProfile}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files && e.target.files[0];
+                  if (file) {
+                    if (file.size > 3 * 1024 * 1024) {
+                      setErrorMessage('Please select an image under 3MB');
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setAvatar(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </div>
+            {canEditProfile && (
+              <label
+                htmlFor="header-profile-image-input"
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: '#15803d',
+                  backgroundColor: '#f0fdf4',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '9999px',
+                  border: '1px solid #b7e4c7',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                }}
+              >
+                <UploadCloud size={12} /> Upload Photo
+              </label>
+            )}
+          </div>
+
           <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>{name || selectedEmployee.name}</h2>
               <span className="badge badge-admitted" style={{ fontSize: '0.75rem' }}>{role}</span>
             </div>
-            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
               Employee ID: <strong>{selectedEmployee.id}</strong> | Email: <strong>{email}</strong>
             </div>
           </div>
