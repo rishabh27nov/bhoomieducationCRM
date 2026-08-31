@@ -85,8 +85,16 @@ export default async function handler(req, res) {
         notes: `Auto-ingested via Live Meta Lead Ads Webhook.`
       };
 
-      // Push to Firebase Realtime Database lakshya_crm_central_db node
+      // Push to Firebase Realtime Database lakshya_crm_central_db node securely
       const newLeadId = `LEAD-META-${Date.now()}`;
+      
+      // Extract course type for the badge
+      const courseTypeLower = (payload.course || leadCourse || '').toLowerCase();
+      let courseType = 'Other';
+      if (courseTypeLower.includes('neet')) courseType = 'NEET';
+      else if (courseTypeLower.includes('jee')) courseType = 'JEE';
+      else if (courseTypeLower.includes('foundation')) courseType = 'Foundation';
+
       const firebaseLeadObject = {
         id: newLeadId,
         name: payload.name || leadName,
@@ -94,10 +102,11 @@ export default async function handler(req, res) {
         email: payload.email || leadEmail,
         targetCourse: payload.course || leadCourse,
         course: payload.course || leadCourse,
-        batch: `Batch ${(payload.course || leadCourse).split(' ')[0]} (Online)`,
+        courseType: courseType,
+        batch: `Meta Auto Form`,
         feeBudget: payload.feeBudget || 'N/A',
-        stage: 'New Lead',
-        counselor: 'Niharika',
+        stage: 'New Enquiry',
+        counselor: 'Unassigned', // Leaves it unassigned by default or you can assign
         city: payload.city || 'Online Meta Lead',
         source: platform,
         status: 'New Lead',
@@ -105,12 +114,27 @@ export default async function handler(req, res) {
         notes: `Auto-ingested via Live Meta Lead Ads Webhook.`
       };
 
-      const firebaseDbUrl = `https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/leads/${newLeadId}.json`;
-      fetch(firebaseDbUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(firebaseLeadObject)
-      }).catch(e => console.error("Firebase sync error:", e));
+      const firebaseDbUrl = `https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/leads.json`;
+      
+      try {
+        // 1. Get current leads array
+        const getRes = await fetch(firebaseDbUrl);
+        let currentLeads = await getRes.json();
+        if (!Array.isArray(currentLeads)) currentLeads = [];
+        
+        // 2. Add new lead to the top
+        currentLeads.unshift(firebaseLeadObject);
+        
+        // 3. Save the array back
+        await fetch(firebaseDbUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentLeads)
+        });
+        console.log("Successfully appended new lead to Firebase via Webhook");
+      } catch (e) {
+        console.error("Firebase sync error:", e);
+      }
 
       return res.status(200).json({
         success: true,
