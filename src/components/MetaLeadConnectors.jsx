@@ -47,6 +47,8 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [bulkCounselor, setBulkCounselor] = useState('');
   const [autoCounselors, setAutoCounselors] = useState([]);
+  const [dateAutoAssignFrom, setDateAutoAssignFrom] = useState('');
+  const [dateAutoAssignCounselor, setDateAutoAssignCounselor] = useState('');
 
   const toggleAutoCounselor = (name) => {
     setAutoCounselors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
@@ -73,6 +75,30 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
       onAddLead(toUpdate);
     }
     alert(`Auto-assigned ${roundRobinIndex} leads among ${autoCounselors.join(', ')}.`);
+  };
+
+  // Date-based auto-assign: assign all leads ON or AFTER selected date to selected counselor
+  const applyDateAutoAssign = () => {
+    if (!dateAutoAssignFrom) return alert('Please select a start date.');
+    if (!dateAutoAssignCounselor) return alert('Please select a counselor.');
+    const fromDate = new Date(dateAutoAssignFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    const toUpdate = [];
+    const updatedLeads = metaRealLeads.map(lead => {
+      const leadDate = new Date(lead.createdAt);
+      leadDate.setHours(0, 0, 0, 0);
+      if (leadDate >= fromDate) {
+        const updated = { ...lead, counselor: dateAutoAssignCounselor };
+        toUpdate.push(updated);
+        return updated;
+      }
+      return lead;
+    });
+    setMetaRealLeads(updatedLeads);
+    if (onAddLead && toUpdate.length > 0) {
+      onAddLead(toUpdate);
+    }
+    alert(`✅ ${toUpdate.length} leads from ${dateAutoAssignFrom} onwards assigned to ${dateAutoAssignCounselor}.`);
   };
 
   const handleSelectDateGroup = (e, dateStr) => {
@@ -214,12 +240,9 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
       setMetaFetchError(`Network error: ${err.message}`);
       setMetaFetchStatus('error');
     }
-  }, [metaAccessToken, onAddLead]);
+  }, [metaAccessToken]);
 
-  // Auto-fetch on load
-  useEffect(() => {
-    fetchMetaLeads();
-  }, []);
+  // Do NOT auto-fetch on load — user must manually click Refresh From Meta
 
 
   const [igConfig, setIgConfig] = useState({
@@ -1179,6 +1202,32 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
               </div>
               <button onClick={applyAutoAssign} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
                 Run Auto-Assign
+              </button>
+            </div>
+
+            {/* Date-Based Auto-Assign Rule */}
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'rgba(59, 130, 246, 0.08)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: '#93c5fd', fontWeight: 'bold' }}>📅 Date Auto-Assign:</span>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Leads from this date onwards →</span>
+              <input
+                type="date"
+                value={dateAutoAssignFrom}
+                onChange={e => setDateAutoAssignFrom(e.target.value)}
+                style={{ background: 'rgba(2,6,23,0.8)', color: '#fff', border: '1px solid rgba(59,130,246,0.5)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', outline: 'none' }}
+              />
+              <select
+                value={dateAutoAssignCounselor}
+                onChange={e => setDateAutoAssignCounselor(e.target.value)}
+                style={{ background: 'rgba(2,6,23,0.8)', color: '#fff', border: '1px solid rgba(59,130,246,0.5)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', outline: 'none' }}
+              >
+                <option value="">-- Select Counselor --</option>
+                {counselors.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
+              </select>
+              <button
+                onClick={applyDateAutoAssign}
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.9rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Apply Rule
               </button>
             </div>
             
