@@ -736,16 +736,24 @@ export default function App() {
       return;
     }
 
-    let updatedLeads = [];
-    if (Array.isArray(newLeadData)) {
-      updatedLeads = [...newLeadData, ...leads];
-    } else {
-      updatedLeads = [newLeadData, ...leads];
-    }
-
-    setLeads(updatedLeads);
-    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-    saveToCentralDB({ leads: updatedLeads });
+    const incomingLeads = Array.isArray(newLeadData) ? newLeadData : [newLeadData];
+    
+    setLeads(prevLeads => {
+      let updatedLeads = [...prevLeads];
+      
+      incomingLeads.forEach(incomingLead => {
+        const existingIndex = updatedLeads.findIndex(l => l.id === incomingLead.id);
+        if (existingIndex >= 0) {
+          updatedLeads[existingIndex] = { ...updatedLeads[existingIndex], ...incomingLead };
+        } else {
+          updatedLeads.unshift(incomingLead);
+        }
+      });
+      
+      localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+      saveToCentralDB({ leads: updatedLeads });
+      return updatedLeads;
+    });
 
     if (Array.isArray(newLeadData)) {
       logActivity(

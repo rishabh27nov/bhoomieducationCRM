@@ -56,18 +56,22 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     if (autoCounselors.length === 0) return alert('Please select at least one counselor for Auto-Assign.');
     
     let roundRobinIndex = 0;
+    const toUpdate = [];
     const updatedLeads = metaRealLeads.map(lead => {
       if (lead.counselor === 'Unassigned') {
         const counselorToAssign = autoCounselors[roundRobinIndex % autoCounselors.length];
         roundRobinIndex++;
         const updated = { ...lead, counselor: counselorToAssign };
-        if (onAddLead) onAddLead(updated);
+        toUpdate.push(updated);
         return updated;
       }
       return lead;
     });
     
     setMetaRealLeads(updatedLeads);
+    if (onAddLead && toUpdate.length > 0) {
+      onAddLead(toUpdate);
+    }
     alert(`Auto-assigned ${roundRobinIndex} leads among ${autoCounselors.join(', ')}.`);
   };
 
@@ -84,10 +88,11 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     if (selectedLeads.length === 0) return alert('Please select at least one lead.');
     if (!bulkCounselor) return alert('Please select a counselor to assign.');
     
+    const toUpdate = [];
     const updatedLeads = metaRealLeads.map(lead => {
       if (selectedLeads.includes(lead.id)) {
         const updated = { ...lead, counselor: bulkCounselor };
-        if (onAddLead) onAddLead(updated);
+        toUpdate.push(updated);
         return updated;
       }
       return lead;
@@ -95,6 +100,9 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     
     setMetaRealLeads(updatedLeads);
     setSelectedLeads([]);
+    if (onAddLead && toUpdate.length > 0) {
+      onAddLead(toUpdate);
+    }
     alert(`Successfully assigned ${selectedLeads.length} leads to ${bulkCounselor}.`);
   };
 
@@ -202,10 +210,6 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
       setMetaRealLeads(allLeads);
       setMetaFetchStatus('success');
 
-      // Push into CRM leads
-      if (onAddLead && allLeads.length > 0) {
-        allLeads.forEach(lead => onAddLead(lead));
-      }
     } catch (err) {
       setMetaFetchError(`Network error: ${err.message}`);
       setMetaFetchStatus('error');
@@ -1275,10 +1279,9 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                           <select
                             value={lead.counselor || 'Unassigned'}
                             onChange={(e) => {
-                              if (onAddLead) {
-                                const updatedLead = { ...lead, counselor: e.target.value };
-                                onAddLead(updatedLead);
-                              }
+                              const updatedLead = { ...lead, counselor: e.target.value };
+                              setMetaRealLeads(prev => prev.map(l => l.id === lead.id ? updatedLead : l));
+                              if (onAddLead) onAddLead(updatedLead);
                             }}
                             style={{
                               background: lead.counselor === 'Unassigned' ? '#d97706' : '#10b981',
