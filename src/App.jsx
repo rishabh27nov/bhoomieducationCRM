@@ -748,23 +748,27 @@ export default function App() {
     }
 
     const incomingLeads = Array.isArray(newLeadData) ? newLeadData : [newLeadData];
-    
-    setLeads(prevLeads => {
-      let updatedLeads = [...prevLeads];
-      
-      incomingLeads.forEach(incomingLead => {
-        const existingIndex = updatedLeads.findIndex(l => l.id === incomingLead.id);
-        if (existingIndex >= 0) {
-          updatedLeads[existingIndex] = { ...updatedLeads[existingIndex], ...incomingLead };
-        } else {
-          updatedLeads.unshift(incomingLead);
-        }
-      });
-      
-      localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-      saveToCentralDB({ leads: updatedLeads });
-      return updatedLeads;
+
+    // Compute updated leads using current leads state directly (not inside setter)
+    let updatedLeads = [...leads];
+    incomingLeads.forEach(incomingLead => {
+      const existingIndex = updatedLeads.findIndex(l => l.id === incomingLead.id);
+      if (existingIndex >= 0) {
+        updatedLeads[existingIndex] = { ...updatedLeads[existingIndex], ...incomingLead };
+      } else {
+        updatedLeads.unshift(incomingLead);
+      }
     });
+
+    // Save to state, localStorage, and Firebase immediately
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    // Direct Firebase write to ensure data is saved properly
+    try {
+      set(ref(firebaseDB, 'lakshya_crm_central_db/leads'), updatedLeads);
+    } catch (e) {
+      saveToCentralDB({ leads: updatedLeads });
+    }
 
     if (Array.isArray(newLeadData)) {
       logActivity(
