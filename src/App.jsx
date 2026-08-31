@@ -247,8 +247,19 @@ export default function App() {
               parsedLeads = Object.values(data.leads).filter(Boolean);
             }
             if (parsedLeads.length > 0 || Array.isArray(data.leads)) {
-              setLeads(parsedLeads);
-              localStorage.setItem('lakshya_leads', JSON.stringify(parsedLeads));
+              // Deduplicate leads by ID (fixes previously inserted duplicates)
+              const uniqueMap = new Map();
+              parsedLeads.forEach(l => {
+                if (l && l.id) {
+                  // Prefer the one that has a counselor assigned if there are duplicates
+                  if (!uniqueMap.has(l.id) || l.counselor !== 'Unassigned') {
+                    uniqueMap.set(l.id, l);
+                  }
+                }
+              });
+              const uniqueLeads = Array.from(uniqueMap.values());
+              setLeads(uniqueLeads);
+              localStorage.setItem('lakshya_leads', JSON.stringify(uniqueLeads));
             }
           }
           if (data.employees && Array.isArray(data.employees)) {
