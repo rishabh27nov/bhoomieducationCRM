@@ -46,43 +46,25 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
   const [metaRealLeads, setMetaRealLeads] = useState([]);
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [bulkCounselor, setBulkCounselor] = useState('');
-  const [autoCounselors, setAutoCounselors] = useState([]);
   const [courseTypeFilter, setCourseTypeFilter] = useState('ALL');
-  const [dateAutoAssignFrom, setDateAutoAssignFrom] = useState('');
-  const [dateAutoAssignCounselor, setDateAutoAssignCounselor] = useState('');
+  const [dateAutoAssignFrom, setDateAutoAssignFrom] = useState(localStorage.getItem('lakshya_meta_auto_date') || '');
+  const [dateAutoAssignCounselor, setDateAutoAssignCounselor] = useState(localStorage.getItem('lakshya_meta_auto_counselor') || '');
 
   // Refs so fetchMetaLeads (useCallback) can always access latest rule values
   const dateAutoAssignFromRef = useRef('');
   const dateAutoAssignCounselorRef = useRef('');
-  useEffect(() => { dateAutoAssignFromRef.current = dateAutoAssignFrom; }, [dateAutoAssignFrom]);
-  useEffect(() => { dateAutoAssignCounselorRef.current = dateAutoAssignCounselor; }, [dateAutoAssignCounselor]);
+  
+  useEffect(() => { 
+    dateAutoAssignFromRef.current = dateAutoAssignFrom; 
+    localStorage.setItem('lakshya_meta_auto_date', dateAutoAssignFrom);
+  }, [dateAutoAssignFrom]);
+  
+  useEffect(() => { 
+    dateAutoAssignCounselorRef.current = dateAutoAssignCounselor; 
+    localStorage.setItem('lakshya_meta_auto_counselor', dateAutoAssignCounselor);
+  }, [dateAutoAssignCounselor]);
 
-  const toggleAutoCounselor = (name) => {
-    setAutoCounselors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
-  };
 
-  const applyAutoAssign = () => {
-    if (autoCounselors.length === 0) return alert('Please select at least one counselor for Auto-Assign.');
-    
-    let roundRobinIndex = 0;
-    const toUpdate = [];
-    const updatedLeads = metaRealLeads.map(lead => {
-      if (lead.counselor === 'Unassigned') {
-        const counselorToAssign = autoCounselors[roundRobinIndex % autoCounselors.length];
-        roundRobinIndex++;
-        const updated = { ...lead, counselor: counselorToAssign };
-        toUpdate.push(updated);
-        return updated;
-      }
-      return lead;
-    });
-    
-    setMetaRealLeads(updatedLeads);
-    if (onAddLead && toUpdate.length > 0) {
-      onAddLead(toUpdate);
-    }
-    alert(`Auto-assigned ${roundRobinIndex} leads among ${autoCounselors.join(', ')}.`);
-  };
 
   // Date-based auto-assign: assign all leads ON or AFTER selected date to selected counselor
   const applyDateAutoAssign = () => {
@@ -1233,21 +1215,6 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                 </button>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'rgba(2, 6, 23, 0.5)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>Auto-Assign Setup:</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {counselors.map(c => (
-                  <label key={c.name} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem', color: '#cbd5e1', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={autoCounselors.includes(c.name)} onChange={() => toggleAutoCounselor(c.name)} />
-                    {c.name}
-                  </label>
-                ))}
-              </div>
-              <button onClick={applyAutoAssign} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
-                Run Auto-Assign
-              </button>
-            </div>
-
             {/* Date-Based Auto-Assign Rule */}
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'rgba(59, 130, 246, 0.08)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', color: '#93c5fd', fontWeight: 'bold' }}>📅 Date Auto-Assign:</span>
