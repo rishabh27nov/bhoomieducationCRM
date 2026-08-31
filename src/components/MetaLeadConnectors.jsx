@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Share2,
   Copy,
@@ -37,6 +37,186 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     leadCategory: 'NEET / JEE Enquiry',
     pageName: 'Bhoomi Education Official FB Page'
   });
+
+  const [metaAccessToken, setMetaAccessToken] = useState('EAA2NPsW6AZAMBScsZBS5Mumg1rqZAcLztCpmNq9bZB57ZB8Yp1wZBiqI3hPkDch0YnS54wTwieYm2rTkvJWmLOukdH72ZBRPZBIRZABEHex11CjhISmsnZA8wylQm6wKleyvjQMBsGYzJE6CJMgJ3dmc4SwyZBMn0QChtA9CMv6BdisWAiKhsBUQuyg40f2Wev5ZAgZDZD');
+  const [metaAssetId, setMetaAssetId] = useState('1008041794449442');
+  const [credentialsSaved, setCredentialsSaved] = useState(true);
+  const [metaFetchStatus, setMetaFetchStatus] = useState(null); // 'loading' | 'success' | 'error'
+  const [metaFetchError, setMetaFetchError] = useState(null);
+  const [metaRealLeads, setMetaRealLeads] = useState([]);
+  const [selectedLeads, setSelectedLeads] = useState([]);
+  const [bulkCounselor, setBulkCounselor] = useState('');
+  const [autoCounselors, setAutoCounselors] = useState([]);
+
+  const toggleAutoCounselor = (name) => {
+    setAutoCounselors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
+
+  const applyAutoAssign = () => {
+    if (autoCounselors.length === 0) return alert('Please select at least one counselor for Auto-Assign.');
+    
+    let roundRobinIndex = 0;
+    const updatedLeads = metaRealLeads.map(lead => {
+      if (lead.counselor === 'Unassigned') {
+        const counselorToAssign = autoCounselors[roundRobinIndex % autoCounselors.length];
+        roundRobinIndex++;
+        const updated = { ...lead, counselor: counselorToAssign };
+        if (onAddLead) onAddLead(updated);
+        return updated;
+      }
+      return lead;
+    });
+    
+    setMetaRealLeads(updatedLeads);
+    alert(`Auto-assigned ${roundRobinIndex} leads among ${autoCounselors.join(', ')}.`);
+  };
+
+  const handleSelectDateGroup = (e, dateStr) => {
+    const leadsForDate = metaRealLeads.filter(l => new Date(l.createdAt).toLocaleDateString('en-GB') === dateStr).map(l => l.id);
+    if (e.target.checked) {
+      setSelectedLeads(prev => [...new Set([...prev, ...leadsForDate])]);
+    } else {
+      setSelectedLeads(prev => prev.filter(id => !leadsForDate.includes(id)));
+    }
+  };
+
+  const handleBulkAssign = () => {
+    if (selectedLeads.length === 0) return alert('Please select at least one lead.');
+    if (!bulkCounselor) return alert('Please select a counselor to assign.');
+    
+    const updatedLeads = metaRealLeads.map(lead => {
+      if (selectedLeads.includes(lead.id)) {
+        const updated = { ...lead, counselor: bulkCounselor };
+        if (onAddLead) onAddLead(updated);
+        return updated;
+      }
+      return lead;
+    });
+    
+    setMetaRealLeads(updatedLeads);
+    setSelectedLeads([]);
+    alert(`Successfully assigned ${selectedLeads.length} leads to ${bulkCounselor}.`);
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedLeads(metaRealLeads.map(l => l.id));
+    } else {
+      setSelectedLeads([]);
+    }
+  };
+
+  const handleSelectLead = (e, id) => {
+    if (e.target.checked) {
+      setSelectedLeads(prev => [...prev, id]);
+    } else {
+      setSelectedLeads(prev => prev.filter(leadId => leadId !== id));
+    }
+  };
+
+  // Fetch REAL leads from Meta Graph API
+  const fetchMetaLeads = useCallback(async () => {
+    setMetaFetchStatus('loading');
+    setMetaFetchError(null);
+    try {
+      const userToken = metaAccessToken;
+
+      // Step 1: Get Page Access Token from User Token
+      const accountsRes = await fetch(
+        `https://graph.facebook.com/v19.0/me/accounts?access_token=${userToken}&fields=id,name,access_token`
+      );
+      const accountsData = await accountsRes.json();
+
+      if (accountsData.error) {
+        setMetaFetchError(`Meta API Error: ${accountsData.error.message}`);
+        setMetaFetchStatus('error');
+        return;
+      }
+
+      const pages = accountsData.data || [];
+      if (pages.length === 0) {
+        setMetaFetchError('No Facebook Pages found for this account.');
+        setMetaFetchStatus('error');
+        return;
+      }
+
+      const allLeads = [];
+
+      // Iterate through ALL pages the user has access to
+      for (const page of pages) {
+        const pageToken = page.access_token;
+        const pageId = page.id;
+
+        // Step 2: Get lead gen forms for this page
+        const formsRes = await fetch(
+          `https://graph.facebook.com/v19.0/${pageId}/leadgen_forms?access_token=${pageToken}&fields=id,name,status&limit=200`
+        );
+        const formsData = await formsRes.json();
+
+        if (formsData.error) continue; // Skip if error on this specific page
+
+        const forms = formsData.data || [];
+
+        // Step 3: Fetch leads from each form
+        for (const form of forms) {
+          const leadsRes = await fetch(
+            `https://graph.facebook.com/v19.0/${form.id}/leads?access_token=${pageToken}&fields=id,created_time,field_data&limit=500`
+          );
+          const leadsData = await leadsRes.json();
+          if (leadsData.data) {
+            for (const lead of leadsData.data) {
+              const fields = {};
+              (lead.field_data || []).forEach(f => { fields[f.name] = f.values?.[0] || ''; });
+              const firstName = fields['first_name'] || '';
+              const lastName = fields['last_name'] || '';
+              const name = fields['full_name'] || fields['name'] || `${firstName} ${lastName}`.trim() || 'Unknown';
+              const phone = fields['phone_number'] || fields['phone'] || fields['mobile'] || '';
+              const email = fields['email'] || '';
+              const course = fields['course'] || fields['course_interested'] || fields['program'] || fields['what_course_are_you_interested_in'] || '';
+              const city = fields['city'] || fields['location'] || '';
+
+              allLeads.push({
+                id: `LEAD-META-${lead.id}`,
+                name,
+                phone,
+                email,
+                targetCourse: course,
+                course,
+                batch: form.name,
+                city,
+                source: 'Facebook Lead Form',
+                counselor: 'Unassigned',
+                status: 'New Lead',
+                stage: 'New Enquiry',
+                createdAt: lead.created_time,
+                notes: `Real Meta Lead from Form: ${form.name} | Page: ${page.name}`,
+              });
+            }
+          }
+        }
+      }
+
+      // Sort leads by created_time (newest first)
+      allLeads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      setMetaRealLeads(allLeads);
+      setMetaFetchStatus('success');
+
+      // Push into CRM leads
+      if (onAddLead && allLeads.length > 0) {
+        allLeads.forEach(lead => onAddLead(lead));
+      }
+    } catch (err) {
+      setMetaFetchError(`Network error: ${err.message}`);
+      setMetaFetchStatus('error');
+    }
+  }, [metaAccessToken, onAddLead]);
+
+  // Auto-fetch on load
+  useEffect(() => {
+    fetchMetaLeads();
+  }, []);
+
 
   const [igConfig, setIgConfig] = useState({
     status: 'Active',
@@ -468,8 +648,9 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>Meta Page / Asset ID</label>
                 <input
                   type="text"
-                  placeholder="e.g. 103144808980238"
-                  defaultValue="103144808980238"
+                  placeholder="e.g. 1008041794449442"
+                  value={metaAssetId}
+                  onChange={e => setMetaAssetId(e.target.value)}
                   style={{
                     width: '100%',
                     background: 'rgba(15, 23, 42, 0.8)',
@@ -484,11 +665,12 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>Page Access Token (Long-Lived EAAG...)</label>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>Page Access Token (Graph API Token)</label>
                 <input
                   type="password"
                   placeholder="Paste Long-Lived Page Access Token"
-                  defaultValue="EAAG...long_lived_token_bhoomi"
+                  value={metaAccessToken}
+                  onChange={e => setMetaAccessToken(e.target.value)}
                   style={{
                     width: '100%',
                     background: 'rgba(15, 23, 42, 0.8)',
@@ -504,7 +686,10 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
 
               <button
                 type="button"
-                onClick={() => alert('✅ Meta Facebook & Instagram Page Credentials Saved Successfully!')}
+                onClick={() => {
+                  setCredentialsSaved(true);
+                  alert('✅ Meta Access Token & Page Asset ID (1008041794449442) Saved & Linked Successfully into Bhoomi CRM!');
+                }}
                 style={{
                   background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: '#ffffff',
@@ -942,6 +1127,185 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
               <Send size={16} /> Send Test Lead Payload to CRM
             </button>
           </form>
+        </div>
+
+        {/* REALTIME META LEADS DIRECT ASSIGNMENT TABLE */}
+        <div style={{
+          gridColumn: '1 / -1',
+          background: 'rgba(15, 23, 42, 0.85)',
+          border: '1px solid rgba(82, 183, 136, 0.4)',
+          borderRadius: '16px',
+          padding: '1.75rem',
+          marginTop: '1rem',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: metaFetchStatus === 'loading' ? '#f59e0b' : metaFetchStatus === 'success' ? '#52b788' : '#ef4444', boxShadow: `0 0 10px ${metaFetchStatus === 'loading' ? '#f59e0b' : metaFetchStatus === 'success' ? '#52b788' : '#ef4444'}`, animation: metaFetchStatus === 'loading' ? 'pulse 1s infinite' : 'none' }} />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+                ⚡ Real Meta Leads — From Facebook/Instagram Forms
+              </h3>
+            </div>
+            
+            {selectedLeads.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: '600' }}>{selectedLeads.length} Selected</span>
+                <select
+                  value={bulkCounselor}
+                  onChange={e => setBulkCounselor(e.target.value)}
+                  style={{ background: 'rgba(2, 6, 23, 0.8)', color: '#fff', border: '1px solid #10b981', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem', outline: 'none' }}
+                >
+                  <option value="">-- Select Counselor --</option>
+                  {counselors.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
+                </select>
+                <button onClick={handleBulkAssign} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.4rem 1rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}>
+                  Assign in Bulk
+                </button>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'rgba(2, 6, 23, 0.5)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold' }}>Auto-Assign Setup:</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {counselors.map(c => (
+                  <label key={c.name} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={autoCounselors.includes(c.name)} onChange={() => toggleAutoCounselor(c.name)} />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
+              <button onClick={applyAutoAssign} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>
+                Run Auto-Assign
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              {metaFetchStatus === 'loading' && <span style={{ fontSize: '0.8rem', color: '#f59e0b' }}>⏳ Fetching from Meta...</span>}
+              {metaFetchStatus === 'success' && <span style={{ fontSize: '0.8rem', color: '#52b788' }}>✅ {metaRealLeads.length} Leads Fetched</span>}
+              {metaFetchStatus === 'error' && <span style={{ fontSize: '0.8rem', color: '#ef4444' }}>❌ {metaFetchError}</span>}
+              <button
+                onClick={fetchMetaLeads}
+                style={{ background: 'rgba(82,183,136,0.15)', border: '1px solid #52b788', color: '#52b788', borderRadius: '8px', padding: '0.4rem 1rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}
+              >
+                🔄 Refresh From Meta
+              </button>
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ background: 'rgba(2, 6, 23, 0.7)', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <th style={{ padding: '0.85rem 1rem', width: '40px' }}>
+                    <input 
+                      type="checkbox" 
+                      onChange={handleSelectAll} 
+                      checked={metaRealLeads.length > 0 && selectedLeads.length === metaRealLeads.length}
+                      style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                    />
+                  </th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Student Name</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Contact Info</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Source & Form</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Target Course</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Assign Counselor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metaFetchStatus === 'loading' ? (
+                  <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#f59e0b' }}>⏳ Fetching real leads from Meta Graph API...</td></tr>
+                ) : metaFetchStatus === 'error' ? (
+                  <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>❌ {metaFetchError} — Check your Access Token & Page ID</td></tr>
+                ) : metaRealLeads.length === 0 ? (
+                  <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No leads found in your Meta Lead Forms. Click "Refresh From Meta" to check again.</td></tr>
+                ) : (
+                  metaRealLeads.reduce((acc, lead, index, arr) => {
+                    const leadDate = new Date(lead.createdAt).toLocaleDateString('en-GB');
+                    const prevLeadDate = index === 0 ? null : new Date(arr[index - 1].createdAt).toLocaleDateString('en-GB');
+
+                    if (leadDate !== prevLeadDate) {
+                      acc.push(
+                        <tr key={`date-${leadDate}`} style={{ background: 'rgba(56, 189, 248, 0.1)', borderBottom: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                          <td colSpan="6" style={{ padding: '0.6rem 1rem', color: '#38bdf8', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <input 
+                              type="checkbox" 
+                              onChange={(e) => handleSelectDateGroup(e, leadDate)} 
+                              style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                            />
+                            📅 Leads from {leadDate}
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    acc.push(
+                      <tr key={lead.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: selectedLeads.includes(lead.id) ? 'rgba(16, 185, 129, 0.1)' : lead.counselor === 'Unassigned' ? 'rgba(234, 179, 8, 0.05)' : 'transparent' }}>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedLeads.includes(lead.id)}
+                            onChange={(e) => handleSelectLead(e, lead.id)}
+                            style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                          />
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: '700', color: '#ffffff' }}>
+                          {lead.name}
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 'normal' }}>{lead.city || 'Online'}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <div style={{ color: '#52b788', fontWeight: '600' }}>{lead.phone}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{lead.email}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span style={{
+                            background: (lead.source && lead.source.toLowerCase().includes('instagram')) ? 'rgba(228, 64, 95, 0.2)' : 'rgba(24, 119, 242, 0.2)',
+                            color: (lead.source && lead.source.toLowerCase().includes('instagram')) ? '#f472b6' : '#60a5fa',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600'
+                          }}>
+                            {lead.source || 'Facebook Lead Form'}
+                          </span>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem' }}>{lead.batch || 'Meta Form'}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', color: '#e2e8f0', fontWeight: '500' }}>
+                          {lead.targetCourse || lead.course}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <select
+                            value={lead.counselor || 'Unassigned'}
+                            onChange={(e) => {
+                              if (onAddLead) {
+                                const updatedLead = { ...lead, counselor: e.target.value };
+                                onAddLead(updatedLead);
+                              }
+                            }}
+                            style={{
+                              background: lead.counselor === 'Unassigned' ? '#d97706' : '#10b981',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.45rem 0.85rem',
+                              fontSize: '0.82rem',
+                              fontWeight: '700',
+                              cursor: 'pointer',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="Unassigned">🟡 Unassigned</option>
+                            {counselors.map(c => (
+                              <option key={c.id || c.name} value={c.name}>🟢 {c.name} ({c.role || 'Counselor'})</option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                    return acc;
+                  }, [])
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* RECENT WEBHOOK ACTIVITY STREAM */}

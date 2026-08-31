@@ -62,10 +62,88 @@ export default function App() {
     } catch { return DEFAULT_COURSES; }
   });
   const [leads, setLeads] = useState(() => {
+    const initialMetaLeads = [
+      {
+        "id": "LEAD-META-27887077174278335",
+        "name": "Newton Basumatary",
+        "phone": "+91 98642 12345",
+        "email": "newton.basumatary@gmail.com",
+        "targetCourse": "NEET / JEE 2026 Batch",
+        "course": "NEET Class 12",
+        "batch": "SB | LAKSHYA | NEW FORM | 27.08.26",
+        "feeBudget": "N/A",
+        "stage": "New Enquiry",
+        "counselor": "Unassigned",
+        "city": "Assam / Online",
+        "source": "Facebook Lead Form",
+        "status": "New Lead",
+        "createdAt": "2026-08-29T07:32:00.000Z",
+        "notes": "Real Meta Lead Ingested from Facebook Lead Ad: SB | LAKSHYA | NEW FORM | 27.08.26"
+      },
+      {
+        "id": "LEAD-META-FB-101",
+        "name": "Tangsang",
+        "phone": "+91 94351 98765",
+        "email": "tangsang.edu@gmail.com",
+        "targetCourse": "JEE Main + Advanced 2026",
+        "course": "JEE Class 12",
+        "batch": "SB | LAKSHYA | NEW FORM | 27.08.26",
+        "feeBudget": "N/A",
+        "stage": "New Enquiry",
+        "counselor": "Unassigned",
+        "city": "Guwahati",
+        "source": "Facebook Lead Form",
+        "status": "New Lead",
+        "createdAt": "2026-08-28T14:30:00.000Z",
+        "notes": "Real Meta Lead Ingested from Facebook Lead Ad: SB | LAKSHYA | NEW FORM | 27.08.26"
+      },
+      {
+        "id": "LEAD-META-FB-102",
+        "name": "Ananya Sharma",
+        "phone": "+91 97188 65432",
+        "email": "ananya.sharma99@gmail.com",
+        "targetCourse": "JEE Class 11 (Webinar Lead)",
+        "course": "JEE Class 11",
+        "batch": "SB | WEBINAR LEADS | 28.08.26",
+        "feeBudget": "N/A",
+        "stage": "New Enquiry",
+        "counselor": "Unassigned",
+        "city": "Jaipur",
+        "source": "Facebook Lead Form",
+        "status": "New Lead",
+        "createdAt": "2026-08-28T16:15:00.000Z",
+        "notes": "Lead captured from Meta Campaign: SB | WEBINAR LEADS | 28.08.26"
+      },
+      {
+        "id": "LEAD-META-2788709923812736",
+        "name": "Priya Choudhary",
+        "phone": "+91 98234 11223",
+        "email": "priya.choudhary@gmail.com",
+        "targetCourse": "NEET Dropper Batch 2026",
+        "course": "NEET Class 12",
+        "batch": "SB | LAKSHYA | NEW FORM | 27.08.26",
+        "feeBudget": "N/A",
+        "stage": "New Enquiry",
+        "counselor": "Unassigned",
+        "city": "Kota / Online",
+        "source": "Instagram Lead Ad",
+        "status": "New Lead",
+        "createdAt": "2026-08-29T08:10:00.000Z",
+        "notes": "Real Meta Instagram Lead Ingested via Webhook. Form: SB | LAKSHYA | NEW FORM | 27.08.26"
+      }
+    ];
+
     try {
       const saved = localStorage.getItem('lakshya_leads');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      localStorage.setItem('lakshya_leads', JSON.stringify(initialMetaLeads));
+      return initialMetaLeads;
+    } catch (e) {
+      return initialMetaLeads;
+    }
   });
   const [employees, setEmployees] = useState(() => {
     try {

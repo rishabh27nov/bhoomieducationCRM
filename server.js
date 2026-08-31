@@ -176,9 +176,10 @@ const server = http.createServer((req, res) => {
             course: payload.course || 'NEET / JEE Enquiry',
             city: payload.city || 'Online Meta Lead',
             source: platform,
+            counselor: 'Unassigned',
             status: 'New Lead',
             createdAt: new Date().toISOString(),
-            notes: `Auto-ingested from Meta Lead Ads.`
+            notes: `Auto-ingested from Meta Lead Ads. Awaiting Admin Counselor Assignment.`
           };
 
           currentDb.leads = [newLead, ...(currentDb.leads || [])];
