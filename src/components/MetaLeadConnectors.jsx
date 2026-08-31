@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Share2,
   Copy,
@@ -47,8 +47,15 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [bulkCounselor, setBulkCounselor] = useState('');
   const [autoCounselors, setAutoCounselors] = useState([]);
+  const [courseTypeFilter, setCourseTypeFilter] = useState('ALL');
   const [dateAutoAssignFrom, setDateAutoAssignFrom] = useState('');
   const [dateAutoAssignCounselor, setDateAutoAssignCounselor] = useState('');
+
+  // Refs so fetchMetaLeads (useCallback) can always access latest rule values
+  const dateAutoAssignFromRef = useRef('');
+  const dateAutoAssignCounselorRef = useRef('');
+  useEffect(() => { dateAutoAssignFromRef.current = dateAutoAssignFrom; }, [dateAutoAssignFrom]);
+  useEffect(() => { dateAutoAssignCounselorRef.current = dateAutoAssignCounselor; }, [dateAutoAssignCounselor]);
 
   const toggleAutoCounselor = (name) => {
     setAutoCounselors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
@@ -206,16 +213,37 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
               const name = fields['full_name'] || fields['name'] || `${firstName} ${lastName}`.trim() || 'Unknown';
               const phone = fields['phone_number'] || fields['phone'] || fields['mobile'] || '';
               const email = fields['email'] || '';
-              const course = fields['course'] || fields['course_interested'] || fields['program'] || fields['what_course_are_you_interested_in'] || '';
-              const city = fields['city'] || fields['location'] || '';
+              const city = fields['city'] || fields['location'] || fields['city_town'] || '';
+
+              // Smart course detection — from form fields first, then from form name
+              let course = fields['course'] || fields['course_interested'] || fields['program'] || 
+                           fields['what_course_are_you_interested_in'] || fields['interested_course'] ||
+                           fields['target_exam'] || fields['exam'] || fields['stream'] || '';
+
+              // If no course in fields, try detecting from form name
+              if (!course) {
+                const formNameLower = (form.name || '').toLowerCase();
+                if (formNameLower.includes('neet')) course = 'NEET';
+                else if (formNameLower.includes('jee')) course = 'JEE';
+                else if (formNameLower.includes('foundation')) course = 'Foundation';
+                else if (formNameLower.includes('board')) course = 'Board';
+              }
+
+              // Detect courseType label for UI display
+              const courseTypeLower = course.toLowerCase();
+              let courseType = 'Other';
+              if (courseTypeLower.includes('neet')) courseType = 'NEET';
+              else if (courseTypeLower.includes('jee')) courseType = 'JEE';
+              else if (courseTypeLower.includes('foundation')) courseType = 'Foundation';
 
               allLeads.push({
                 id: `LEAD-META-${lead.id}`,
                 name,
                 phone,
                 email,
-                targetCourse: course,
-                course,
+                targetCourse: course || form.name,
+                course: course || form.name,
+                courseType,
                 batch: form.name,
                 city,
                 source: 'Facebook Lead Form',
@@ -232,6 +260,21 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
 
       // Sort leads by created_time (newest first)
       allLeads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      // Auto-apply date rule if configured: assign leads on/after dateAutoAssignFrom to the selected counselor
+      const ruleDate = dateAutoAssignFromRef.current;
+      const ruleCounselor = dateAutoAssignCounselorRef.current;
+      if (ruleDate && ruleCounselor) {
+        const fromDate = new Date(ruleDate);
+        fromDate.setHours(0, 0, 0, 0);
+        allLeads.forEach((lead, i) => {
+          const leadDate = new Date(lead.createdAt);
+          leadDate.setHours(0, 0, 0, 0);
+          if (leadDate >= fromDate) {
+            allLeads[i] = { ...lead, counselor: ruleCounselor };
+          }
+        });
+      }
 
       setMetaRealLeads(allLeads);
       setMetaFetchStatus('success');
@@ -1244,6 +1287,24 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
             </div>
           </div>
 
+          {/* NEET / JEE Course Filter Bar */}
+          {metaFetchStatus === 'success' && metaRealLeads.length > 0 && (() => {
+            const neetCount = metaRealLeads.filter(l => l.courseType === 'NEET').length;
+            const jeeCount = metaRealLeads.filter(l => l.courseType === 'JEE').length;
+            const otherCount = metaRealLeads.filter(l => !['NEET','JEE'].includes(l.courseType)).length;
+            return (
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Filter by Course:</span>
+                {[['ALL', `All (${metaRealLeads.length})`, '#475569', '#1e293b'], ['NEET', `🔬 NEET (${neetCount})`, '#16a34a', '#f0fdf4'], ['JEE', `⚗️ JEE (${jeeCount})`, '#2563eb', '#eff6ff'], ['OTHER', `📚 Others (${otherCount})`, '#9333ea', '#faf5ff']].map(([key, label, color, bg]) => (
+                  <button key={key} onClick={() => setCourseTypeFilter(key)}
+                    style={{ padding: '0.3rem 0.85rem', borderRadius: '20px', border: `1.5px solid ${courseTypeFilter === key ? color : 'rgba(255,255,255,0.15)'}`, background: courseTypeFilter === key ? color : 'transparent', color: courseTypeFilter === key ? '#fff' : '#94a3b8', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0', fontSize: '0.88rem' }}>
               <thead>
@@ -1271,7 +1332,15 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                 ) : metaRealLeads.length === 0 ? (
                   <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No leads found in your Meta Lead Forms. Click "Refresh From Meta" to check again.</td></tr>
                 ) : (
-                  metaRealLeads.reduce((acc, lead, index, arr) => {
+                  metaRealLeads
+                  .filter(lead => {
+                    if (courseTypeFilter === 'ALL') return true;
+                    if (courseTypeFilter === 'NEET') return lead.courseType === 'NEET';
+                    if (courseTypeFilter === 'JEE') return lead.courseType === 'JEE';
+                    if (courseTypeFilter === 'OTHER') return !['NEET','JEE'].includes(lead.courseType);
+                    return true;
+                  })
+                  .reduce((acc, lead, index, arr) => {
                     const leadDate = new Date(lead.createdAt).toLocaleDateString('en-GB');
                     const prevLeadDate = index === 0 ? null : new Date(arr[index - 1].createdAt).toLocaleDateString('en-GB');
 
@@ -1321,8 +1390,22 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                           </span>
                           <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem' }}>{lead.batch || 'Meta Form'}</div>
                         </td>
-                        <td style={{ padding: '0.85rem 1rem', color: '#e2e8f0', fontWeight: '500' }}>
-                          {lead.targetCourse || lead.course}
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          {/* NEET / JEE Badge */}
+                          {lead.courseType && lead.courseType !== 'Other' && (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '12px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                              marginBottom: '0.25rem',
+                              background: lead.courseType === 'NEET' ? 'rgba(22,163,74,0.2)' : lead.courseType === 'JEE' ? 'rgba(37,99,235,0.2)' : 'rgba(147,51,234,0.2)',
+                              color: lead.courseType === 'NEET' ? '#4ade80' : lead.courseType === 'JEE' ? '#60a5fa' : '#c084fc',
+                              border: `1px solid ${lead.courseType === 'NEET' ? 'rgba(22,163,74,0.4)' : lead.courseType === 'JEE' ? 'rgba(37,99,235,0.4)' : 'rgba(147,51,234,0.4)'}`
+                            }}>{lead.courseType}</span>
+                          )}
+                          <div style={{ fontSize: '0.82rem', color: '#e2e8f0' }}>{lead.targetCourse || lead.course}</div>
                         </td>
                         <td style={{ padding: '0.85rem 1rem' }}>
                           <select
