@@ -937,9 +937,49 @@ export default function LeadsManager({
               </tr>
             </thead>
             <tbody>
-              {filteredLeads.map(lead => (
-                <tr key={lead.id} style={{ backgroundColor: selectedLeadIds.includes(lead.id) ? '#f0fdf4' : undefined }}>
-                  <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              {filteredLeads
+                .slice()
+                .sort((a, b) => {
+                  const dateA = new Date(a.createdAt || a.rowDate || todayStr);
+                  const dateB = new Date(b.createdAt || b.rowDate || todayStr);
+                  const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+                  const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+                  return timeB - timeA;
+                })
+                .reduce((acc, lead, index, arr) => {
+                  let rawDate = lead.createdAt || lead.rowDate || todayStr;
+                  let leadDateStr = 'Unknown Date';
+                  const d = new Date(rawDate);
+                  if (!isNaN(d.getTime())) {
+                    leadDateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  } else if (rawDate) {
+                    leadDateStr = String(rawDate).split('T')[0];
+                  }
+
+                  let prevRawDate = index === 0 ? null : (arr[index - 1].createdAt || arr[index - 1].rowDate || todayStr);
+                  let prevDateStr = null;
+                  if (prevRawDate) {
+                    const pd = new Date(prevRawDate);
+                    if (!isNaN(pd.getTime())) {
+                      prevDateStr = pd.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    } else {
+                      prevDateStr = String(prevRawDate).split('T')[0];
+                    }
+                  }
+
+                  if (leadDateStr !== prevDateStr) {
+                    acc.push(
+                      <tr key={`date-${leadDateStr}-${index}`} style={{ background: 'rgba(21, 128, 61, 0.05)', borderBottom: '2px solid rgba(21, 128, 61, 0.2)', borderTop: '2px solid rgba(21, 128, 61, 0.2)' }}>
+                        <td colSpan="9" style={{ padding: '0.65rem 1rem', color: '#166534', fontWeight: '800', fontSize: '0.95rem', textAlign: 'left' }}>
+                          📅 Leads from {leadDateStr}
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  acc.push(
+                    <tr key={lead.id} style={{ backgroundColor: selectedLeadIds.includes(lead.id) ? '#f0fdf4' : undefined }}>
+                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedLeadIds.includes(lead.id)}
@@ -1104,7 +1144,9 @@ export default function LeadsManager({
                   </td>
 
                 </tr>
-              ))}
+              );
+              return acc;
+            }, [])}
             </tbody>
           </table>
         </div>
