@@ -739,37 +739,6 @@ export default function App() {
     logActivity('Lead Notes Modified', `Edited/cleared notes for lead ${leadId}`);
   };
 
-  // Handle single lead deletion
-  const handleDeleteLead = (leadId) => {
-    if (currentUser?.role !== 'Admin') {
-      alert('Permission Denied: Only Admin can delete leads.');
-      return;
-    }
-    const updatedLeads = leads.filter(l => l.id !== leadId);
-    setLeads(updatedLeads);
-    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-    saveToCentralDB({ leads: updatedLeads });
-    if (selectedLead && selectedLead.id === leadId) {
-      setSelectedLead(null);
-    }
-    logActivity('Lead Deleted', `Admin deleted lead ID: ${leadId}`);
-  };
-
-  // Handle bulk lead deletion
-  const handleBulkDeleteLeads = (leadIds) => {
-    if (currentUser?.role !== 'Admin') {
-      alert('Permission Denied: Only Admin can delete leads.');
-      return;
-    }
-    const updatedLeads = leads.filter(l => !leadIds.includes(l.id));
-    setLeads(updatedLeads);
-    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-    saveToCentralDB({ leads: updatedLeads });
-    if (selectedLead && leadIds.includes(selectedLead.id)) {
-      setSelectedLead(null);
-    }
-    logActivity('Bulk Leads Deleted', `Admin deleted ${leadIds.length} leads`);
-  };
 
   // Handle add lead / bulk add leads (Admin action only)
   const handleAddLead = (newLeadData) => {
