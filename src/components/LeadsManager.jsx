@@ -588,36 +588,7 @@ export default function LeadsManager({
           )}
         </div>
 
-        {/* Prominent Quick Bulk Upload Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            className="btn"
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#15803d',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              borderRadius: 'var(--radius-md)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(21, 128, 61, 0.3)'
-            }}
-            onClick={() => {
-              setImportedRowsData([]);
-              if (currentUser?.name) {
-                setSelectedAssignCounselor(currentUser.name);
-              }
-              setShowAssignModal(true);
-            }}
-            title="Bulk Upload Excel / CSV Sheet"
-          >
-            <FileSpreadsheet size={18} /> 📊 Bulk Upload Excel / CSV Leads
-          </button>
-        </div>
+
       </div>
 
       {/* Admin Quick Employee Cards Selection Bar */}
