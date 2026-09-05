@@ -109,28 +109,21 @@ export const PIPELINE_STAGES_B2B2C = [
 ];
 
 export const PIPELINE_STAGES_B2C = [
-  'New Enquiry',
-  'Counselling',
-  'Website/Test Portal',
-  'Demo Class',
-  'Demo Class Attended-Not Converted',
-  'Fee Paid & Enrolled',
-  'Not Interested'
+  'New Lead',
+  'Contacted / Engaged',
+  'Action Pending',
+  'Action Booked',
+  'Action Completed',
+  'Qualified Opportunity',
+  'Recommendation Made',
+  'Decision Pending',
+  'Payment Link Sent',
+  'Won - Enrolled',
+  'Lost / Not Interested',
+  'Long-Term Nurture'
 ];
 
-export const PIPELINE_STAGES = [
-  'New Enquiry',
-  'Out Reach',
-  'Counselling',
-  'Applitude Test',
-  'Seminar',
-  'Website/Test Portal',
-  'Demo Class',
-  'Website/Test Portal/Demo Class Attended-Not Converted',
-  'Demo Class Attended-Not Converted',
-  'Fee Paid & Enrolled',
-  'Not Interested'
-];
+export const PIPELINE_STAGES = Array.from(new Set([...PIPELINE_STAGES_B2B2C, ...PIPELINE_STAGES_B2C]));
 
 export const getPipelineStagesForLead = (leadType) => {
   if (leadType === 'B2B2C' || leadType === 'B2B') {
