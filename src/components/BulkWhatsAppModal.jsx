@@ -8,6 +8,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState({ success: 0, failed: 0 });
   const [isFinished, setIsFinished] = useState(false);
+  const [useTemplate, setUseTemplate] = useState(true); // Default to true since it's the safest way to message first-time users
 
   const totalLeads = selectedLeads.length;
 
@@ -16,7 +17,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
 
   const handleSendBulk = async (e) => {
     e.preventDefault();
-    if (!message.trim() || totalLeads === 0) return;
+    if ((!message.trim() && !useTemplate) || totalLeads === 0) return;
 
     setIsSending(true);
     let successCount = 0;
@@ -25,10 +26,14 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     for (let i = 0; i < selectedLeads.length; i++) {
       const lead = selectedLeads[i];
       try {
+        const payload = useTemplate 
+          ? { phone: lead.phone, isTemplate: true, templateName: 'lakshya_admission_enquiry' }
+          : { phone: lead.phone, message: message };
+
         const response = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: lead.phone, message: message })
+          body: JSON.stringify(payload)
         });
         
         if (response.ok) {
@@ -109,20 +114,48 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
 
           {!isFinished ? (
             <form onSubmit={handleSendBulk}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
-                  Your Message
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={useTemplate} 
+                    onChange={(e) => {
+                      setUseTemplate(e.target.checked);
+                      if (e.target.checked) setMessage('');
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontWeight: 600, color: '#334155' }}>
+                    Send Approved Template <span style={{ color: '#15803d' }}>(Required for new students)</span>
+                  </span>
                 </label>
-                <textarea
-                  className="form-input"
-                  rows={6}
-                  required
-                  placeholder="Hello, we are starting a new batch..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  disabled={isSending}
-                  style={{ width: '100%', resize: 'vertical' }}
-                />
+                
+                {useTemplate ? (
+                  <div style={{ padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', color: '#475569', fontStyle: 'italic' }}>
+                    Hello! 🎓<br/><br/>
+                    Welcome to <b>Lakshya Education</b> - Bhoomi Connect!<br/><br/>
+                    Thank you for your enquiry about our NEET/JEE coaching programs. Our counselor will get in touch with you shortly.<br/><br/>
+                    For any queries, feel free to reply to this message or call us:<br/>
+                    📞 +91 88002 15851<br/><br/>
+                    Team Lakshya Education
+                  </div>
+                ) : (
+                  <div>
+                    <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
+                      Custom Message (Only works if student messaged you first)
+                    </label>
+                    <textarea
+                      className="form-input"
+                      rows={5}
+                      required={!useTemplate}
+                      placeholder="Hello, we are starting a new batch..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      disabled={isSending}
+                      style={{ width: '100%', resize: 'vertical' }}
+                    />
+                  </div>
+                )}
               </div>
 
               {isSending && (
@@ -148,7 +181,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
                 <button 
                   type="submit" 
                   className="btn btn-primary" 
-                  disabled={isSending || !message.trim()}
+                  disabled={isSending || (!useTemplate && !message.trim())}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#15803d' }}
                 >
                   {isSending ? 'Sending...' : <><Send size={16} /> Send to {totalLeads}</>}

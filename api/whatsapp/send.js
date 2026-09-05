@@ -12,10 +12,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { phone, message } = req.body || {};
+    const { phone, message, isTemplate, templateName, languageCode } = req.body || {};
 
-    if (!phone || !message) {
-      return res.status(400).json({ error: 'phone and message are required' });
+    if (!phone) {
+      return res.status(400).json({ error: 'phone is required' });
+    }
+    
+    if (!isTemplate && !message) {
+      return res.status(400).json({ error: 'message is required for non-template sends' });
     }
 
     // Fetch WhatsApp credentials from Firebase
@@ -36,6 +40,23 @@ export default async function handler(req, res) {
       cleanPhone = '91' + cleanPhone;
     }
 
+    // Prepare payload based on message type
+    let payload = {
+      messaging_product: 'whatsapp',
+      to: cleanPhone,
+    };
+
+    if (isTemplate) {
+      payload.type = 'template';
+      payload.template = {
+        name: templateName || 'lakshya_admission_enquiry',
+        language: { code: languageCode || 'en' }
+      };
+    } else {
+      payload.type = 'text';
+      payload.text = { body: message };
+    }
+
     // Send message via Meta WhatsApp Cloud API
     const metaResponse = await fetch(
       `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
@@ -45,12 +66,7 @@ export default async function handler(req, res) {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: cleanPhone,
-          type: 'text',
-          text: { body: message }
-        })
+        body: JSON.stringify(payload)
       }
     );
 
@@ -68,7 +84,7 @@ export default async function handler(req, res) {
     const outgoingMsg = {
       id: metaResult.messages?.[0]?.id || `MSG-OUT-${Date.now()}`,
       leadPhone: phone,
-      text: message,
+      text: isTemplate ? `[Template Sent: ${templateName || 'lakshya_admission_enquiry'}]` : message,
       timestamp: new Date().toISOString(),
       direction: 'outgoing',
       status: 'sent'
