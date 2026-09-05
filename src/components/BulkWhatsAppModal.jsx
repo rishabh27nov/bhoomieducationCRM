@@ -27,7 +27,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
       const lead = selectedLeads[i];
       try {
         const payload = useTemplate 
-          ? { phone: lead.phone, isTemplate: true, templateName: 'lakshya_admission_enquiry' }
+          ? { phone: lead.phone, isTemplate: true, templateName: 'hello_world', languageCode: 'en_US' }
           : { phone: lead.phone, message: message };
 
         const response = await fetch('/api/whatsapp/send', {
