@@ -194,6 +194,104 @@ const server = http.createServer((req, res) => {
       });
       return;
     }
+  // WhatsApp API Webhooks
+  if (url.startsWith('/api/webhooks/whatsapp')) {
+    // GET verification handshake from Meta Developer Console
+    if (req.method === 'GET') {
+      const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const mode = parsedUrl.searchParams.get('hub.mode');
+      const token = parsedUrl.searchParams.get('hub.verify_token');
+      const challenge = parsedUrl.searchParams.get('hub.challenge');
+
+      // TODO: Replace 'bhoomi_whatsapp_token' with your actual verify token later
+      if (mode === 'subscribe' && token === 'bhoomi_whatsapp_token') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(challenge);
+        return;
+      }
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'WhatsApp Verification failed' }));
+      return;
+    }
+
+    // POST webhook event (Incoming WhatsApp message from student)
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk.toString(); });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          const currentDb = loadDatabase();
+          
+          if (!currentDb.whatsappMessages) {
+             currentDb.whatsappMessages = [];
+          }
+
+          // Very basic parsing of Meta's complex JSON payload structure
+          if (payload.entry && payload.entry[0].changes && payload.entry[0].changes[0].value.messages) {
+            const msgObj = payload.entry[0].changes[0].value.messages[0];
+            const senderPhone = payload.entry[0].changes[0].value.contacts[0].wa_id;
+            
+            const incomingMsg = {
+               id: msgObj.id,
+               leadPhone: senderPhone,
+               text: msgObj.text ? msgObj.text.body : '[Media/Non-Text Message]',
+               timestamp: new Date().toISOString(),
+               direction: 'incoming',
+               status: 'received'
+            };
+            
+            currentDb.whatsappMessages.push(incomingMsg);
+            saveDatabase(currentDb);
+            console.log('Received WhatsApp Message:', incomingMsg.text);
+          }
+          
+          // Always return 200 OK immediately so Meta doesn't retry
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, note: 'Error parsing but returning 200' }));
+        }
+      });
+      return;
+    }
+  }
+
+  // Send WhatsApp Message Endpoint (CRM -> Meta API)
+  if (url === '/api/whatsapp/send' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const currentDb = loadDatabase();
+        if (!currentDb.whatsappMessages) currentDb.whatsappMessages = [];
+
+        // Save outgoing message to DB
+        const outgoingMsg = {
+           id: `MSG-OUT-${Date.now()}`,
+           leadPhone: payload.phone, // Target phone number
+           text: payload.message,
+           timestamp: new Date().toISOString(),
+           direction: 'outgoing',
+           status: 'sent'
+        };
+        
+        currentDb.whatsappMessages.push(outgoingMsg);
+        saveDatabase(currentDb);
+
+        // TODO: Actually make the fetch/axios call to graph.facebook.com here 
+        // using your API token and Phone Number ID once you have them.
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: outgoingMsg }));
+      } catch(err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to send WhatsApp message' }));
+      }
+    });
+    return;
   }
 
   // 404 Route

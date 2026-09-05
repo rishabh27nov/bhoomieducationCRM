@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
-import { PIPELINE_STAGES, getPipelineStagesForLead, isCounselorMatch } from '../data/mockData';
+import { PIPELINE_STAGES, PIPELINE_STAGES_B2C, PIPELINE_STAGES_B2B2C, getPipelineStagesForLead, isCounselorMatch } from '../data/mockData';
 import {
   Search,
   Plus,
@@ -875,6 +875,44 @@ export default function LeadsManager({
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <select
+              className="form-select"
+              style={{
+                padding: '0.45rem',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                borderRadius: '8px',
+                borderColor: '#15803d',
+                color: '#15803d',
+                backgroundColor: '#f0fdf4',
+                cursor: 'pointer'
+              }}
+              onChange={(e) => {
+                const newStage = e.target.value;
+                if (newStage) {
+                  if (window.confirm(`Are you sure you want to change pipeline stage to "${newStage}" for ${selectedLeadIds.length} selected lead(s)?`)) {
+                    selectedLeadIds.forEach(id => onUpdateLeadStage(id, newStage));
+                    setSelectedLeadIds([]);
+                  }
+                  e.target.value = '';
+                }
+              }}
+            >
+              <option value="">🔄 Bulk Update Pipeline...</option>
+              {(() => {
+                const selectedLeadsObjects = filteredLeads.filter(l => selectedLeadIds.includes(l.id));
+                const hasB2B2C = selectedLeadsObjects.some(l => l.leadType === 'B2B2C' || l.leadType === 'B2B' || (l.leadSource && (l.leadSource.toUpperCase().includes('B2B2C') || l.leadSource.toUpperCase().includes('B2B'))));
+                const hasB2C = selectedLeadsObjects.some(l => !(l.leadType === 'B2B2C' || l.leadType === 'B2B' || (l.leadSource && (l.leadSource.toUpperCase().includes('B2B2C') || l.leadSource.toUpperCase().includes('B2B')))));
+                let availableStages = PIPELINE_STAGES;
+                if (hasB2B2C && !hasB2C) availableStages = PIPELINE_STAGES_B2B2C;
+                else if (hasB2C && !hasB2B2C) availableStages = PIPELINE_STAGES_B2C;
+                
+                return availableStages.map(stage => (
+                  <option key={stage} value={stage}>{stage}</option>
+                ));
+              })()}
+            </select>
+
             <button
               className="btn"
               style={{
@@ -968,10 +1006,35 @@ export default function LeadsManager({
                   }
 
                   if (leadDateStr !== prevDateStr) {
+                    const leadsForThisDate = filteredLeads.filter(l => {
+                      let raw = l.createdAt || l.rowDate || todayStr;
+                      let dStr = 'Unknown Date';
+                      const dt = new Date(raw);
+                      if (!isNaN(dt.getTime())) dStr = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                      else if (raw) dStr = String(raw).split('T')[0];
+                      return dStr === leadDateStr;
+                    });
+                    const allSelectedForDate = leadsForThisDate.length > 0 && leadsForThisDate.every(l => selectedLeadIds.includes(l.id));
+
                     acc.push(
                       <tr key={`date-${leadDateStr}-${index}`} style={{ background: 'rgba(21, 128, 61, 0.05)', borderBottom: '2px solid rgba(21, 128, 61, 0.2)', borderTop: '2px solid rgba(21, 128, 61, 0.2)' }}>
                         <td colSpan="9" style={{ padding: '0.65rem 1rem', color: '#166534', fontWeight: '800', fontSize: '0.95rem', textAlign: 'left' }}>
-                          📅 Leads from {leadDateStr}
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', width: 'fit-content' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={allSelectedForDate}
+                              onChange={() => {
+                                if (allSelectedForDate) {
+                                  setSelectedLeadIds(prev => prev.filter(id => !leadsForThisDate.some(l => l.id === id)));
+                                } else {
+                                  const newIds = leadsForThisDate.map(l => l.id).filter(id => !selectedLeadIds.includes(id));
+                                  setSelectedLeadIds(prev => [...prev, ...newIds]);
+                                }
+                              }}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#15803d' }}
+                            />
+                            <span>📅 Leads from {leadDateStr} ({leadsForThisDate.length})</span>
+                          </label>
                         </td>
                       </tr>
                     );

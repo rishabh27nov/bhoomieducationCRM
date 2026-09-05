@@ -492,11 +492,14 @@ export default function App() {
     if (!isAuthenticated) return;
 
     const INACTIVITY_LIMIT_SEC = 20 * 60; // 20 Minutes (1200 Seconds)
+    let lastActivityTime = Date.now();
 
     // Reset timer on any cursor movement, click, keypress
     const handleUserActivity = () => {
-      setIdleSeconds(0);
-      setIsIdle(false);
+      lastActivityTime = Date.now();
+      // Bail out of state updates if already 0/false to prevent re-renders
+      setIsIdle(prev => prev === true ? false : prev);
+      setIdleSeconds(prev => prev > 0 ? 0 : prev);
     };
 
     const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
@@ -504,27 +507,28 @@ export default function App() {
 
     // 1-second interval to tick idle time
     const interval = setInterval(() => {
-      setIdleSeconds((prev) => {
-        const nextSec = prev + 1;
+      const now = Date.now();
+      const nextSec = Math.floor((now - lastActivityTime) / 1000);
 
-        // Show countdown badge if inactive for 5 seconds or more
-        if (nextSec >= 5) {
-          setIsIdle(true);
+      if (nextSec >= 5) {
+        setIsIdle(true);
+        setIdleSeconds(nextSec);
+      } else {
+        setIsIdle(prev => prev === true ? false : prev);
+        setIdleSeconds(prev => prev > 0 ? 0 : prev);
+      }
+
+      // Auto-logout trigger at 20 minutes (1200s)
+      if (nextSec >= INACTIVITY_LIMIT_SEC) {
+        // Safety check: Do NOT auto-logout if an active upload or download is in progress
+        if (window.isLakshyaUploading || window.isLakshyaDownloading || isTransferring) {
+          lastActivityTime = Date.now() - ((INACTIVITY_LIMIT_SEC - 60) * 1000); // Extend by 1 min
+          return;
         }
 
-        // Auto-logout trigger at 20 minutes (1200s)
-        if (nextSec >= INACTIVITY_LIMIT_SEC) {
-          // Safety check: Do NOT auto-logout if an active upload or download is in progress
-          if (window.isLakshyaUploading || window.isLakshyaDownloading || isTransferring) {
-            return INACTIVITY_LIMIT_SEC - 60; // Extend by 1 min during file transfers
-          }
-
-          alert('⏱️ Session Expired: Auto-logged out due to 20 minutes of inactivity.');
-          handleLogout();
-          return 0;
-        }
-        return nextSec;
-      });
+        alert('⏱️ Session Expired: Auto-logged out due to 20 minutes of inactivity.');
+        handleLogout();
+      }
     }, 1000);
 
     return () => {
@@ -653,6 +657,18 @@ export default function App() {
         'Lead Stage Updated',
         `Updated stage for ${targetLead.name} (${targetLead.id}) to "${newStage}"`
       );
+
+      // WhatsApp Web Free Trigger for Demo Class
+      if (newStage === 'Demo Class' || newStage === 'Demo Class Attended-Not Converted') {
+        const cleanPhone = targetLead.phone ? targetLead.phone.replace(/\D/g, '') : '';
+        if (cleanPhone) {
+           // If number starts with 0 or has no country code, add 91
+           const finalPhone = cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone;
+           const message = `Hello ${targetLead.name}, Aaj aapki Demo Class hai! Kripya niche diye gaye link par click karke class join karein:\n\n[Zoom/Meet Link Yahan Daalein]`;
+           const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+           window.open(waUrl, '_blank');
+        }
+      }
     }
   };
 

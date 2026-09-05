@@ -364,42 +364,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
             <ArrowRight size={18} />
           </button>
 
-          {/* Quick Demo Credentials Panel for testing */}
-          <div
-            style={{
-              marginTop: '0.5rem',
-              padding: '1rem',
-              borderRadius: 'var(--radius-lg)',
-              backgroundColor: '#f8faf9',
-              border: '1px dashed var(--border-light)'
-            }}
-          >
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <KeyRound size={14} color="var(--color-brand-emerald)" />
-              1-Click Demo Login Shortcuts:
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
-                onClick={() => fillQuickDemo('admin')}
-              >
-                🛡️ Admin (admin / admin123)
-              </button>
-              {employees.slice(0, 2).map((emp) => (
-                <button
-                  key={emp.id}
-                  type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}
-                  onClick={() => fillQuickDemo('employee', emp)}
-                >
-                  👤 {emp.name.split(' ')[0]} ({emp.username || emp.id})
-                </button>
-              ))}
-            </div>
-          </div>
+
         </form>
       </div>
     </div>

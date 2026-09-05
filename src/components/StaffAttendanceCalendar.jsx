@@ -191,12 +191,71 @@ export default function StaffAttendanceCalendar({
     setSelectedDate(newDate);
   };
 
+  // System Auto-Save: Automatically mark pending staff as Absent after 10:30 AM for today
+  React.useEffect(() => {
+    if (selectedDate !== todayStr) return;
+
+    const checkAndAutoSave = () => {
+      const now = new Date();
+      const timeInMinutes = now.getHours() * 60 + now.getMinutes();
+      const endWindow = 10 * 60 + 30; // 10:30 AM
+
+      if (timeInMinutes > endWindow) {
+        let hasPending = false;
+        const updated = { ...dailyStatus };
+
+        employees.forEach((emp) => {
+          const rec = updated[emp.id];
+          if (!rec?.selfMarked && !rec?.markedBy) {
+            hasPending = true;
+            updated[emp.id] = {
+              status: 'Absent',
+              inTime: '09:30 AM',
+              remarks: 'Auto-marked Absent (Window Closed)',
+              markedAt: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              markedBy: 'System Auto-Save',
+              selfMarked: false
+            };
+          }
+        });
+
+        if (hasPending) {
+          setDailyStatus(updated);
+          if (onSaveAttendance) {
+            onSaveAttendance(todayStr, updated);
+          }
+        }
+      }
+    };
+
+    // Run immediately when component mounts or dailyStatus updates
+    checkAndAutoSave();
+
+    // And also check every minute
+    const interval = setInterval(checkAndAutoSave, 60000);
+    return () => clearInterval(interval);
+  }, [dailyStatus, selectedDate, todayStr, employees, onSaveAttendance]);
+
   // Helper to check if an employee object matches current logged in user
   const isEmployeeSelf = (emp) => {
     if (!currentUser) return false;
     if (currentUser.id && emp.id === currentUser.id) return true;
     return isCounselorMatch(emp.name, currentUser.name);
   };
+
+  const checkIsWithinAttendanceWindow = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const timeInMinutes = hours * 60 + minutes;
+    const startWindow = 9 * 60 + 15; // 09:15 AM = 555
+    const endWindow = 10 * 60 + 30; // 10:30 AM = 630
+    return timeInMinutes >= startWindow && timeInMinutes <= endWindow;
+  };
+
+  const isToday = selectedDate === todayStr;
+  const isWithinWindow = checkIsWithinAttendanceWindow();
+  const canEmployeeMark = isToday && isWithinWindow;
 
   // Filtered employees to display: Admin/Institute sees all, Non-Admin sees ONLY their own profile
   const visibleEmployees = isAdmin
@@ -217,6 +276,19 @@ export default function StaffAttendanceCalendar({
   // Status Change Handler (Self marking enabled for employees!)
   const handleStatusToggle = (empId, status) => {
     const targetEmp = employees.find(e => e.id === empId) || displayEmployees.find(e => e.id === empId);
+
+    // Apply strict time restriction for employees
+    if (!isAdmin) {
+      if (!isToday) {
+        alert('Permission Denied: You can only mark attendance for today.');
+        return;
+      }
+      if (!checkIsWithinAttendanceWindow()) {
+        alert('Attendance window is closed! You can only mark attendance between 09:15 AM and 10:30 AM.');
+        return;
+      }
+    }
+
     const canEdit = isAdmin || (targetEmp && isEmployeeSelf(targetEmp));
 
     if (!canEdit) {
@@ -255,11 +327,15 @@ export default function StaffAttendanceCalendar({
     const canEdit = isAdmin || (targetEmp && isEmployeeSelf(targetEmp));
     if (!canEdit) return;
 
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
     const updated = {
       ...dailyStatus,
       [empId]: {
         ...dailyStatus[empId],
-        inTime
+        inTime,
+        markedAt: dailyStatus[empId]?.markedAt || currentTime,
+        markedBy: dailyStatus[empId]?.markedBy || currentUser?.name || 'Admin'
       }
     };
     setDailyStatus(updated);
@@ -275,11 +351,15 @@ export default function StaffAttendanceCalendar({
     const canEdit = isAdmin || (targetEmp && isEmployeeSelf(targetEmp));
     if (!canEdit) return;
 
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
     const updated = {
       ...dailyStatus,
       [empId]: {
         ...dailyStatus[empId],
-        remarks
+        remarks,
+        markedAt: dailyStatus[empId]?.markedAt || currentTime,
+        markedBy: dailyStatus[empId]?.markedBy || currentUser?.name || 'Admin'
       }
     };
     setDailyStatus(updated);
@@ -296,11 +376,16 @@ export default function StaffAttendanceCalendar({
       return;
     }
     const updated = {};
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
     employees.forEach((emp) => {
       updated[emp.id] = {
         status: 'Present',
         inTime: '09:30 AM',
-        remarks: dailyStatus[emp.id]?.remarks || 'Marked Present'
+        remarks: dailyStatus[emp.id]?.remarks || 'Marked Present',
+        markedAt: currentTime,
+        markedBy: currentUser?.name || 'Admin',
+        selfMarked: true
       };
     });
     setDailyStatus(updated);
@@ -315,11 +400,16 @@ export default function StaffAttendanceCalendar({
   // 1-Click Mark All Absent
   const handleMarkAllAbsent = () => {
     const updated = {};
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
     employees.forEach((emp) => {
       updated[emp.id] = {
         status: 'Absent',
         inTime: '09:30 AM',
-        remarks: dailyStatus[emp.id]?.remarks || 'Default Absent'
+        remarks: dailyStatus[emp.id]?.remarks || 'Default Absent',
+        markedAt: currentTime,
+        markedBy: currentUser?.name || 'Admin',
+        selfMarked: true
       };
     });
     setDailyStatus(updated);
@@ -577,13 +667,17 @@ export default function StaffAttendanceCalendar({
             </div>
             <div style={{ fontSize: '0.8rem', color: '#b7e4c7', marginTop: '0.25rem' }}>
               Your attendance status automatically syncs with Admin in real-time.
+              <div style={{ marginTop: '5px', color: canEmployeeMark ? '#86efac' : '#fca5a5', fontWeight: 700 }}>
+                {canEmployeeMark ? '🟢 Attendance window is currently open (09:15 AM - 10:30 AM)' : '🔴 Attendance window is closed. (Allowed only between 09:15 AM - 10:30 AM for Today)'}
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', opacity: canEmployeeMark ? 1 : 0.5 }}>
             <button
               type="button"
               className="btn"
+              disabled={!canEmployeeMark}
               onClick={() => {
                 const selfEmp = displayEmployees[0];
                 if (selfEmp) handleStatusToggle(selfEmp.id, 'Present');
@@ -596,11 +690,12 @@ export default function StaffAttendanceCalendar({
             <button
               type="button"
               className="btn"
+              disabled={!canEmployeeMark}
               onClick={() => {
                 const selfEmp = displayEmployees[0];
                 if (selfEmp) handleStatusToggle(selfEmp.id, 'Half Day');
               }}
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#fef08a', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: '1px solid #fef08a', cursor: 'pointer' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#fef08a', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: '1px solid #fef08a', cursor: canEmployeeMark ? 'pointer' : 'not-allowed' }}
             >
               🟡 Half Day
             </button>
@@ -608,11 +703,12 @@ export default function StaffAttendanceCalendar({
             <button
               type="button"
               className="btn"
+              disabled={!canEmployeeMark}
               onClick={() => {
                 const selfEmp = displayEmployees[0];
                 if (selfEmp) handleStatusToggle(selfEmp.id, 'On Leave');
               }}
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#93c5fd', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: '1px solid #93c5fd', cursor: 'pointer' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#93c5fd', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: '1px solid #93c5fd', cursor: canEmployeeMark ? 'pointer' : 'not-allowed' }}
             >
               🔵 On Leave
             </button>
@@ -722,7 +818,8 @@ export default function StaffAttendanceCalendar({
                           fontSize: '0.75rem',
                           fontWeight: 700,
                           border: 'none',
-                          cursor: canEdit ? 'pointer' : 'default',
+                          cursor: canEdit && (!isAdmin ? canEmployeeMark : true) ? 'pointer' : 'not-allowed',
+                          opacity: canEdit && (!isAdmin ? canEmployeeMark : true) ? 1 : 0.5,
                           backgroundColor: rec.status === 'Present' ? '#22c55e' : '#f1f5f9',
                           color: rec.status === 'Present' ? '#ffffff' : '#64748b',
                           whiteSpace: 'nowrap'

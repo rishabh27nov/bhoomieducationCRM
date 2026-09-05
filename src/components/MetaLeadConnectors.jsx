@@ -67,27 +67,31 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
 
 
   // Date-based auto-assign: assign all leads ON or AFTER selected date to selected counselor
-  const applyDateAutoAssign = () => {
-    if (!dateAutoAssignFrom) return alert('Please select a start date.');
-    if (!dateAutoAssignCounselor) return alert('Please select a counselor.');
-    const fromDate = new Date(dateAutoAssignFrom);
+  const applyDateAutoAssign = (dateVal, counselorVal) => {
+    if (!dateVal || !counselorVal) return;
+    const fromDate = new Date(dateVal);
     fromDate.setHours(0, 0, 0, 0);
     const toUpdate = [];
+    
+    // Use the latest ref or state if needed, but since it's triggered from onChange,
+    // we use map on metaRealLeads
     const updatedLeads = metaRealLeads.map(lead => {
       const leadDate = new Date(lead.createdAt);
       leadDate.setHours(0, 0, 0, 0);
-      if (leadDate >= fromDate) {
-        const updated = { ...lead, counselor: dateAutoAssignCounselor };
+      if (leadDate >= fromDate && lead.counselor !== counselorVal) {
+        const updated = { ...lead, counselor: counselorVal };
         toUpdate.push(updated);
         return updated;
       }
       return lead;
     });
-    setMetaRealLeads(updatedLeads);
-    if (onAddLead && toUpdate.length > 0) {
-      onAddLead(toUpdate);
+
+    if (toUpdate.length > 0) {
+      setMetaRealLeads(updatedLeads);
+      if (onAddLead) {
+        onAddLead(toUpdate);
+      }
     }
-    alert(`✅ ${toUpdate.length} leads from ${dateAutoAssignFrom} onwards assigned to ${dateAutoAssignCounselor}.`);
   };
 
   const handleSelectDateGroup = (e, dateStr) => {
@@ -1222,23 +1226,23 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
               <input
                 type="date"
                 value={dateAutoAssignFrom}
-                onChange={e => setDateAutoAssignFrom(e.target.value)}
+                onChange={e => {
+                  setDateAutoAssignFrom(e.target.value);
+                  applyDateAutoAssign(e.target.value, dateAutoAssignCounselor);
+                }}
                 style={{ background: 'rgba(2,6,23,0.8)', color: '#fff', border: '1px solid rgba(59,130,246,0.5)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', outline: 'none' }}
               />
               <select
                 value={dateAutoAssignCounselor}
-                onChange={e => setDateAutoAssignCounselor(e.target.value)}
+                onChange={e => {
+                  setDateAutoAssignCounselor(e.target.value);
+                  applyDateAutoAssign(dateAutoAssignFrom, e.target.value);
+                }}
                 style={{ background: 'rgba(2,6,23,0.8)', color: '#fff', border: '1px solid rgba(59,130,246,0.5)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', outline: 'none' }}
               >
                 <option value="">-- Select Counselor --</option>
                 {counselors.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
               </select>
-              <button
-                onClick={applyDateAutoAssign}
-                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.9rem', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Apply Rule
-              </button>
             </div>
             
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
