@@ -25,7 +25,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     for (let i = 0; i < selectedLeads.length; i++) {
       const lead = selectedLeads[i];
       try {
-        const response = await fetch('http://localhost:5000/api/whatsapp/send', {
+        const response = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: lead.phone, message: message })

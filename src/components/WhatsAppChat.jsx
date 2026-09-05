@@ -9,11 +9,12 @@ export default function WhatsAppChat({ lead }) {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/data');
+        const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+        const res = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
         const data = await res.json();
-        if (data && data.whatsappMessages && lead.phone) {
+        if (Array.isArray(data) && lead.phone) {
           const cleanLeadPhone = lead.phone.replace(/\D/g, '');
-          const filtered = data.whatsappMessages.filter(m => {
+          const filtered = data.filter(m => {
             if (!m.leadPhone) return false;
             const mPhone = m.leadPhone.replace(/\D/g, '');
             return mPhone.slice(-10) === cleanLeadPhone.slice(-10);
@@ -49,7 +50,7 @@ export default function WhatsAppChat({ lead }) {
     setInputText('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/whatsapp/send', {
+      const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: lead.phone, message: newMsg.text })
@@ -59,7 +60,7 @@ export default function WhatsAppChat({ lead }) {
       
       if (!res.ok || !data.success) {
         console.error('WhatsApp API Error:', data);
-        alert(`Failed to send WhatsApp message: ${data.error || 'Unknown error'}\n\nMake sure the student's phone number (${lead.phone}) is verified in your Meta Developer Console since you are using a test account!`);
+        alert(`Failed to send WhatsApp message: ${data.error || 'Unknown error'}`);
         // Remove the optimistically added message
         setMessages(prev => prev.filter(m => m.id !== newMsg.id));
       }

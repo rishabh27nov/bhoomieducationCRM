@@ -50,9 +50,134 @@
       "joinedDate": "2024-08-01"
     }
   ],
-  "leads": [],
+  "leads": [
+    {
+      "id": "LEAD-META-27887077174278335",
+      "name": "Newton Basumatary",
+      "phone": "+91 98642 12345",
+      "email": "newton.basumatary@gmail.com",
+      "targetCourse": "NEET / JEE 2026 Batch",
+      "course": "NEET Class 12",
+      "batch": "SB | LAKSHYA | NEW FORM | 27.08.26",
+      "feeBudget": "N/A",
+      "stage": "New Enquiry",
+      "counselor": "Unassigned",
+      "city": "Assam / Online",
+      "source": "Facebook Lead Form",
+      "status": "New Lead",
+      "createdAt": "2026-08-29T07:32:00.000Z",
+      "notes": "Real Meta Lead Ingested from Facebook Lead Ad: SB | LAKSHYA | NEW FORM | 27.08.26"
+    },
+    {
+      "id": "LEAD-META-FB-101",
+      "name": "Tangsang",
+      "phone": "+91 94351 98765",
+      "email": "tangsang.edu@gmail.com",
+      "targetCourse": "JEE Main + Advanced 2026",
+      "course": "JEE Class 12",
+      "batch": "SB | LAKSHYA | NEW FORM | 27.08.26",
+      "feeBudget": "N/A",
+      "stage": "New Enquiry",
+      "counselor": "Unassigned",
+      "city": "Guwahati",
+      "source": "Facebook Lead Form",
+      "status": "New Lead",
+      "createdAt": "2026-08-28T14:30:00.000Z",
+      "notes": "Real Meta Lead Ingested from Facebook Lead Ad: SB | LAKSHYA | NEW FORM | 27.08.26"
+    },
+    {
+      "id": "LEAD-META-FB-102",
+      "name": "Ananya Sharma",
+      "phone": "+91 97188 65432",
+      "email": "ananya.sharma99@gmail.com",
+      "targetCourse": "JEE Class 11 (Webinar Lead)",
+      "course": "JEE Class 11",
+      "batch": "SB | WEBINAR LEADS | 28.08.26",
+      "feeBudget": "N/A",
+      "stage": "New Enquiry",
+      "counselor": "Unassigned",
+      "city": "Jaipur",
+      "source": "Facebook Lead Form",
+      "status": "New Lead",
+      "createdAt": "2026-08-28T16:15:00.000Z",
+      "notes": "Lead captured from Meta Campaign: SB | WEBINAR LEADS | 28.08.26"
+    },
+    {
+      "id": "LEAD-META-2788709923812736",
+      "name": "Priya Choudhary",
+      "phone": "+91 98234 11223",
+      "email": "priya.choudhary@gmail.com",
+      "targetCourse": "NEET Dropper Batch 2026",
+      "course": "NEET Class 12",
+      "batch": "SB | LAKSHYA | NEW FORM | 27.08.26",
+      "feeBudget": "N/A",
+      "stage": "New Enquiry",
+      "counselor": "Unassigned",
+      "city": "Kota / Online",
+      "source": "Instagram Lead Ad",
+      "status": "New Lead",
+      "createdAt": "2026-08-29T08:10:00.000Z",
+      "notes": "Real Meta Instagram Lead Ingested via Webhook. Form: SB | LAKSHYA | NEW FORM | 27.08.26"
+    }
+  ],
   "tasks": [],
   "activityLogs": [],
   "attendanceRecords": {},
-  "notifications": []
+  "notifications": [],
+  "metaConfig": {
+    "assetId": "1008041794449442",
+    "businessPortfolio": "Bhoomi Education",
+    "pageName": "Bhoomi Education",
+    "accessToken": "EAAL0wM6DZAmYBSTHw8d4wAyICxBBAqClFZBZBoraTuWeldV0r75Ntqql8m3x5Kc0fnk7abEe8C02yw5zogntkqhTbFZCK9VSmhUhgAEL3qNkt1GRXwTtJAcFy7dd80sD3NZBEMuv68pZCzfHq4YL3ueduAU9g4S2pZBn9kZCBh0jF7S96O6U4SOHryAe0LwYOhikZBVPec7BFJmiNPj4OjoAfzjaZAa7h1JxI7HQJdOmJtjOEX5Tn7sZBZBfZC2FBeL3NDnwH4hqOCro21HYTYj7wdCjScFstKvHiOWMT6CZCwQCBIgZAG6MhS0TsSRPj83U63WQzDZC56Ne26M4",
+    "verifyToken": "bhoomi_crm_meta_token_2026",
+    "status": "Active",
+    "lastUpdated": "2026-08-29T12:35:00.000Z"
+  },
+  "whatsappSettings": {
+    "phoneNumberId": "1284658964733385",
+    "accessToken": "EAA130UhvmygBSUZAe9TxFBZAEHgNyQcE5muXVu5FqK08xb1SkoF3EjKmnP9iHLSTBaZBWrdrZCziZAsgb6Xvb93yoCifoIYRtQSlM2ONS9nZBEY6LjQ2BMTlG9cFNVr78KZCBwMRHaf3BHagtoZCxunMPZBiNAdKKKbZCUgOAzoPJaA4KQiEl2kUBkZAoT53zdfsZCuePRUu5D0dQ0bGN9iLHwSDr5YocC7NBtC4AIzBZCtZBtGUDelQooSh8o5GF37PqZAegUH1R2ezO3dpOoAFzJbWjNH"
+  },
+  "lastUpdated": "2026-09-05T17:40:15.542Z",
+  "whatsappMessages": [
+    {
+      "id": "wamid.HBgMOTE4ODAwMjE1ODUxFQIAERgSRkQ5RDc3OUMxODQ5RkE4MzA5AA==",
+      "leadPhone": "8800215851",
+      "text": "hii",
+      "timestamp": "2026-09-05T09:51:24.230Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE5MTcwMDcyMjc4FQIAERgSMkNGMTNEMTdCNzIzNEFGOUM1AA==",
+      "leadPhone": "9170072278",
+      "text": "hi",
+      "timestamp": "2026-09-05T17:41:56.394Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE5MTcwMDcyMjc4FQIAERgSMzk3NDQ2QTI2QTYwNDNGNDI0AA==",
+      "leadPhone": "9170072278",
+      "text": "hbhvh",
+      "timestamp": "2026-09-05T17:42:48.358Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE4NDAwODAzNTA5FQIAERgSMzEyQzUxNzYwQzQ3MTgxQzVEAA==",
+      "leadPhone": "8400803509",
+      "text": "hhiii",
+      "timestamp": "2026-09-05T17:43:54.232Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE4NDAwODAzNTA5FQIAERgSMkM0RjlEOTVGMzk2OUE3ODc5AA==",
+      "leadPhone": "8400803509",
+      "text": "huyhgyu",
+      "timestamp": "2026-09-05T17:46:31.252Z",
+      "direction": "outgoing",
+      "status": "sent"
+    }
+  ]
 }

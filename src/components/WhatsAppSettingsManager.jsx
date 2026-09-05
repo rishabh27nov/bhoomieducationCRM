@@ -8,13 +8,12 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
   const [saveMessage, setSaveMessage] = useState(null);
 
   useEffect(() => {
-    // Fetch from local server
-    fetch('http://localhost:5000/api/data')
+    fetch('/api/whatsapp/settings')
       .then(res => res.json())
       .then(data => {
-        if (data && data.whatsappSettings) {
-          setPhoneNumberId(data.whatsappSettings.phoneNumberId || '');
-          setAccessToken(data.whatsappSettings.accessToken || '');
+        if (data && data.phoneNumberId) {
+          setPhoneNumberId(data.phoneNumberId || '');
+          setAccessToken(data.accessToken || '');
         }
       })
       .catch(err => console.error('Failed to fetch WhatsApp settings', err));
@@ -35,10 +34,10 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/data', {
+      const response = await fetch('/api/whatsapp/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ whatsappSettings: updatedSettings })
+        body: JSON.stringify(updatedSettings)
       });
       
       if (!response.ok) throw new Error('Save failed');

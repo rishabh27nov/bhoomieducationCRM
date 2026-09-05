@@ -132,5 +132,52 @@
     "verifyToken": "bhoomi_crm_meta_token_2026",
     "status": "Active",
     "lastUpdated": "2026-08-29T12:35:00.000Z"
-  }
+  },
+  "whatsappSettings": {
+    "phoneNumberId": "1284658964733385",
+    "accessToken": "EAA130UhvmygBSUZAe9TxFBZAEHgNyQcE5muXVu5FqK08xb1SkoF3EjKmnP9iHLSTBaZBWrdrZCziZAsgb6Xvb93yoCifoIYRtQSlM2ONS9nZBEY6LjQ2BMTlG9cFNVr78KZCBwMRHaf3BHagtoZCxunMPZBiNAdKKKbZCUgOAzoPJaA4KQiEl2kUBkZAoT53zdfsZCuePRUu5D0dQ0bGN9iLHwSDr5YocC7NBtC4AIzBZCtZBtGUDelQooSh8o5GF37PqZAegUH1R2ezO3dpOoAFzJbWjNH"
+  },
+  "lastUpdated": "2026-09-05T17:40:15.542Z",
+  "whatsappMessages": [
+    {
+      "id": "wamid.HBgMOTE4ODAwMjE1ODUxFQIAERgSRkQ5RDc3OUMxODQ5RkE4MzA5AA==",
+      "leadPhone": "8800215851",
+      "text": "hii",
+      "timestamp": "2026-09-05T09:51:24.230Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE5MTcwMDcyMjc4FQIAERgSMkNGMTNEMTdCNzIzNEFGOUM1AA==",
+      "leadPhone": "9170072278",
+      "text": "hi",
+      "timestamp": "2026-09-05T17:41:56.394Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE5MTcwMDcyMjc4FQIAERgSMzk3NDQ2QTI2QTYwNDNGNDI0AA==",
+      "leadPhone": "9170072278",
+      "text": "hbhvh",
+      "timestamp": "2026-09-05T17:42:48.358Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE4NDAwODAzNTA5FQIAERgSMzEyQzUxNzYwQzQ3MTgxQzVEAA==",
+      "leadPhone": "8400803509",
+      "text": "hhiii",
+      "timestamp": "2026-09-05T17:43:54.232Z",
+      "direction": "outgoing",
+      "status": "sent"
+    },
+    {
+      "id": "wamid.HBgMOTE4NDAwODAzNTA5FQIAERgSMkM0RjlEOTVGMzk2OUE3ODc5AA==",
+      "leadPhone": "8400803509",
+      "text": "huyhgyu",
+      "timestamp": "2026-09-05T17:46:31.252Z",
+      "direction": "outgoing",
+      "status": "sent"
+    }
+  ]
 }
