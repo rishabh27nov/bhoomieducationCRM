@@ -844,8 +844,8 @@ export default function LeadsManager({
         </div>
       )}
 
-      {/* Floating Bulk Delete Action Bar when checkboxes are selected */}
-      {selectedLeadIds.length > 0 && isAdmin && (
+      {/* Floating Bulk Action Bar when checkboxes are selected */}
+      {selectedLeadIds.length > 0 && (
         <div style={{
           backgroundColor: '#fef2f2',
           border: '1.5px solid #fca5a5',
@@ -870,7 +870,7 @@ export default function LeadsManager({
               {selectedLeadIds.length} Enquiry Selected
             </span>
             <span style={{ fontSize: '0.85rem', color: '#7f1d1d', fontWeight: 600 }}>
-              Select lead checkboxes to delete single or multiple student enquiries at once.
+              Select lead checkboxes to update pipeline stages {isAdmin && 'or delete'}.
             </span>
           </div>
 
@@ -913,30 +913,32 @@ export default function LeadsManager({
               })()}
             </select>
 
-            <button
-              className="btn"
-              style={{
-                backgroundColor: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                fontWeight: 700,
-                padding: '0.45rem 1rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.85rem'
-              }}
-              onClick={() => {
-                if (window.confirm(`⚠️ Warning: Are you sure you want to delete ${selectedLeadIds.length} selected lead(s)?`)) {
-                  onBulkDeleteLeads(selectedLeadIds);
-                  setSelectedLeadIds([]);
-                }
-              }}
-            >
-              <Trash2 size={16} /> Delete Selected ({selectedLeadIds.length}) Leads
-            </button>
+            {isAdmin && (
+              <button
+                className="btn"
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  padding: '0.45rem 1rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.85rem'
+                }}
+                onClick={() => {
+                  if (window.confirm(`⚠️ Warning: Are you sure you want to delete ${selectedLeadIds.length} selected lead(s)?`)) {
+                    onBulkDeleteLeads(selectedLeadIds);
+                    setSelectedLeadIds([]);
+                  }
+                }}
+              >
+                <Trash2 size={16} /> Delete Selected ({selectedLeadIds.length}) Leads
+              </button>
+            )}
 
             <button
               className="btn btn-secondary"
@@ -1468,12 +1470,18 @@ export default function LeadsManager({
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. DPS Public School / St. Xavier International..."
+                      list="school-names-list"
+                      placeholder="Select existing or type new school name..."
                       value={customSchoolName}
                       onChange={(e) => setCustomSchoolName(e.target.value)}
                       className="form-input"
                       style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem', borderColor: '#93c5fd', backgroundColor: '#eff6ff' }}
                     />
+                    <datalist id="school-names-list">
+                      {uniqueSchoolNames.map((sch) => (
+                        <option key={sch} value={sch} />
+                      ))}
+                    </datalist>
                   </div>
                 )}
               </div>

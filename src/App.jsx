@@ -756,12 +756,8 @@ export default function App() {
   };
 
 
-  // Handle add lead / bulk add leads (Admin action only)
+  // Handle add lead / bulk add leads (Admin & Employees)
   const handleAddLead = (newLeadData) => {
-    if (currentUser?.role !== 'Admin') {
-      alert('Permission Denied: Only Admin has authority to create new student enquiries.');
-      return;
-    }
 
     const incomingLeads = Array.isArray(newLeadData) ? newLeadData : [newLeadData];
 
