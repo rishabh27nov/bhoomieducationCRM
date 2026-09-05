@@ -80,7 +80,7 @@ export default function WhatsAppChat({ lead }) {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '400px',
+      height: '300px',
       border: '1px solid #d1d5db',
       borderRadius: '8px',
       backgroundColor: '#efeae2', // WhatsApp default background color

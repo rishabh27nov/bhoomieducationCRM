@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { PIPELINE_STAGES, getPipelineStagesForLead } from '../data/mockData';
-import WhatsAppChat from './WhatsAppChat';
 import {
   X,
   Phone,
@@ -468,15 +467,7 @@ export default function LeadModal({
           </form>
 
         </div>
-
-        {/* --- WhatsApp Integration --- */}
-        <div style={{ borderTop: '1px solid var(--border-light)', margin: '1rem 0' }}></div>
-        <div style={{ padding: '0 1.5rem 1.5rem' }}>
-          <WhatsAppChat lead={lead} />
-        </div>
-
       </div>
-
     </div>
   );
 }

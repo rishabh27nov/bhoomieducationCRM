@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Send, AlertCircle, CheckCircle2, AlertTriangle, Phone } from 'lucide-react';
 
 export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess }) {
@@ -52,11 +53,38 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     if (onSuccess) onSuccess(successCount);
   };
 
-  return (
-    <div className="modal-backdrop">
-      <div className="modal-content" style={{ maxWidth: '550px' }}>
+  return ReactDOM.createPortal(
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(15, 23, 42, 0.75)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 99999
+    }}>
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        width: '90%',
+        maxWidth: '550px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: '90vh'
+      }}>
         
-        <div className="modal-header">
+        <div style={{
+          padding: '1.25rem 1.5rem',
+          borderBottom: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Phone size={24} color="#15803d" /> Send Bulk WhatsApp
           </h2>
@@ -147,6 +175,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

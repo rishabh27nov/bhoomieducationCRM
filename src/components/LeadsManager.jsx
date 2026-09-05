@@ -1002,72 +1002,73 @@ export default function LeadsManager({
               </tr>
             </thead>
             <tbody>
-              {filteredLeads
-                .slice()
-                .sort((a, b) => {
-                  const dateA = new Date(a.createdAt || a.rowDate || todayStr);
-                  const dateB = new Date(b.createdAt || b.rowDate || todayStr);
-                  const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
-                  const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
-                  return timeB - timeA;
-                })
-                .reduce((acc, lead, index, arr) => {
+              {(() => {
+                // Pre-calculate date strings and timestamps for efficient sorting and grouping (O(N))
+                const leadsWithDates = filteredLeads.map(lead => {
                   let rawDate = lead.createdAt || lead.rowDate || todayStr;
-                  let leadDateStr = 'Unknown Date';
-                  const d = new Date(rawDate);
-                  if (!isNaN(d.getTime())) {
-                    leadDateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  const dt = new Date(rawDate);
+                  let time = 0;
+                  let dateStr = 'Unknown Date';
+                  if (!isNaN(dt.getTime())) {
+                    time = dt.getTime();
+                    dateStr = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                   } else if (rawDate) {
-                    leadDateStr = String(rawDate).split('T')[0];
+                    dateStr = String(rawDate).split('T')[0];
                   }
+                  return { ...lead, time, dateStr };
+                });
 
-                  let prevRawDate = index === 0 ? null : (arr[index - 1].createdAt || arr[index - 1].rowDate || todayStr);
-                  let prevDateStr = null;
-                  if (prevRawDate) {
-                    const pd = new Date(prevRawDate);
-                    if (!isNaN(pd.getTime())) {
-                      prevDateStr = pd.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    } else {
-                      prevDateStr = String(prevRawDate).split('T')[0];
-                    }
+                // Sort O(N log N)
+                leadsWithDates.sort((a, b) => b.time - a.time);
+
+                // Group by dateStr O(N)
+                const grouped = [];
+                let currentGroup = null;
+                
+                for (let i = 0; i < leadsWithDates.length; i++) {
+                  const lead = leadsWithDates[i];
+                  if (!currentGroup || currentGroup.dateStr !== lead.dateStr) {
+                    if (currentGroup) grouped.push(currentGroup);
+                    currentGroup = { dateStr: lead.dateStr, leads: [] };
                   }
+                  currentGroup.leads.push(lead);
+                }
+                if (currentGroup) grouped.push(currentGroup);
 
-                  if (leadDateStr !== prevDateStr) {
-                    const leadsForThisDate = filteredLeads.filter(l => {
-                      let raw = l.createdAt || l.rowDate || todayStr;
-                      let dStr = 'Unknown Date';
-                      const dt = new Date(raw);
-                      if (!isNaN(dt.getTime())) dStr = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                      else if (raw) dStr = String(raw).split('T')[0];
-                      return dStr === leadDateStr;
-                    });
-                    const allSelectedForDate = leadsForThisDate.length > 0 && leadsForThisDate.every(l => selectedLeadIds.includes(l.id));
-
-                    acc.push(
-                      <tr key={`date-${leadDateStr}-${index}`} style={{ background: 'rgba(21, 128, 61, 0.05)', borderBottom: '2px solid rgba(21, 128, 61, 0.2)', borderTop: '2px solid rgba(21, 128, 61, 0.2)' }}>
-                        <td colSpan="9" style={{ padding: '0.65rem 1rem', color: '#166534', fontWeight: '800', fontSize: '0.95rem', textAlign: 'left' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', width: 'fit-content' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={allSelectedForDate}
-                              onChange={() => {
-                                if (allSelectedForDate) {
-                                  setSelectedLeadIds(prev => prev.filter(id => !leadsForThisDate.some(l => l.id === id)));
-                                } else {
-                                  const newIds = leadsForThisDate.map(l => l.id).filter(id => !selectedLeadIds.includes(id));
-                                  setSelectedLeadIds(prev => [...prev, ...newIds]);
-                                }
-                              }}
-                              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#15803d' }}
-                            />
-                            <span>📅 Leads from {leadDateStr} ({leadsForThisDate.length})</span>
-                          </label>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  acc.push(
+                // Build JSX O(N)
+                const rowsJSX = [];
+                let overallIndex = 0;
+                
+                for (const group of grouped) {
+                  const leadsForThisDate = group.leads;
+                  const allSelectedForDate = leadsForThisDate.length > 0 && leadsForThisDate.every(l => selectedLeadIds.includes(l.id));
+                  
+                  rowsJSX.push(
+                    <tr key={`date-${group.dateStr}`} style={{ background: 'rgba(21, 128, 61, 0.05)', borderBottom: '2px solid rgba(21, 128, 61, 0.2)', borderTop: '2px solid rgba(21, 128, 61, 0.2)' }}>
+                      <td colSpan="9" style={{ padding: '0.65rem 1rem', color: '#166534', fontWeight: '800', fontSize: '0.95rem', textAlign: 'left' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', width: 'fit-content' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={allSelectedForDate}
+                            onChange={() => {
+                              if (allSelectedForDate) {
+                                setSelectedLeadIds(prev => prev.filter(id => !leadsForThisDate.some(l => l.id === id)));
+                              } else {
+                                const newIds = leadsForThisDate.map(l => l.id).filter(id => !selectedLeadIds.includes(id));
+                                setSelectedLeadIds(prev => [...prev, ...newIds]);
+                              }
+                            }}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#15803d' }}
+                          />
+                          <span>📅 Leads from {group.dateStr} ({leadsForThisDate.length})</span>
+                        </label>
+                      </td>
+                    </tr>
+                  );
+                  
+                  for (const lead of leadsForThisDate) {
+                    overallIndex++;
+                    rowsJSX.push(
                     <tr key={lead.id} style={{ backgroundColor: selectedLeadIds.includes(lead.id) ? '#f0fdf4' : undefined }}>
                       <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                     <input
@@ -1245,8 +1246,10 @@ export default function LeadsManager({
 
                 </tr>
               );
-              return acc;
-            }, [])}
+            }
+          }
+          return rowsJSX;
+        })()}
             </tbody>
           </table>
         </div>
