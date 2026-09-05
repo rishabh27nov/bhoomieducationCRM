@@ -40,6 +40,9 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
           successCount++;
         } else {
           failedCount++;
+          const errorData = await response.json();
+          console.error(`Failed to send to ${lead.phone}:`, errorData);
+          alert(`Failed to send to ${lead.phone}:\n${errorData.error || 'Unknown Error'}`);
         }
       } catch (err) {
         failedCount++;
