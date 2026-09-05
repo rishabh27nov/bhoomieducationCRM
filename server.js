@@ -194,6 +194,8 @@ const server = http.createServer((req, res) => {
       });
       return;
     }
+  }
+
   // WhatsApp API Webhooks
   if (url.startsWith('/api/webhooks/whatsapp')) {
     // GET verification handshake from Meta Developer Console
@@ -262,15 +264,55 @@ const server = http.createServer((req, res) => {
   if (url === '/api/whatsapp/send' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
         const currentDb = loadDatabase();
+        
+        if (!currentDb.whatsappSettings || !currentDb.whatsappSettings.phoneNumberId || !currentDb.whatsappSettings.accessToken) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'WhatsApp API Credentials not configured in settings.' }));
+          return;
+        }
+
+        const { phoneNumberId, accessToken } = currentDb.whatsappSettings;
+
+        // Clean phone number (remove +, spaces, non-digits)
+        let cleanPhone = payload.phone.replace(/\D/g, '');
+        // Default to India country code (+91) if it's just a 10 digit number
+        if (cleanPhone.length === 10) {
+          cleanPhone = '91' + cleanPhone;
+        }
+
+        // Call Meta Graph API
+        const metaResponse = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: cleanPhone,
+            type: 'text',
+            text: { body: payload.message }
+          })
+        });
+
+        const metaResult = await metaResponse.json();
+
+        if (!metaResponse.ok) {
+          console.error('Meta API Error:', metaResult);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to send via Meta API', details: metaResult }));
+          return;
+        }
+
         if (!currentDb.whatsappMessages) currentDb.whatsappMessages = [];
 
         // Save outgoing message to DB
         const outgoingMsg = {
-           id: `MSG-OUT-${Date.now()}`,
+           id: metaResult.messages ? metaResult.messages[0].id : `MSG-OUT-${Date.now()}`,
            leadPhone: payload.phone, // Target phone number
            text: payload.message,
            timestamp: new Date().toISOString(),
@@ -280,15 +322,13 @@ const server = http.createServer((req, res) => {
         
         currentDb.whatsappMessages.push(outgoingMsg);
         saveDatabase(currentDb);
-
-        // TODO: Actually make the fetch/axios call to graph.facebook.com here 
-        // using your API token and Phone Number ID once you have them.
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: outgoingMsg }));
       } catch(err) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to send WhatsApp message' }));
+        console.error('Local Server Error in /api/whatsapp/send:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal Server Error sending message' }));
       }
     });
     return;

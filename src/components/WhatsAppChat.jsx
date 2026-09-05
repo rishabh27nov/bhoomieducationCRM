@@ -6,14 +6,30 @@ export default function WhatsAppChat({ lead }) {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load mock messages for now (or fetch from the new endpoint when ready)
   useEffect(() => {
-    // In a real scenario, we would fetch from /api/whatsapp/messages?phone=lead.phone
-    // For now, we seed with a mock history to show the UI
-    setMessages([
-      { id: 1, direction: 'incoming', text: 'Hi, I saw your ad on Facebook.', timestamp: new Date(Date.now() - 3600000).toISOString() },
-      { id: 2, direction: 'outgoing', text: 'Hello! Welcome to Bhoomi Education. How can we help you?', timestamp: new Date(Date.now() - 3500000).toISOString(), status: 'read' },
-    ]);
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/data');
+        const data = await res.json();
+        if (data && data.whatsappMessages && lead.phone) {
+          const cleanLeadPhone = lead.phone.replace(/\D/g, '');
+          const filtered = data.whatsappMessages.filter(m => {
+            if (!m.leadPhone) return false;
+            const mPhone = m.leadPhone.replace(/\D/g, '');
+            return mPhone.slice(-10) === cleanLeadPhone.slice(-10);
+          });
+          setMessages(filtered);
+        } else {
+          setMessages([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch WhatsApp messages', err);
+      }
+    };
+    
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
   }, [lead]);
 
   const handleSendMessage = async (e) => {
@@ -22,7 +38,6 @@ export default function WhatsAppChat({ lead }) {
 
     setIsLoading(true);
     
-    // Optimistic UI update
     const newMsg = {
       id: Date.now(),
       direction: 'outgoing',
@@ -34,15 +49,24 @@ export default function WhatsAppChat({ lead }) {
     setInputText('');
 
     try {
-      // Post to our local server endpoint (which will forward to Meta)
-      await fetch('/api/whatsapp/send', {
+      const res = await fetch('http://localhost:5000/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: lead.phone, message: newMsg.text })
       });
-      // In real life, we would listen to webhooks for 'delivered' and 'read' receipts
+      
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        console.error('WhatsApp API Error:', data);
+        alert(`Failed to send WhatsApp message: ${data.error || 'Unknown error'}\n\nMake sure the student's phone number (${lead.phone}) is verified in your Meta Developer Console since you are using a test account!`);
+        // Remove the optimistically added message
+        setMessages(prev => prev.filter(m => m.id !== newMsg.id));
+      }
     } catch (err) {
       console.error('Failed to send WhatsApp message', err);
+      alert('Network error while sending WhatsApp message. Is the server running?');
+      setMessages(prev => prev.filter(m => m.id !== newMsg.id));
     } finally {
       setIsLoading(false);
     }

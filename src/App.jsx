@@ -24,6 +24,7 @@ import LeadModal from './components/LeadModal';
 import DocumentUploadManager from './components/DocumentUploadManager';
 import EmployeeSettingsManager from './components/EmployeeSettingsManager';
 import MetaLeadConnectors from './components/MetaLeadConnectors';
+import WhatsAppSettingsManager from './components/WhatsAppSettingsManager';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -766,7 +767,16 @@ export default function App() {
     incomingLeads.forEach(incomingLead => {
       const existingIndex = updatedLeads.findIndex(l => l.id === incomingLead.id);
       if (existingIndex >= 0) {
-        updatedLeads[existingIndex] = { ...updatedLeads[existingIndex], ...incomingLead };
+        const existingLead = updatedLeads[existingIndex];
+        // Preserve custom notes, stage, counselor, and status from the existing lead!
+        updatedLeads[existingIndex] = { 
+          ...existingLead, 
+          ...incomingLead,
+          notes: existingLead.notes ? existingLead.notes : incomingLead.notes,
+          stage: existingLead.stage ? existingLead.stage : incomingLead.stage,
+          status: existingLead.status ? existingLead.status : incomingLead.status,
+          counselor: existingLead.counselor ? existingLead.counselor : incomingLead.counselor
+        };
       } else {
         updatedLeads.unshift(incomingLead);
       }
@@ -1026,6 +1036,12 @@ export default function App() {
               leads={leads}
               onAddLead={handleAddLead}
               counselors={employees}
+            />
+          )}
+
+          {activeTab === 'whatsapp_setup' && (
+            <WhatsAppSettingsManager
+              currentUser={currentUser}
             />
           )}
 

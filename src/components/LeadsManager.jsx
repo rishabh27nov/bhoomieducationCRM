@@ -23,6 +23,7 @@ import {
   X
 } from 'lucide-react';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import BulkWhatsAppModal from './BulkWhatsAppModal';
 
 export default function LeadsManager({
   leads,
@@ -48,6 +49,7 @@ export default function LeadsManager({
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [showAddCoursePrompt, setShowAddCoursePrompt] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
+  const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
 
   const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
 
@@ -913,6 +915,26 @@ export default function LeadsManager({
               })()}
             </select>
 
+            <button
+              className="btn"
+              style={{
+                backgroundColor: '#15803d',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                padding: '0.45rem 1rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.85rem'
+              }}
+              onClick={() => setIsBulkWhatsAppOpen(true)}
+            >
+              📱 Send Bulk WhatsApp
+            </button>
+
             {isAdmin && (
               <button
                 className="btn"
@@ -1538,6 +1560,18 @@ export default function LeadsManager({
           </div>
         </div>,
         document.body
+      )}
+
+      {isBulkWhatsAppOpen && (
+        <BulkWhatsAppModal
+          selectedLeads={filteredLeads.filter(l => selectedLeadIds.includes(l.id))}
+          onClose={() => setIsBulkWhatsAppOpen(false)}
+          onSuccess={(successCount) => {
+            alert(`Successfully sent ${successCount} messages!`);
+            setIsBulkWhatsAppOpen(false);
+            setSelectedLeadIds([]);
+          }}
+        />
       )}
 
     </div>
