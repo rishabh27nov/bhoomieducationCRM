@@ -15,7 +15,11 @@ import {
   Trash2,
   Edit3,
   Save,
-  RotateCcw
+  RotateCcw,
+  Mic,
+  MicOff,
+  Languages,
+  Loader
 } from 'lucide-react';
 
 export default function LeadModal({
@@ -34,6 +38,69 @@ export default function LeadModal({
   const [noteText, setNoteText] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedNotes, setEditedNotes] = useState(lead?.notes || '');
+  const [isListening, setIsListening] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const translateToEnglish = async (text) => {
+    if (!text.trim()) return '';
+    try {
+      setIsTranslating(true);
+      const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=hi&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+      const data = await response.json();
+      return data[0].map(item => item[0]).join('');
+    } catch (error) {
+      console.error('Translation error:', error);
+      return text;
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const toggleListen = () => {
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support Speech Recognition.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'hi-IN'; // Listen in Hindi
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript;
+      const englishText = await translateToEnglish(transcript);
+      setNoteText((prev) => (prev ? prev + ' ' + englishText : englishText));
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const handleManualTranslate = async () => {
+    if (!noteText.trim()) return;
+    const translatedText = await translateToEnglish(noteText);
+    setNoteText(translatedText);
+  };
 
   // Edit Student Profile State
   const [isEditingStudent, setIsEditingStudent] = useState(false);
@@ -453,18 +520,46 @@ export default function LeadModal({
 
 
           {/* Add New Note */}
-          <form onSubmit={handleAddNote} style={{ display: 'flex', gap: '0.5rem' }}>
-            <input
-              type="text"
-              placeholder="Add new demo class feedback or counseling update..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              className="form-input"
-            />
-            <button type="submit" className="btn btn-primary" style={{ padding: '0.625rem 1rem' }}>
-              <Send size={16} />
-            </button>
-          </form>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <form onSubmit={handleAddNote} style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                placeholder={isListening ? "Listening in Hindi..." : isTranslating ? "Translating to English..." : "Add new demo class feedback or counseling update..."}
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                className="form-input"
+                disabled={isListening || isTranslating}
+                style={{ flex: 1 }}
+              />
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={toggleListen}
+                style={{ padding: '0.625rem 0.8rem', color: isListening ? '#ef4444' : 'var(--text-main)', borderColor: isListening ? '#fecaca' : 'var(--border-light)' }}
+                title="Speak in Hindi to translate to English"
+              >
+                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+              </button>
+              {noteText && (
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={handleManualTranslate}
+                  disabled={isTranslating}
+                  style={{ padding: '0.625rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                  title="Translate current text from Hindi to English"
+                >
+                  {isTranslating ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Languages size={16} />}
+                </button>
+              )}
+              <button type="submit" className="btn btn-primary" style={{ padding: '0.625rem 1rem' }} disabled={isListening || isTranslating}>
+                <Send size={16} />
+              </button>
+            </form>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'left', paddingLeft: '0.2rem' }}>
+              * You can speak in Hindi using the Mic, or type in Hindi and click the translate button.
+            </div>
+          </div>
 
         </div>
       </div>
