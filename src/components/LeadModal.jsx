@@ -41,11 +41,25 @@ export default function LeadModal({
   const [isListening, setIsListening] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
+  const fetchWithTimeout = async (resource, options = {}) => {
+    const { timeout = 5000 } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal  
+    });
+    clearTimeout(id);
+    return response;
+  };
+
   const transliterateHinglishToHindi = async (text) => {
     try {
-      const url = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=hi-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage`;
-      const response = await fetch(url);
-      const data = await response.json();
+      const targetUrl = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=hi-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage`;
+      const url = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      const response = await fetchWithTimeout(url, { timeout: 4000 });
+      const rawData = await response.json();
+      const data = JSON.parse(rawData.contents);
       if (data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1]) {
         return data[1][0][1][0]; // Returns the best devanagari match
       }
@@ -64,10 +78,20 @@ export default function LeadModal({
       // Step 1: Transliterate Hinglish to Devanagari Hindi for better translation accuracy
       const hindiText = await transliterateHinglishToHindi(text);
       
-      // Step 2: Translate to English
-      const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=hi&tl=en&dt=t&q=${encodeURIComponent(hindiText)}`);
-      const data = await response.json();
-      return data[0].map(item => item[0]).join('');
+      // Step 2: Translate to English (with timeout and fallback)
+      try {
+        const response = await fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=hi&tl=en&dt=t&q=${encodeURIComponent(hindiText)}`, { timeout: 4000 });
+        const data = await response.json();
+        return data[0].map(item => item[0]).join('');
+      } catch (err) {
+        console.warn('Google Translate failed, falling back...', err);
+        const fbRes = await fetchWithTimeout(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(hindiText)}&langpair=hi|en`, { timeout: 4000 });
+        const fbData = await fbRes.json();
+        if (fbData && fbData.responseData && fbData.responseData.translatedText) {
+          return fbData.responseData.translatedText;
+        }
+        return text;
+      }
     } catch (error) {
       console.error('Translation error:', error);
       return text;
