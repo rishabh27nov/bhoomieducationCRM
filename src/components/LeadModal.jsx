@@ -41,11 +41,31 @@ export default function LeadModal({
   const [isListening, setIsListening] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
+  const transliterateHinglishToHindi = async (text) => {
+    try {
+      const url = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=hi-t-i0-und&num=1&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1]) {
+        return data[1][0][1][0]; // Returns the best devanagari match
+      }
+      return text;
+    } catch (error) {
+      console.error('Transliteration error:', error);
+      return text;
+    }
+  };
+
   const translateToEnglish = async (text) => {
     if (!text.trim()) return '';
     try {
       setIsTranslating(true);
-      const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=hi&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+      
+      // Step 1: Transliterate Hinglish to Devanagari Hindi for better translation accuracy
+      const hindiText = await transliterateHinglishToHindi(text);
+      
+      // Step 2: Translate to English
+      const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=hi&tl=en&dt=t&q=${encodeURIComponent(hindiText)}`);
       const data = await response.json();
       return data[0].map(item => item[0]).join('');
     } catch (error) {
