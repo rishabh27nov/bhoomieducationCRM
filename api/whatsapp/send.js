@@ -49,8 +49,8 @@ export default async function handler(req, res) {
     if (isTemplate) {
       payload.type = 'template';
       payload.template = {
-        name: templateName || 'lakshya_admission_enquiry',
-        language: { code: languageCode || 'en' }
+        name: templateName || 'hello_world',
+        language: { code: languageCode || 'en_US' }
       };
     } else {
       payload.type = 'text';
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     const outgoingMsg = {
       id: metaResult.messages?.[0]?.id || `MSG-OUT-${Date.now()}`,
       leadPhone: phone,
-      text: isTemplate ? `[Template Sent: ${templateName || 'lakshya_admission_enquiry'}]` : message,
+      text: isTemplate ? `[Template Sent: ${templateName || 'hello_world'}]` : message,
       timestamp: new Date().toISOString(),
       direction: 'outgoing',
       status: 'sent'
