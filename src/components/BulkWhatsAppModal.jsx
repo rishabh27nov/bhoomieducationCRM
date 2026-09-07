@@ -1,16 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Send, AlertCircle, CheckCircle2, AlertTriangle, Phone } from 'lucide-react';
 
 export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess }) {
   const [message, setMessage] = useState('');
+  const [useTemplate, setUseTemplate] = useState(true);
+  const [availableTemplates, setAvailableTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState({ success: 0, failed: 0 });
   const [isFinished, setIsFinished] = useState(false);
-  const [useTemplate, setUseTemplate] = useState(true); // Default to true since it's the safest way to message first-time users
 
   const totalLeads = selectedLeads.length;
+
+  useEffect(() => {
+    // Prevent background scrolling
+    document.body.style.overflow = 'hidden';
+    
+    // Fetch available templates
+    fetch('/api/whatsapp/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.templates && data.templates.length > 0) {
+          setAvailableTemplates(data.templates);
+          setSelectedTemplate(data.templates[0]);
+        }
+      })
+      .catch(err => console.error("Failed to load templates", err));
+
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   // Simple delay function to prevent API rate limiting
   const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -27,7 +49,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
       const lead = selectedLeads[i];
       try {
         const payload = useTemplate 
-          ? { phone: lead.phone, isTemplate: true, templateName: 'lakshya_admission_enquiry', languageCode: 'en' }
+          ? { phone: lead.phone, isTemplate: true, templateName: selectedTemplate, languageCode: 'en' }
           : { phone: lead.phone, message: message };
 
         const response = await fetch('/api/whatsapp/send', {
@@ -135,9 +157,28 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
                 {useTemplate ? (
                   <div style={{ padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', color: '#475569', fontStyle: 'italic' }}>
                     <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#334155' }}>
-                      Template: lakshya_admission_enquiry
+                      Select Template to Send:
                     </div>
-                    (The exact message content approved in your Meta Dashboard will be sent automatically to the student. Meta does not allow modifying template text from here.)
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => setSelectedTemplate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        marginBottom: '0.5rem',
+                        borderRadius: '6px',
+                        border: '1px solid #94a3b8',
+                        outline: 'none',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {availableTemplates.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#64748b' }}>
+                      (The exact message content for the selected template will be sent automatically to the student.)
+                    </div>
                   </div>
                 ) : (
                   <div>

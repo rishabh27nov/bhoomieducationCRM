@@ -4,6 +4,7 @@ import { Save, AlertCircle, Phone, Key, HelpCircle } from 'lucide-react';
 export default function WhatsAppSettingsManager({ currentUser, centralDb, saveToCentralDB }) {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [accessToken, setAccessToken] = useState('');
+  const [templates, setTemplates] = useState('lakshya_admission_enquiry');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
 
@@ -14,6 +15,11 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
         if (data && data.phoneNumberId) {
           setPhoneNumberId(data.phoneNumberId || '');
           setAccessToken(data.accessToken || '');
+          if (data.templates && Array.isArray(data.templates)) {
+            setTemplates(data.templates.join(', '));
+          } else if (data.templates) {
+            setTemplates(data.templates);
+          }
         }
       })
       .catch(err => console.error('Failed to fetch WhatsApp settings', err));
@@ -31,6 +37,7 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
     const updatedSettings = {
       phoneNumberId: phoneNumberId.trim(),
       accessToken: accessToken.trim(),
+      templates: templates.split(',').map(t => t.trim()).filter(t => t)
     };
 
     try {
@@ -148,6 +155,34 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
           />
           <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
             Make sure to use a System User Token for permanent access in production.
+          </div>
+        </div>
+
+        {/* Templates */}
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
+            <Save size={18} color="#64748b" /> Approved Template Names (Comma separated)
+          </label>
+          <textarea
+            value={templates}
+            onChange={(e) => setTemplates(e.target.value)}
+            placeholder="lakshya_admission_enquiry, hello_world, fee_reminder"
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              fontSize: '0.9rem',
+              outline: 'none',
+              resize: 'vertical',
+              transition: 'border-color 0.2s',
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#52b788'}
+            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+          />
+          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
+            List the exact names of your templates approved in Meta Dashboard, separated by commas.
           </div>
         </div>
 

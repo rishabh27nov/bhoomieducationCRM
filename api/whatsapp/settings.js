@@ -21,12 +21,16 @@ export default async function handler(req, res) {
   // POST - Save WhatsApp settings to Firebase
   if (req.method === 'POST') {
     try {
-      const { phoneNumberId, accessToken } = req.body || {};
+      const { phoneNumberId, accessToken, templates } = req.body || {};
       if (!phoneNumberId || !accessToken) {
         return res.status(400).json({ error: 'phoneNumberId and accessToken are required' });
       }
 
-      const settings = { phoneNumberId: phoneNumberId.trim(), accessToken: accessToken.trim() };
+      const settings = { 
+        phoneNumberId: phoneNumberId.trim(), 
+        accessToken: accessToken.trim(),
+        templates: templates || ['lakshya_admission_enquiry']
+      };
 
       await fetch(`${FIREBASE_URL}/whatsappSettings.json`, {
         method: 'PUT',
