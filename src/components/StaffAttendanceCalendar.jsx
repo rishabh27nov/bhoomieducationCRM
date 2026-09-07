@@ -243,19 +243,26 @@ export default function StaffAttendanceCalendar({
     return isCounselorMatch(emp.name, currentUser.name);
   };
 
-  const checkIsWithinAttendanceWindow = () => {
+  // Returns which attendance window is currently open:
+  // 'morning' = 9:15 AM - 10:30 AM (Full/Half/Leave allowed)
+  // 'afternoon' = 2:00 PM - 3:00 PM (Half Day ONLY)
+  // null = outside both windows
+  const getActiveWindow = () => {
     const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const timeInMinutes = hours * 60 + minutes;
-    const startWindow = 9 * 60 + 15; // 09:15 AM = 555
-    const endWindow = 10 * 60 + 30; // 10:30 AM = 630
-    return timeInMinutes >= startWindow && timeInMinutes <= endWindow;
+    const t = now.getHours() * 60 + now.getMinutes();
+    if (t >= 9 * 60 + 15 && t <= 10 * 60 + 30) return 'morning';
+    if (t >= 14 * 60 && t <= 15 * 60) return 'afternoon';
+    return null;
   };
 
+  const checkIsWithinAttendanceWindow = () => getActiveWindow() !== null;
+
   const isToday = selectedDate === todayStr;
-  const isWithinWindow = checkIsWithinAttendanceWindow();
+  const activeWindow = getActiveWindow();
+  const isWithinWindow = activeWindow !== null;
   const canEmployeeMark = isToday && isWithinWindow;
+  const canMarkHalfDay = isToday && (activeWindow === 'morning' || activeWindow === 'afternoon');
+  const canMarkFull = isToday && activeWindow === 'morning'; // Present/Leave only in morning
 
   // Filtered employees to display: Admin/Institute sees all, Non-Admin sees ONLY their own profile
   const visibleEmployees = isAdmin
@@ -283,8 +290,14 @@ export default function StaffAttendanceCalendar({
         alert('Permission Denied: You can only mark attendance for today.');
         return;
       }
-      if (!checkIsWithinAttendanceWindow()) {
-        alert('Attendance window is closed! You can only mark attendance between 09:15 AM and 10:30 AM.');
+      const window = getActiveWindow();
+      if (!window) {
+        alert('Attendance window is closed!\nWindow 1: 9:15 AM – 10:30 AM (Full/Half/Leave)\nWindow 2: 2:00 PM – 3:00 PM (Half Day only)');
+        return;
+      }
+      // Window 2 (afternoon) only allows Half Day
+      if (window === 'afternoon' && status !== 'Half Day') {
+        alert('During the 2:00 PM – 3:00 PM window, only Half Day attendance can be marked.');
         return;
       }
     }
@@ -644,7 +657,6 @@ export default function StaffAttendanceCalendar({
         </div>
       </div>
 
-
       {/* Quick Self Check-In Card for Employees */}
       {!isAdmin && (
         <div style={{
@@ -667,48 +679,64 @@ export default function StaffAttendanceCalendar({
             </div>
             <div style={{ fontSize: '0.8rem', color: '#b7e4c7', marginTop: '0.25rem' }}>
               Your attendance status automatically syncs with Admin in real-time.
-              <div style={{ marginTop: '5px', color: canEmployeeMark ? '#86efac' : '#fca5a5', fontWeight: 700 }}>
-                {canEmployeeMark ? '🟢 Attendance window is currently open (09:15 AM - 10:30 AM)' : '🔴 Attendance window is closed. (Allowed only between 09:15 AM - 10:30 AM for Today)'}
+              <div style={{ marginTop: '5px', fontWeight: 700 }}>
+                {activeWindow === 'morning' && (
+                  <span style={{ color: '#86efac' }}>🟢 Window 1 Open: 9:15 AM – 10:30 AM (Present / Half Day / Leave allowed)</span>
+                )}
+                {activeWindow === 'afternoon' && (
+                  <span style={{ color: '#fde68a' }}>🟡 Window 2 Open: 2:00 PM – 3:00 PM (Half Day only)</span>
+                )}
+                {!activeWindow && isToday && (
+                  <span style={{ color: '#fca5a5' }}>🔴 Attendance window is closed. Opens at: 9:15 AM – 10:30 AM &amp; 2:00 PM – 3:00 PM</span>
+                )}
+                {!isToday && (
+                  <span style={{ color: '#fca5a5' }}>🔴 You can only mark attendance for today.</span>
+                )}
               </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', opacity: canEmployeeMark ? 1 : 0.5 }}>
+            {/* Present button: only in morning window */}
             <button
               type="button"
               className="btn"
-              disabled={!canEmployeeMark}
+              disabled={!canMarkFull}
               onClick={() => {
                 const selfEmp = displayEmployees[0];
                 if (selfEmp) handleStatusToggle(selfEmp.id, 'Present');
               }}
-              style={{ backgroundColor: '#52b788', color: '#081c15', fontWeight: 800, padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer' }}
+              style={{ backgroundColor: canMarkFull ? '#52b788' : '#4b5563', color: canMarkFull ? '#081c15' : '#9ca3af', fontWeight: 800, padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-md)', border: 'none', cursor: canMarkFull ? 'pointer' : 'not-allowed' }}
+              title={!canMarkFull ? 'Present can only be marked during 9:15 AM – 10:30 AM' : ''}
             >
               🟢 Mark Present (Check-In)
             </button>
 
+            {/* Half Day: allowed in BOTH windows */}
             <button
               type="button"
               className="btn"
-              disabled={!canEmployeeMark}
+              disabled={!canMarkHalfDay}
               onClick={() => {
                 const selfEmp = displayEmployees[0];
                 if (selfEmp) handleStatusToggle(selfEmp.id, 'Half Day');
               }}
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#fef08a', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: '1px solid #fef08a', cursor: canEmployeeMark ? 'pointer' : 'not-allowed' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: canMarkHalfDay ? '#fef08a' : '#6b7280', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: `1px solid ${canMarkHalfDay ? '#fef08a' : '#374151'}`, cursor: canMarkHalfDay ? 'pointer' : 'not-allowed' }}
             >
               🟡 Half Day
             </button>
 
+            {/* On Leave: only in morning window */}
             <button
               type="button"
               className="btn"
-              disabled={!canEmployeeMark}
+              disabled={!canMarkFull}
               onClick={() => {
                 const selfEmp = displayEmployees[0];
                 if (selfEmp) handleStatusToggle(selfEmp.id, 'On Leave');
               }}
-              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#93c5fd', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: '1px solid #93c5fd', cursor: canEmployeeMark ? 'pointer' : 'not-allowed' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: canMarkFull ? '#93c5fd' : '#4b5563', fontWeight: 700, padding: '0.55rem 0.9rem', borderRadius: 'var(--radius-md)', border: `1px solid ${canMarkFull ? '#93c5fd' : '#374151'}`, cursor: canMarkFull ? 'pointer' : 'not-allowed' }}
+              title={!canMarkFull ? 'Leave can only be marked during 9:15 AM – 10:30 AM' : ''}
             >
               🔵 On Leave
             </button>

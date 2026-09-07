@@ -108,10 +108,23 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     if (!bulkCounselor) return alert('Please select a counselor to assign.');
     
     const toUpdate = [];
+    let newlyAssignedCount = 0;
+    let ignoredCount = 0;
+
     const updatedLeads = metaRealLeads.map(lead => {
       if (selectedLeads.includes(lead.id)) {
         const updated = { ...lead, counselor: bulkCounselor };
-        toUpdate.push(updated);
+        
+        // Check if this lead already exists in main leads array by phone
+        const isAlreadyExisting = leads && leads.some(l => l.phone && lead.phone && l.phone === lead.phone);
+        
+        if (!isAlreadyExisting) {
+          toUpdate.push(updated);
+          newlyAssignedCount++;
+        } else {
+          ignoredCount++;
+        }
+        
         return updated;
       }
       return lead;
@@ -122,7 +135,12 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     if (onAddLead && toUpdate.length > 0) {
       onAddLead(toUpdate);
     }
-    alert(`Successfully assigned ${selectedLeads.length} leads to ${bulkCounselor}.`);
+    
+    if (ignoredCount > 0) {
+      alert(`${newlyAssignedCount} new leads assigned to ${bulkCounselor}. ${ignoredCount} leads were skipped because they already exist in the CRM.`);
+    } else {
+      alert(`Successfully assigned ${newlyAssignedCount} leads to ${bulkCounselor}.`);
+    }
   };
 
   const handleSelectAll = (e) => {

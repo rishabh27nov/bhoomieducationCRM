@@ -41,7 +41,8 @@ export default function LeadsManager({
   currentUser = { role: 'Admin' },
   onAddLead,
   employees = [],
-  onUpdateLeadFee
+  onUpdateLeadFee,
+  onBulkUpdateCounselor
 }) {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'kanban'
   const [stageFilter, setStageFilter] = useState('ALL');
@@ -61,7 +62,7 @@ export default function LeadsManager({
   const todayStr = new Date().toISOString().split('T')[0];
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [importedRowsData, setImportedRowsData] = useState([]);
-  const [selectedAssignCounselor, setSelectedAssignCounselor] = useState(employees[0]?.name || 'Rishabh yadav');
+  const [selectedAssignCounselor, setSelectedAssignCounselor] = useState(''); // No default — user must select manually
   const [customImportDate, setCustomImportDate] = useState(todayStr);
 
   const handleDownloadSampleTemplate = () => {
@@ -172,6 +173,7 @@ export default function LeadsManager({
         }
 
         setImportedRowsData(rowsParsed);
+        setSelectedAssignCounselor(''); // Always reset — force manual selection
         setShowAssignModal(true);
       } catch (err) {
         console.error('Error parsing excel:', err);
@@ -188,8 +190,14 @@ export default function LeadsManager({
   const handleConfirmImportWithCounselor = () => {
     if (!importedRowsData.length || !onAddLead) return;
 
+    // Force manual selection — no auto-assignment allowed
+    if (!selectedAssignCounselor) {
+      alert('⚠️ Please select a counselor before importing! No leads will be imported without an assigned counselor.');
+      return;
+    }
+
     const formattedRows = importedRowsData.map((row, index) => {
-      const finalCounselor = selectedAssignCounselor || row.counselor || employees[0]?.name || 'Rishabh yadav';
+      const finalCounselor = selectedAssignCounselor;
       const finalDate = customImportDate || row.rowDate || todayStr;
       const finalSchoolName = customSchoolName.trim() || row.schoolName || '';
 
@@ -482,40 +490,7 @@ export default function LeadsManager({
             <FileSpreadsheet size={16} /> Bulk Upload Excel / CSV
           </button>
 
-          {isAdmin && (
-            <button
-              className="btn"
-              style={{
-                fontSize: '0.8rem',
-                padding: '0.45rem 0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                color: '#ffffff',
-                backgroundColor: '#25D366',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: 800,
-                boxShadow: '0 2px 8px rgba(37, 211, 102, 0.4)',
-                borderRadius: 'var(--radius-md)'
-              }}
-              onClick={() => {
-                const leadsWithPhone = filteredLeads.filter(l => l.phone && l.phone.trim());
-                if (leadsWithPhone.length === 0) {
-                  alert('Koi bhi lead mein phone number nahi hai!');
-                  return;
-                }
-                if (window.confirm(`Kya aap ${leadsWithPhone.length} leads ko WhatsApp message bhejna chahte hain?`)) {
-                  setSelectedLeadIds(leadsWithPhone.map(l => l.id));
-                  setIsBulkWhatsAppOpen(true);
-                }
-              }}
-              title={`Broadcast WhatsApp to all ${filteredLeads.filter(l => l.phone).length} visible leads`}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              📢 Broadcast to ALL ({filteredLeads.filter(l => l.phone).length})
-            </button>
-          )}
+
 
           <button className="btn btn-primary" onClick={onOpenAddLead} title="Create New Student Enquiry">
             <Plus size={18} /> New Student Enquiry
@@ -1051,23 +1026,65 @@ export default function LeadsManager({
                   
                   rowsJSX.push(
                     <tr key={`date-${group.dateStr}`} style={{ background: 'rgba(21, 128, 61, 0.05)', borderBottom: '2px solid rgba(21, 128, 61, 0.2)', borderTop: '2px solid rgba(21, 128, 61, 0.2)' }}>
-                      <td colSpan="9" style={{ padding: '0.65rem 1rem', color: '#166534', fontWeight: '800', fontSize: '0.95rem', textAlign: 'left' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', width: 'fit-content' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={allSelectedForDate}
-                            onChange={() => {
-                              if (allSelectedForDate) {
-                                setSelectedLeadIds(prev => prev.filter(id => !leadsForThisDate.some(l => l.id === id)));
-                              } else {
-                                const newIds = leadsForThisDate.map(l => l.id).filter(id => !selectedLeadIds.includes(id));
-                                setSelectedLeadIds(prev => [...prev, ...newIds]);
-                              }
-                            }}
-                            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#15803d' }}
-                          />
-                          <span>📅 Leads from {group.dateStr} ({leadsForThisDate.length})</span>
-                        </label>
+                      <td colSpan="9" style={{ padding: '0.55rem 1rem', color: '#166534', fontWeight: '800', fontSize: '0.95rem', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {/* Left: checkbox + date label */}
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={allSelectedForDate}
+                              onChange={() => {
+                                if (allSelectedForDate) {
+                                  setSelectedLeadIds(prev => prev.filter(id => !leadsForThisDate.some(l => l.id === id)));
+                                } else {
+                                  const newIds = leadsForThisDate.map(l => l.id).filter(id => !selectedLeadIds.includes(id));
+                                  setSelectedLeadIds(prev => [...prev, ...newIds]);
+                                }
+                              }}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#15803d' }}
+                            />
+                            <span>📅 Leads from {group.dateStr} ({leadsForThisDate.length})</span>
+                          </label>
+
+                          {/* Right: Bulk Counselor Change */}
+                          {onBulkUpdateCounselor && employees.length > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#166534', whiteSpace: 'nowrap' }}>
+                                👥 Bulk Change Counselor:
+                              </span>
+                              <select
+                                defaultValue=""
+                                onChange={(e) => {
+                                  const newCounselor = e.target.value;
+                                  if (!newCounselor) return;
+                                  if (!window.confirm(`Reassign all ${leadsForThisDate.length} leads from "${group.dateStr}" to "${newCounselor}"?`)) {
+                                    e.target.value = '';
+                                    return;
+                                  }
+                                  const leadIds = leadsForThisDate.map(l => l.id);
+                                  onBulkUpdateCounselor(leadIds, newCounselor);
+                                  e.target.value = '';
+                                }}
+                                style={{
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  padding: '0.25rem 0.5rem',
+                                  borderRadius: '6px',
+                                  border: '1.5px solid #16a34a',
+                                  backgroundColor: '#ffffff',
+                                  color: '#166534',
+                                  cursor: 'pointer',
+                                  minWidth: '180px'
+                                }}
+                              >
+                                <option value="">-- Select to Reassign All --</option>
+                                {employees.map(emp => (
+                                  <option key={emp.id} value={emp.name}>👤 {emp.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1456,14 +1473,29 @@ export default function LeadsManager({
                   value={selectedAssignCounselor}
                   onChange={(e) => setSelectedAssignCounselor(e.target.value)}
                   className="form-select"
-                  style={{ width: '100%', padding: '0.55rem', fontSize: '0.9rem', fontWeight: 700, borderColor: 'var(--color-brand-emerald)' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.55rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    borderColor: selectedAssignCounselor ? 'var(--color-brand-emerald)' : '#ef4444',
+                    outline: selectedAssignCounselor ? '' : '2px solid #fca5a5'
+                  }}
                 >
+                  <option value="" disabled>
+                    -- Select Counselor / Employee --
+                  </option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.name}>
                       👤 {emp.name} ({emp.role} - {emp.email})
                     </option>
                   ))}
                 </select>
+                {!selectedAssignCounselor && (
+                  <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600, marginTop: '0.3rem' }}>
+                    ❌ Please select a counselor to proceed with import.
+                  </div>
+                )}
               </div>
 
               <div>

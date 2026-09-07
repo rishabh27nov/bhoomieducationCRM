@@ -565,6 +565,35 @@ export default function LeadModal({
 
           {/* Add New Note */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+
+            {/* Quick Common Messages Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>⚡ Quick Note:</span>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setNoteText(prev => prev ? prev + ' | ' + e.target.value : e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                className="form-select"
+                style={{ flex: 1, fontSize: '0.82rem', padding: '0.35rem 0.6rem', borderRadius: 'var(--radius-md)', borderColor: 'var(--border-light)', color: 'var(--text-main)' }}
+              >
+                <option value="">-- Select a common message --</option>
+                <option value="Did not pick up the call.">1. Did not pick up the call.</option>
+                <option value="Follow-up required.">2. Follow-up required.</option>
+                <option value="Call back requested.">3. Call back requested.</option>
+                <option value="Call parent for discussion.">4. Call parent for discussion.</option>
+                <option value="Student not available.">5. Student not available.</option>
+                <option value="Interested, needs more information.">6. Interested, needs more information.</option>
+                <option value="Test/consultation link shared.">7. Test/consultation link shared.</option>
+                <option value="Payment decision pending.">8. Payment decision pending.</option>
+                <option value="Not interested at present.">9. Not interested at present.</option>
+                <option value="No response after multiple follow-ups.">10. No response after multiple follow-ups.</option>
+              </select>
+            </div>
+
             <form onSubmit={handleAddNote} style={{ display: 'flex', gap: '0.5rem' }}>
               <input
                 type="text"
@@ -601,7 +630,7 @@ export default function LeadModal({
               </button>
             </form>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'left', paddingLeft: '0.2rem' }}>
-              * You can speak in Hindi using the Mic, or type in Hindi and click the translate button.
+              * Select a quick note above, or speak in Hindi using the Mic, or type and click translate.
             </div>
           </div>
 

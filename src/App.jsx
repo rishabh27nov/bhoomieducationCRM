@@ -162,6 +162,8 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState({});
   const [documents, setDocuments] = useState([]);
+  // Flag to prevent Firebase listener from overwriting locally-initiated saves
+  const isSavingToFirebase = React.useRef(false);
 
   const handleSaveAttendance = (dateStr, dailyStatusObj) => {
     const existingForDate = attendanceRecords[dateStr] || {};
@@ -238,6 +240,8 @@ export default function App() {
     try {
       const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
       const unsubscribe = onValue(crmRef, (snapshot) => {
+        // Skip Firebase echo during our own local saves to avoid race condition
+        if (isSavingToFirebase.current) return;
         const data = snapshot.val();
         if (data) {
           if (data.leads !== undefined) {
@@ -347,6 +351,7 @@ export default function App() {
   }, [currentUser]);
 
   const saveToCentralDB = async (override = {}) => {
+    isSavingToFirebase.current = true;
     try {
       const payload = {
         courses,
@@ -364,6 +369,9 @@ export default function App() {
       await set(crmRef, payload);
     } catch {
       // Offline fallback
+    } finally {
+      // Small delay so Firebase's own echo doesn't overwrite our state
+      setTimeout(() => { isSavingToFirebase.current = false; }, 1500);
     }
   };
 
@@ -720,6 +728,25 @@ export default function App() {
     }
   };
 
+  // Bulk update counselor for multiple leads at once (single atomic save)
+  const handleBulkUpdateCounselor = (leadIds, newCounselor) => {
+    const idSet = new Set(leadIds);
+    const updatedLeads = leads.map(l => idSet.has(l.id) ? { ...l, counselor: newCounselor } : l);
+    setLeads(updatedLeads);
+    localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
+    saveToCentralDB({ leads: updatedLeads });
+    logActivity(
+      'Bulk Leads Reassigned',
+      `Bulk reassigned ${leadIds.length} leads to ${newCounselor}`
+    );
+    sendRealtimeNotification({
+      targetUser: newCounselor,
+      title: '📋 Leads Assigned to You',
+      details: `${leadIds.length} leads have been bulk-assigned to you.`,
+      type: 'LeadAssigned'
+    });
+  };
+
   // Handle direct fee/budget update
   const handleUpdateLeadFee = (leadId, newFeeBudget) => {
     const updatedLeads = leads.map(l => l.id === leadId ? { ...l, feeBudget: newFeeBudget } : l);
@@ -974,6 +1001,7 @@ export default function App() {
               onOpenAddLead={() => setIsAddLeadOpen(true)}
               onUpdateLeadStage={handleUpdateLeadStage}
               onUpdateLeadCounselor={handleUpdateLeadCounselor}
+              onBulkUpdateCounselor={handleBulkUpdateCounselor}
               onDeleteLead={handleDeleteLead}
               onBulkDeleteLeads={handleBulkDeleteLeads}
               searchQuery={searchQuery}
