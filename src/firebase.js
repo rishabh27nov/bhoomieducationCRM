@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set } from "firebase/database";
+import { getDatabase, ref, onValue, set, update } from "firebase/database";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // Production Firebase Configuration for Bhoomi CRM
@@ -19,4 +19,4 @@ const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const storage = getStorage(app);
 
-export { ref, onValue, set, storageRef, uploadBytes, getDownloadURL };
+export { ref, onValue, set, update, storageRef, uploadBytes, getDownloadURL };

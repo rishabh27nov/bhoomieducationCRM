@@ -28,7 +28,7 @@ import WhatsAppSettingsManager from './components/WhatsAppSettingsManager';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
-import { db as firebaseDB, ref, onValue, set } from './firebase';
+import { db as firebaseDB, ref, onValue, set, update } from './firebase';
 
 // Automatic cache cleanup for sample/mock data reset
 try {
@@ -364,9 +364,9 @@ export default function App() {
         documents,
         ...override
       };
-      // Write to Firebase Realtime Cloud Database
+      // Write to Firebase Realtime Cloud Database using update to preserve other sibling nodes like whatsappSettings
       const crmRef = ref(firebaseDB, 'lakshya_crm_central_db');
-      await set(crmRef, payload);
+      await update(crmRef, payload);
     } catch {
       // Offline fallback
     } finally {
