@@ -134,12 +134,10 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
                 </label>
                 {useTemplate ? (
                   <div style={{ padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', color: '#475569', fontStyle: 'italic' }}>
-                    Hello! 🎓<br/><br/>
-                    Welcome to <b>Lakshya Education</b> - Bhoomi Connect!<br/><br/>
-                    Thank you for your enquiry about our NEET/JEE coaching programs. Our counselor will get in touch with you shortly.<br/><br/>
-                    For any queries, feel free to reply to this message or call us:<br/>
-                    📞 +91 88002 15851<br/><br/>
-                    Team Lakshya Education
+                    <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#334155' }}>
+                      Template: lakshya_admission_enquiry
+                    </div>
+                    (The exact message content approved in your Meta Dashboard will be sent automatically to the student. Meta does not allow modifying template text from here.)
                   </div>
                 ) : (
                   <div>
