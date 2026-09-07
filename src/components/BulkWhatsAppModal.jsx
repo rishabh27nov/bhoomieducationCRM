@@ -19,7 +19,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     document.body.style.overflow = 'hidden';
     
     // Fetch available templates
-    fetch('/api/whatsapp/settings')
+    fetch(`/api/whatsapp/settings?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.templates && data.templates.length > 0) {

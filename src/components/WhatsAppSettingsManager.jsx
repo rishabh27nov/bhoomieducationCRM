@@ -9,7 +9,7 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
   const [saveMessage, setSaveMessage] = useState(null);
 
   useEffect(() => {
-    fetch('/api/whatsapp/settings')
+    fetch(`/api/whatsapp/settings?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.phoneNumberId) {
