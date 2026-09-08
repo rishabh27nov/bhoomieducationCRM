@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
 
-export default function WhatsAppAutomationsManager({ currentUser }) {
+export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) {
   const [automations, setAutomations] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,6 +139,11 @@ export default function WhatsAppAutomationsManager({ currentUser }) {
                   <option key={stage} value={stage}>{stage}</option>
                 ))}
               </select>
+              {formData.stage && (
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-brand-emerald)', marginTop: '0.4rem', backgroundColor: '#ecfdf5', padding: '0.4rem', borderRadius: '4px' }}>
+                  Target Audience: {leads.filter(l => l.stage === formData.stage).length} Students
+                </div>
+              )}
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
                 Message will be sent to ALL leads currently in this stage.
               </p>
@@ -220,8 +225,16 @@ export default function WhatsAppAutomationsManager({ currentUser }) {
                       </div>
 
                       {auto.stats && (
-                        <div style={{ fontSize: '0.7rem', color: '#166534', marginTop: '0.2rem', fontWeight: 600 }}>
-                          Executed: {auto.stats.success} Sent, {auto.stats.failed} Failed (Total: {auto.stats.total})
+                        <div style={{ fontSize: '0.75rem', marginTop: '0.4rem', fontWeight: 600 }}>
+                          <span style={{ color: '#166534' }}>Executed: {auto.stats.success} Sent</span>,{' '}
+                          <span style={{ color: auto.stats.failed > 0 ? '#ef4444' : '#166534' }}>{auto.stats.failed} Failed</span>{' '}
+                          <span style={{ color: '#64748b' }}>(Total: {auto.stats.total})</span>
+                          
+                          {auto.stats.lastError && (
+                             <div style={{ marginTop: '0.3rem', color: '#ef4444', fontSize: '0.65rem', backgroundColor: '#fef2f2', padding: '0.3rem', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+                               Error: {auto.stats.lastError}
+                             </div>
+                          )}
                         </div>
                       )}
                     </div>

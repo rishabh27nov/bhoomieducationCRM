@@ -1104,6 +1104,7 @@ export default function App() {
           {activeTab === 'whatsapp_automations' && (
             <WhatsAppAutomationsManager
               currentUser={currentUser}
+              leads={leads}
             />
           )}
 

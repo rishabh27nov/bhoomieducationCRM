@@ -55,6 +55,7 @@ export default async function handler(req, res) {
 
       let successCount = 0;
       let failCount = 0;
+      let lastError = null;
 
       for (const lead of targetLeads) {
         let cleanPhone = lead.phone.replace(/\D/g, '');
@@ -79,10 +80,17 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify(payload)
           });
-          if (metaRes.ok) successCount++;
-          else failCount++;
+          
+          if (metaRes.ok) {
+            successCount++;
+          } else {
+            failCount++;
+            const errData = await metaRes.json();
+            lastError = errData?.error?.message || 'Unknown Meta API Error';
+          }
         } catch (e) {
           failCount++;
+          lastError = e.message;
         }
         
         // Small delay to prevent rate limit
@@ -92,7 +100,12 @@ export default async function handler(req, res) {
       // Mark automation as completed
       automation.status = 'completed';
       automation.executedAt = new Date().toISOString();
-      automation.stats = { success: successCount, failed: failCount, total: targetLeads.length };
+      automation.stats = { 
+        success: successCount, 
+        failed: failCount, 
+        total: targetLeads.length,
+        ...(lastError && { lastError })
+      };
 
       await fetch(`${FIREBASE_URL}/whatsappAutomations/${automation.id}.json`, {
         method: 'PUT',
