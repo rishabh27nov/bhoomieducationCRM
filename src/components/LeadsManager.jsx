@@ -543,20 +543,30 @@ export default function LeadsManager({
           )}
 
           {/* Stage Filter */}
-          <select
-            className="form-select"
-            style={{ width: 'auto', minWidth: '140px', fontWeight: 700, borderColor: stageFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
-            value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
-          >
-            <option value="ALL">All Stages ({filteredLeads.length})</option>
-            <option value="New Enquiry">New Enquiry</option>
-            <option value="Counseling">Counseling</option>
-            <option value="Demo Attended">Demo Attended</option>
-            <option value="Applied">Applied</option>
-            <option value="Admitted">Admitted</option>
-            <option value="Lost">Lost</option>
-          </select>
+          {(() => {
+            const leadsForStageDropdown = leads.filter(lead => {
+               if (isEmployeeRole && !isCounselorMatch(lead.counselor, currentUser?.name)) return false;
+               if (!isEmployeeRole && counselorFilter !== 'ALL' && !isCounselorMatch(lead.counselor, counselorFilter)) return false;
+               return true;
+            });
+            const standardStages = ["New Enquiry", "Counseling", "Demo Attended", "Applied", "Admitted", "Lost"];
+            const customStages = Array.from(new Set(leadsForStageDropdown.map(l => l.stage).filter(s => s && !standardStages.includes(s))));
+            const allAvailableStages = [...standardStages, ...customStages];
+
+            return (
+              <select
+                className="form-select"
+                style={{ width: 'auto', minWidth: '140px', fontWeight: 700, borderColor: stageFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value)}
+              >
+                <option value="ALL">All Stages ({filteredLeads.length})</option>
+                {allAvailableStages.map(stage => (
+                  <option key={stage} value={stage}>{stage}</option>
+                ))}
+              </select>
+            );
+          })()}
 
           {/* Course Filter */}
           <select
