@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const now = Date.now();
 
     // 1. Fetch Automations
-    const authRes = await fetch(`${FIREBASE_URL}/whatsappAutomations.json`);
+    const authRes = await fetch(`${FIREBASE_URL}/whatsappAutomations.json?t=${now}`);
     const automationsData = await authRes.json();
     if (!automationsData) {
       return res.status(200).json({ success: true, message: 'No automations found.' });
@@ -30,8 +30,8 @@ export default async function handler(req, res) {
 
     // 2. Fetch Settings and Leads
     const [settingsRes, leadsRes] = await Promise.all([
-      fetch(`${FIREBASE_URL}/whatsappSettings.json`),
-      fetch(`${FIREBASE_URL}/leads.json`)
+      fetch(`${FIREBASE_URL}/whatsappSettings.json?t=${now}`),
+      fetch(`${FIREBASE_URL}/leads.json?t=${now}`)
     ]);
 
     const settings = await settingsRes.json();
