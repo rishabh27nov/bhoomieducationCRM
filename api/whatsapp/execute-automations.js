@@ -50,8 +50,13 @@ export default async function handler(req, res) {
 
     // 3. Execute Automations
     for (const automation of dueAutomations) {
-      // Find matching leads
-      const targetLeads = leadsList.filter(l => l.stage === automation.stage && l.phone);
+      // Find matching leads who haven't received this template yet
+      const targetLeads = leadsList.filter(l => 
+        l && 
+        l.stage === automation.stage && 
+        l.phone && 
+        !(l.sentTemplates || []).includes(automation.template)
+      );
 
       let successCount = 0;
       let failCount = 0;
@@ -83,6 +88,17 @@ export default async function handler(req, res) {
           
           if (metaRes.ok) {
             successCount++;
+            
+            // Track sent template in Firebase to prevent future duplicates
+            const leadIndex = leadsList.findIndex(l => l && l.id === lead.id);
+            if (leadIndex !== -1) {
+              const updatedSentTemplates = [...new Set([...(lead.sentTemplates || []), automation.template])];
+              await fetch(`${FIREBASE_URL}/leads/${leadIndex}/sentTemplates.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedSentTemplates)
+              });
+            }
           } else {
             failCount++;
             const errData = await metaRes.json();

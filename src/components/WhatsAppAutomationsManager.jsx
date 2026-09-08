@@ -141,11 +141,16 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
               </select>
               {formData.stage && (
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-brand-emerald)', marginTop: '0.4rem', backgroundColor: '#ecfdf5', padding: '0.4rem', borderRadius: '4px' }}>
-                  Target Audience: {leads.filter(l => l.stage === formData.stage).length} Students
+                  {(() => {
+                    const stageLeads = leads.filter(l => l.stage === formData.stage);
+                    const eligibleLeads = stageLeads.filter(l => !(l.sentTemplates || []).includes(formData.template));
+                    const alreadySent = stageLeads.length - eligibleLeads.length;
+                    return `Target Audience: ${eligibleLeads.length} Students ${alreadySent > 0 ? `(${alreadySent} already sent)` : ''}`;
+                  })()}
                 </div>
               )}
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-                Message will be sent to ALL leads currently in this stage.
+                Message will be sent ONLY to leads who haven't received this template yet.
               </p>
             </div>
 
