@@ -549,9 +549,25 @@ export default function LeadsManager({
                if (!isEmployeeRole && counselorFilter !== 'ALL' && !isCounselorMatch(lead.counselor, counselorFilter)) return false;
                return true;
             });
-            const standardStages = ["New Enquiry", "Counseling", "Demo Attended", "Applied", "Admitted", "Lost"];
-            const customStages = Array.from(new Set(leadsForStageDropdown.map(l => l.stage).filter(s => s && !standardStages.includes(s))));
-            const allAvailableStages = [...standardStages, ...customStages];
+
+            // Determine if the selected counselor has B2B2C, B2C or both
+            const hasB2B2C = leadsForStageDropdown.some(l => l.leadType === 'B2B2C' || l.leadType === 'B2B' || (l.leadSource && (l.leadSource.toUpperCase().includes('B2B2C') || l.leadSource.toUpperCase().includes('B2B'))));
+            const hasB2C = leadsForStageDropdown.some(l => l.leadType !== 'B2B2C' && l.leadType !== 'B2B' && (!l.leadSource || (!l.leadSource.toUpperCase().includes('B2B2C') && !l.leadSource.toUpperCase().includes('B2B'))));
+
+            let relevantStandardStages = [];
+            if (hasB2B2C && hasB2C) {
+               relevantStandardStages = [...PIPELINE_STAGES_B2B2C, ...PIPELINE_STAGES_B2C];
+            } else if (hasB2B2C) {
+               relevantStandardStages = [...PIPELINE_STAGES_B2B2C];
+            } else if (hasB2C) {
+               relevantStandardStages = [...PIPELINE_STAGES_B2C];
+            } else {
+               // Fallback if no leads
+               relevantStandardStages = [...PIPELINE_STAGES_B2B2C, ...PIPELINE_STAGES_B2C];
+            }
+
+            const customStages = Array.from(new Set(leadsForStageDropdown.map(l => l.stage).filter(s => s && !relevantStandardStages.includes(s))));
+            const allAvailableStages = [...relevantStandardStages, ...customStages];
 
             return (
               <select
