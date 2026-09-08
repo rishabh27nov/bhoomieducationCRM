@@ -239,14 +239,14 @@ export default function App() {
     // Only run if user is authenticated
     if (!isAuthenticated) return;
 
-    // Check every 5 minutes (300000 ms)
+    // Check every 1 minute (60000 ms)
     const intervalId = setInterval(async () => {
       try {
         await fetch('/api/whatsapp/execute-automations', { method: 'POST' });
       } catch (err) {
         // Silently fail if network error
       }
-    }, 300000);
+    }, 60000);
 
     // Initial check after 10 seconds of opening CRM
     const initialTimeout = setTimeout(async () => {
