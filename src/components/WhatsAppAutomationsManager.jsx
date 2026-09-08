@@ -239,16 +239,14 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                       )}
                     </div>
 
-                    {isPending && (
-                      <button 
-                        onClick={() => handleDelete(auto.id)}
-                        className="btn-icon" 
-                        style={{ color: '#ef4444', padding: '0.5rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-sm)' }}
-                        title="Cancel Automation"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <button 
+                      onClick={() => handleDelete(auto.id)}
+                      className="btn-icon" 
+                      style={{ color: '#ef4444', padding: '0.5rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-sm)' }}
+                      title="Delete Automation"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 );
               })}
