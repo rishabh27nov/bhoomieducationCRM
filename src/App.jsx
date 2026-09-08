@@ -25,6 +25,7 @@ import DocumentUploadManager from './components/DocumentUploadManager';
 import EmployeeSettingsManager from './components/EmployeeSettingsManager';
 import MetaLeadConnectors from './components/MetaLeadConnectors';
 import WhatsAppSettingsManager from './components/WhatsAppSettingsManager';
+import WhatsAppAutomationsManager from './components/WhatsAppAutomationsManager';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -233,7 +234,32 @@ export default function App() {
     localStorage.setItem('lakshya_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  // Smart Background Trigger for WhatsApp Automations
+  useEffect(() => {
+    // Only run if user is authenticated
+    if (!isAuthenticated) return;
 
+    // Check every 5 minutes (300000 ms)
+    const intervalId = setInterval(async () => {
+      try {
+        await fetch('/api/whatsapp/execute-automations', { method: 'POST' });
+      } catch (err) {
+        // Silently fail if network error
+      }
+    }, 300000);
+
+    // Initial check after 10 seconds of opening CRM
+    const initialTimeout = setTimeout(async () => {
+      try {
+        await fetch('/api/whatsapp/execute-automations', { method: 'POST' });
+      } catch (err) {}
+    }, 10000);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(initialTimeout);
+    };
+  }, [isAuthenticated]);
 
   // Central Database API Sync Engine (Firebase Realtime Cloud Database Sync)
   useEffect(() => {
@@ -1069,6 +1095,14 @@ export default function App() {
 
           {activeTab === 'whatsapp_setup' && (
             <WhatsAppSettingsManager
+              currentUser={currentUser}
+              centralDb={{}}
+              saveToCentralDB={saveToCentralDB}
+            />
+          )}
+
+          {activeTab === 'whatsapp_automations' && (
+            <WhatsAppAutomationsManager
               currentUser={currentUser}
             />
           )}

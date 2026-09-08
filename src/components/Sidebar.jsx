@@ -15,7 +15,8 @@ import {
   UploadCloud,
   UserCog,
   Share2,
-  Phone
+  Phone,
+  Bot
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -33,6 +34,7 @@ export default function Sidebar({
     { id: 'leads', label: 'Student Enquiries', icon: Users },
     { id: 'meta_connectors', label: 'Meta (FB & IG) Ads', icon: Share2, badge: 'LIVE' },
     { id: 'whatsapp_setup', label: 'WhatsApp API Setup', icon: Phone, badge: 'API' },
+    { id: 'whatsapp_automations', label: 'WhatsApp Automations', icon: Bot, badge: 'AUTO' },
     { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: batchCount > 0 ? String(batchCount) : null },
     { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: employeeCount > 0 ? String(employeeCount) : null },
     { id: 'vault', label: 'Student Academic Vault', icon: FolderOpen },
