@@ -44,6 +44,8 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     setIsSending(true);
     let successCount = 0;
     let failedCount = 0;
+    const successfulLeads = [];
+    const failedLeads = [];
 
     for (let i = 0; i < selectedLeads.length; i++) {
       const lead = selectedLeads[i];
@@ -60,14 +62,17 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
         
         if (response.ok) {
           successCount++;
+          successfulLeads.push({ name: lead.name, phone: lead.phone });
         } else {
           failedCount++;
           const errorData = await response.json();
+          const errReason = errorData.error || 'Unknown Error';
+          failedLeads.push({ name: lead.name, phone: lead.phone, error: errReason });
           console.error(`Failed to send to ${lead.phone}:`, errorData);
-          alert(`Failed to send to ${lead.phone}:\n${errorData.error || 'Unknown Error'}`);
         }
       } catch (err) {
         failedCount++;
+        failedLeads.push({ name: lead.name, phone: lead.phone, error: err.message || 'Network Error' });
         console.error(`Failed to send to ${lead.phone}`, err);
       }
 
@@ -76,6 +81,30 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
       
       // Wait 500ms between messages to avoid spamming the API
       await delay(500);
+    }
+
+    // Save Campaign Log
+    const campaignLog = {
+      id: `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      campaignType: 'Manual Bulk',
+      template: useTemplate ? selectedTemplate : 'Custom Message',
+      targetAudience: totalLeads,
+      successfulCount: successCount,
+      failedCount: failedCount,
+      successfulLeads,
+      failedLeads
+    };
+
+    try {
+      const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+      await fetch(`${FIREBASE_URL}/whatsappCampaignLogs/${campaignLog.id}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(campaignLog)
+      });
+    } catch (err) {
+      console.error('Failed to save campaign log', err);
     }
 
     setIsSending(false);
@@ -208,9 +237,10 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
                   <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
                     <div style={{ width: `${progress}%`, height: '100%', backgroundColor: '#15803d', transition: 'width 0.3s ease' }}></div>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ color: '#15803d', fontWeight: 600 }}>✅ Sent: {results.success}</span>
-                    {results.failed > 0 && <span style={{ color: '#dc2626', fontWeight: 600 }}>❌ Failed: {results.failed}</span>}
+                    <span style={{ color: '#dc2626', fontWeight: 600 }}>❌ Failed: {results.failed}</span>
+                    <span style={{ color: '#0f172a', fontWeight: 600 }}>⏳ Remaining: {totalLeads - results.success - results.failed}</span>
                   </div>
                 </div>
               )}

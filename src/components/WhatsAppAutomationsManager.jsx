@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
+import CampaignReportsModal from './CampaignReportsModal';
 
 export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) {
   const [automations, setAutomations] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sentTemplatesMap, setSentTemplatesMap] = useState({});
+  const [showReports, setShowReports] = useState(false);
   
   const [formData, setFormData] = useState({
     template: '',
@@ -96,13 +98,22 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
-      <div>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
-          WhatsApp Automations
-        </h1>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Schedule template messages to be sent automatically to specific pipeline stages.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            WhatsApp Automations
+          </h1>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Schedule template messages to be sent automatically to specific pipeline stages.
+          </p>
+        </div>
+        <button 
+          className="btn btn-secondary" 
+          onClick={() => setShowReports(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: '#3b82f6', color: '#3b82f6' }}
+        >
+          <FileText size={16} /> View Campaign Reports
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', alignItems: 'start' }}>
@@ -266,6 +277,10 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
           )}
         </div>
       </div>
+
+      {showReports && (
+        <CampaignReportsModal onClose={() => setShowReports(false)} />
+      )}
     </div>
   );
 }

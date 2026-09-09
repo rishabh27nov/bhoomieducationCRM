@@ -1,0 +1,223 @@
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import { X, FileText, CheckCircle2, XCircle, Search, Clock, Calendar } from 'lucide-react';
+
+export default function CampaignReportsModal({ onClose }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+      const res = await fetch(`${FIREBASE_URL}/whatsappCampaignLogs.json`);
+      const data = await res.json();
+      
+      if (data) {
+        // Firebase might return an object or array depending on keys.
+        // We know we used PUT with string IDs, so it should be an object mapping ID -> log.
+        const logArray = Object.values(data).filter(Boolean);
+        // Sort by timestamp descending (newest first)
+        logArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setLogs(logArray);
+      }
+    } catch (err) {
+      console.error('Failed to fetch campaign logs', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (isoString) => {
+    if (!isoString) return 'Unknown';
+    const d = new Date(isoString);
+    return d.toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  };
+
+  const filteredLogs = logs.filter(log => 
+    log.template?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.campaignType?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return ReactDOM.createPortal(
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      backgroundColor: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
+    }}>
+      <div style={{
+        backgroundColor: '#ffffff', borderRadius: '16px', width: '90%', maxWidth: selectedLog ? '800px' : '650px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', display: 'flex', flexDirection: 'column',
+        maxHeight: '90vh', transition: 'max-width 0.3s ease'
+      }}>
+        
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>
+            <FileText size={24} color="#3b82f6" /> 
+            {selectedLog ? 'Campaign Details' : 'WhatsApp Campaign Reports'}
+          </h2>
+          <button className="btn-icon" onClick={() => selectedLog ? setSelectedLog(null) : onClose()}>
+            <X size={24} />
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', backgroundColor: '#f8fafc' }}>
+          
+          {!selectedLog ? (
+            // LIST VIEW
+            <>
+              <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+                <Search size={18} style={{ position: 'absolute', left: '12px', top: '10px', color: '#64748b' }} />
+                <input 
+                  type="text" 
+                  placeholder="Search by template name or type..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                />
+              </div>
+
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Loading logs...</div>
+              ) : filteredLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', backgroundColor: '#fff', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  No campaign logs found. Send a bulk message or automation to see reports here.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {filteredLogs.map(log => (
+                    <div 
+                      key={log.id} 
+                      onClick={() => setSelectedLog(log)}
+                      style={{ 
+                        backgroundColor: '#fff', borderRadius: '8px', padding: '1rem', border: '1px solid #e2e8f0', 
+                        cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'transform 0.1s ease, box-shadow 0.1s ease'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem', fontSize: '1.05rem' }}>
+                          {log.template}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', color: '#64748b', fontSize: '0.85rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Calendar size={14} /> {formatDate(log.timestamp)}
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ padding: '2px 6px', backgroundColor: '#f1f5f9', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                              {log.campaignType}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '1rem', textAlign: 'center' }}>
+                        <div style={{ backgroundColor: '#f0fdf4', color: '#15803d', padding: '0.5rem', borderRadius: '8px', minWidth: '60px' }}>
+                          <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{log.successfulCount || 0}</div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>Sent</div>
+                        </div>
+                        <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '0.5rem', borderRadius: '8px', minWidth: '60px' }}>
+                          <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{log.failedCount || 0}</div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>Failed</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            // DETAIL VIEW
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', backgroundColor: '#fff', borderRadius: '8px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
+              
+              {/* Header Stats */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a' }}>{selectedLog.template}</h3>
+                  <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', gap: '1rem' }}>
+                    <span>Type: <b>{selectedLog.campaignType}</b></span>
+                    <span>Date: {formatDate(selectedLog.timestamp)}</span>
+                    <span>Total Target: {selectedLog.targetAudience}</span>
+                  </div>
+                </div>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedLog(null)}>
+                  &larr; Back to List
+                </button>
+              </div>
+
+              {/* Failed Section */}
+              {selectedLog.failedLeads && selectedLog.failedLeads.length > 0 && (
+                <div>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c', margin: '0 0 1rem 0' }}>
+                    <XCircle size={18} /> Failed Deliveries ({selectedLog.failedCount})
+                  </h4>
+                  <div style={{ border: '1px solid #fecaca', borderRadius: '8px', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <thead style={{ backgroundColor: '#fef2f2', color: '#991b1b', textAlign: 'left' }}>
+                        <tr>
+                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #fecaca' }}>Student Name</th>
+                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #fecaca' }}>Phone</th>
+                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #fecaca' }}>Error Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedLog.failedLeads.map((lead, idx) => (
+                          <tr key={idx} style={{ backgroundColor: '#fff', borderBottom: '1px solid #fecaca' }}>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>{lead.name || 'Unknown'}</td>
+                            <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>{lead.phone}</td>
+                            <td style={{ padding: '0.75rem 1rem', color: '#b91c1c', fontSize: '0.85rem' }}>{lead.error}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Section */}
+              {selectedLog.successfulLeads && selectedLog.successfulLeads.length > 0 && (
+                <div>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#15803d', margin: '0 0 1rem 0' }}>
+                    <CheckCircle2 size={18} /> Successful Deliveries ({selectedLog.successfulCount})
+                  </h4>
+                  <div style={{ border: '1px solid #b7e4c7', borderRadius: '8px', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <thead style={{ backgroundColor: '#f0fdf4', color: '#166534', textAlign: 'left' }}>
+                        <tr>
+                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #b7e4c7' }}>Student Name</th>
+                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #b7e4c7' }}>Phone</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedLog.successfulLeads.map((lead, idx) => (
+                          <tr key={idx} style={{ backgroundColor: '#fff', borderBottom: '1px solid #b7e4c7' }}>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>{lead.name || 'Unknown'}</td>
+                            <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>{lead.phone}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}

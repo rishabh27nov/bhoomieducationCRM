@@ -64,6 +64,8 @@ export default async function handler(req, res) {
       let successCount = 0;
       let failCount = 0;
       let lastError = null;
+      const successfulLeads = [];
+      const failedLeads = [];
 
       for (const lead of targetLeads) {
         let cleanPhone = lead.phone.replace(/\D/g, '');
@@ -91,6 +93,7 @@ export default async function handler(req, res) {
           
           if (metaRes.ok) {
             successCount++;
+            successfulLeads.push({ name: lead.name, phone: lead.phone });
             
             // Track sent template using lead's ID as key (reliable, no index issues)
             const currentTemplates = lead.sentTemplates || [];
@@ -117,10 +120,12 @@ export default async function handler(req, res) {
             failCount++;
             const errData = await metaRes.json();
             lastError = errData?.error?.message || 'Unknown Meta API Error';
+            failedLeads.push({ name: lead.name, phone: lead.phone, error: lastError });
           }
         } catch (e) {
           failCount++;
           lastError = e.message;
+          failedLeads.push({ name: lead.name, phone: lead.phone, error: lastError });
         }
         
         // Small delay to prevent rate limit
@@ -141,6 +146,25 @@ export default async function handler(req, res) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(automation)
+      });
+
+      // Log Campaign Report
+      const campaignLog = {
+        id: `auto_run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        campaignType: 'Automation',
+        template: automation.template,
+        targetAudience: targetLeads.length,
+        successfulCount: successCount,
+        failedCount: failCount,
+        successfulLeads,
+        failedLeads
+      };
+
+      await fetch(`${FIREBASE_URL}/whatsappCampaignLogs/${campaignLog.id}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(campaignLog)
       });
 
       results.push({ id: automation.id, stats: automation.stats });
