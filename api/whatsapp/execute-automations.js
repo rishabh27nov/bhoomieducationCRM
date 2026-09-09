@@ -49,6 +49,7 @@ export default async function handler(req, res) {
 
     const { phoneNumberId, accessToken } = settings;
     const results = [];
+    const newChatMessages = []; // To store chat history
 
     // 3. Execute Automations
     for (const automation of dueAutomations) {
@@ -102,6 +103,16 @@ export default async function handler(req, res) {
                 body: JSON.stringify(updatedSentTemplates)
               });
             }
+
+            // Log for chat history
+            newChatMessages.push({
+              id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              direction: 'outgoing',
+              leadPhone: lead.phone,
+              text: `[Automated Template: ${automation.template}]`,
+              timestamp: new Date().toISOString(),
+              status: 'sent'
+            });
           } else {
             failCount++;
             const errData = await metaRes.json();
@@ -133,6 +144,25 @@ export default async function handler(req, res) {
       });
 
       results.push({ id: automation.id, stats: automation.stats });
+    }
+
+    // Save all new chat messages to Firebase
+    if (newChatMessages.length > 0) {
+      try {
+        const getMsgs = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
+        let currentMsgs = await getMsgs.json();
+        if (!Array.isArray(currentMsgs)) currentMsgs = [];
+        
+        const combinedMsgs = [...currentMsgs, ...newChatMessages];
+        
+        await fetch(`${FIREBASE_URL}/whatsappMessages.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(combinedMsgs)
+        });
+      } catch (err) {
+        console.error('Failed to log chat messages:', err);
+      }
     }
 
     return res.status(200).json({ success: true, executed: results.length, results });
