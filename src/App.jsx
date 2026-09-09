@@ -60,7 +60,13 @@ export default function App() {
   const [courses, setCourses] = useState(() => {
     try {
       const saved = localStorage.getItem('lakshya_courses');
-      return saved ? JSON.parse(saved) : DEFAULT_COURSES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure all DEFAULT_COURSES exist in the saved list (so new defaults like Class 11/12 show up)
+        const merged = [...new Set([...DEFAULT_COURSES, ...parsed])];
+        return merged;
+      }
+      return DEFAULT_COURSES;
     } catch { return DEFAULT_COURSES; }
   });
   const [leads, setLeads] = useState(() => {
