@@ -28,14 +28,16 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'No due automations.' });
     }
 
-    // 2. Fetch Settings and Leads
-    const [settingsRes, leadsRes] = await Promise.all([
+    // 2. Fetch Settings, Leads, and SentTemplates tracking
+    const [settingsRes, leadsRes, stRes] = await Promise.all([
       fetch(`${FIREBASE_URL}/whatsappSettings.json?t=${now}`),
-      fetch(`${FIREBASE_URL}/leads.json?t=${now}`)
+      fetch(`${FIREBASE_URL}/leads.json?t=${now}`),
+      fetch(`${FIREBASE_URL}/sentTemplates.json?t=${now}`)
     ]);
 
     const settings = await settingsRes.json();
     const leadsList = await leadsRes.json();
+    const sentTemplatesMap = (await stRes.json()) || {};
 
     if (!settings || !settings.phoneNumberId || !settings.accessToken) {
       return res.status(400).json({ error: 'WhatsApp API credentials missing.' });
@@ -50,12 +52,12 @@ export default async function handler(req, res) {
 
     // 3. Execute Automations
     for (const automation of dueAutomations) {
-      // Find matching leads who haven't received this template yet
+      // Find matching leads who haven't received this template yet (using dedicated sentTemplates node)
       const targetLeads = leadsList.filter(l => 
         l && 
         l.stage === automation.stage && 
         l.phone && 
-        !(l.sentTemplates || []).includes(automation.template)
+        !((sentTemplatesMap[l.id] || [])).includes(automation.template)
       );
 
       let successCount = 0;
@@ -89,11 +91,12 @@ export default async function handler(req, res) {
           if (metaRes.ok) {
             successCount++;
             
-            // Track sent template in Firebase to prevent future duplicates
-            const leadIndex = leadsList.findIndex(l => l && l.id === lead.id);
-            if (leadIndex !== -1) {
-              const updatedSentTemplates = [...new Set([...(lead.sentTemplates || []), automation.template])];
-              await fetch(`${FIREBASE_URL}/leads/${leadIndex}/sentTemplates.json`, {
+            // Track sent template using lead's ID as key (reliable, no index issues)
+            const currentTemplates = lead.sentTemplates || [];
+            if (!currentTemplates.includes(automation.template)) {
+              const updatedSentTemplates = [...currentTemplates, automation.template];
+              // Update by searching and patching the specific lead's sentTemplates field
+              await fetch(`${FIREBASE_URL}/sentTemplates/${lead.id}.json`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedSentTemplates)

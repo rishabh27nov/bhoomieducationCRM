@@ -6,6 +6,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const [automations, setAutomations] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [sentTemplatesMap, setSentTemplatesMap] = useState({});
   
   const [formData, setFormData] = useState({
     template: '',
@@ -21,13 +22,16 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [autoRes, setRes] = await Promise.all([
+      const [autoRes, setRes, stRes] = await Promise.all([
         fetch(`/api/whatsapp/automations?t=${Date.now()}`),
-        fetch(`/api/whatsapp/settings?t=${Date.now()}`)
+        fetch(`/api/whatsapp/settings?t=${Date.now()}`),
+        fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/sentTemplates.json?t=${Date.now()}`)
       ]);
       
       const autoData = await autoRes.json();
       setAutomations(Array.isArray(autoData) ? autoData : []);
+      const stData = await stRes.json();
+      setSentTemplatesMap(stData && typeof stData === 'object' ? stData : {});
 
       const setData = await setRes.json();
       if (setData && setData.templates) {
@@ -143,7 +147,10 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-brand-emerald)', marginTop: '0.4rem', backgroundColor: '#ecfdf5', padding: '0.4rem', borderRadius: '4px' }}>
                   {(() => {
                     const stageLeads = leads.filter(l => l.stage === formData.stage);
-                    const eligibleLeads = stageLeads.filter(l => !(l.sentTemplates || []).includes(formData.template));
+                    const eligibleLeads = stageLeads.filter(l => {
+                      const sent = sentTemplatesMap[l.id] || [];
+                      return !sent.includes(formData.template);
+                    });
                     const alreadySent = stageLeads.length - eligibleLeads.length;
                     return `Target Audience: ${eligibleLeads.length} Students ${alreadySent > 0 ? `(${alreadySent} already sent)` : ''}`;
                   })()}
