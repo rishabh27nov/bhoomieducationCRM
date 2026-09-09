@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle, Phone, Key, HelpCircle } from 'lucide-react';
+import { Save, AlertCircle, Phone, Key, HelpCircle, Plus, Trash2, List } from 'lucide-react';
 
-export default function WhatsAppSettingsManager({ currentUser, centralDb, saveToCentralDB }) {
+export default function WhatsAppSettingsManager({ currentUser }) {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [accessToken, setAccessToken] = useState('');
-  const [templates, setTemplates] = useState('lakshya_admission_enquiry');
+  const [templates, setTemplates] = useState(['lakshya_admission_enquiry']);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
 
@@ -16,9 +16,9 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
           setPhoneNumberId(data.phoneNumberId || '');
           setAccessToken(data.accessToken || '');
           if (data.templates && Array.isArray(data.templates)) {
-            setTemplates(data.templates.join(', '));
-          } else if (data.templates) {
             setTemplates(data.templates);
+          } else if (data.templates) {
+            setTemplates(data.templates.split(',').map(t => t.trim()).filter(t => t));
           }
         }
       })
@@ -37,7 +37,7 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
     const updatedSettings = {
       phoneNumberId: phoneNumberId.trim(),
       accessToken: accessToken.trim(),
-      templates: templates.split(',').map(t => t.trim()).filter(t => t)
+      templates: templates.map(t => t.trim()).filter(t => t) // Clean up empty strings
     };
 
     try {
@@ -50,12 +50,28 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
       if (!response.ok) throw new Error('Save failed');
 
       setSaveMessage({ type: 'success', text: 'WhatsApp API Credentials saved successfully!' });
+      // Update UI with cleaned templates
+      setTemplates(updatedSettings.templates);
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
       setSaveMessage({ type: 'error', text: 'Failed to save settings. Please try again.' });
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleTemplateChange = (index, value) => {
+    const newTemplates = [...templates];
+    newTemplates[index] = value;
+    setTemplates(newTemplates);
+  };
+
+  const removeTemplate = (index) => {
+    setTemplates(templates.filter((_, i) => i !== index));
+  };
+
+  const addTemplate = () => {
+    setTemplates([...templates, '']);
   };
 
   if (currentUser?.role !== 'Admin') {
@@ -100,94 +116,147 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
         </div>
       </div>
 
-      <div className="glass-card" style={{ padding: '2rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="glass-card" style={{ padding: '2rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
-        {/* Phone Number ID */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
-            <Phone size={18} color="#64748b" /> Phone Number ID
-          </label>
-          <input
-            type="text"
-            value={phoneNumberId}
-            onChange={(e) => setPhoneNumberId(e.target.value)}
-            placeholder="e.g. 102938475610293"
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '1rem',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#52b788'}
-            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
-          />
-          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <HelpCircle size={14} /> Found in WhatsApp &gt; API Setup &gt; Step 1.
+        {/* API Credentials */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
+              <Phone size={18} color="#64748b" /> Phone Number ID
+            </label>
+            <input
+              type="text"
+              value={phoneNumberId}
+              onChange={(e) => setPhoneNumberId(e.target.value)}
+              placeholder="e.g. 102938475610293"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '1rem',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#52b788'}
+              onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+            />
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <HelpCircle size={14} /> Found in WhatsApp &gt; API Setup &gt; Step 1.
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
+              <Key size={18} color="#64748b" /> Access Token (Temporary or Permanent)
+            </label>
+            <textarea
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="EAAI..."
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.9rem',
+                outline: 'none',
+                resize: 'vertical',
+                fontFamily: 'monospace',
+                transition: 'border-color 0.2s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#52b788'}
+              onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+            />
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
+              Make sure to use a System User Token for permanent access in production.
+            </div>
           </div>
         </div>
 
-        {/* Access Token */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
-            <Key size={18} color="#64748b" /> Access Token (Temporary or Permanent)
+        {/* Templates Manager */}
+        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.05rem', fontWeight: 800, color: '#334155', marginBottom: '1rem' }}>
+            <List size={20} color="#64748b" /> Approved Templates List
           </label>
-          <textarea
-            value={accessToken}
-            onChange={(e) => setAccessToken(e.target.value)}
-            placeholder="EAAI..."
-            rows={4}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.9rem',
-              outline: 'none',
-              resize: 'vertical',
-              fontFamily: 'monospace',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#52b788'}
-            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
-          />
-          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
-            Make sure to use a System User Token for permanent access in production.
+          <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
+            Add the exact names of your templates approved in the Meta Dashboard. These will appear in the dropdowns when sending bulk messages or building cycles.
           </div>
-        </div>
-
-        {/* Templates */}
-        <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#334155', marginBottom: '0.5rem' }}>
-            <Save size={18} color="#64748b" /> Approved Template Names (Comma separated)
-          </label>
-          <textarea
-            value={templates}
-            onChange={(e) => setTemplates(e.target.value)}
-            placeholder="lakshya_admission_enquiry, hello_world, fee_reminder"
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.9rem',
-              outline: 'none',
-              resize: 'vertical',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#52b788'}
-            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
-          />
-          <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.4rem' }}>
-            List the exact names of your templates approved in Meta Dashboard, separated by commas.
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {templates.map((templateName, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => handleTemplateChange(index, e.target.value)}
+                  placeholder="e.g. lakshya_admission_enquiry"
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    backgroundColor: '#f8fafc'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#52b788'}
+                  onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                />
+                <button
+                  onClick={() => removeTemplate(index)}
+                  title="Remove Template"
+                  style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#ef4444',
+                    border: '1px solid #fecaca',
+                    borderRadius: '8px',
+                    padding: '0.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={e => e.currentTarget.style.backgroundColor = '#fecaca'}
+                  onMouseOut={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ))}
           </div>
+          
+          <button
+            onClick={addTemplate}
+            style={{
+              marginTop: '1rem',
+              backgroundColor: '#f1f5f9',
+              color: '#475569',
+              border: '1px dashed #cbd5e1',
+              borderRadius: '8px',
+              padding: '0.75rem',
+              width: '100%',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+            onMouseOut={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+          >
+            <Plus size={18} /> Add New Template
+          </button>
         </div>
 
         {/* Save Button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
           
           <div>
             {saveMessage && (
@@ -225,7 +294,8 @@ export default function WhatsAppSettingsManager({ currentUser, centralDb, saveTo
               boxShadow: '0 4px 12px rgba(21, 128, 61, 0.2)'
             }}
           >
-            {isSaving ? 'Saving...' : 'Save Credentials'}
+            <Save size={20} />
+            {isSaving ? 'Saving...' : 'Save Settings & Templates'}
           </button>
         </div>
 
