@@ -75,6 +75,8 @@ export const COUNSELORS = [
 export const INITIAL_ACTIVITIES = [];
 
 export const DEFAULT_COURSES = [
+  'Class 11',
+  'Class 12',
   'NEET Class 11',
   'NEET Class 12',
   'JEE Class 11',
