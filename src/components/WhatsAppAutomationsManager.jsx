@@ -231,11 +231,29 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
               </div>
             </div>
             
-            {cycleData.stage && (
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-brand-emerald)', backgroundColor: '#ecfdf5', padding: '0.4rem 0.6rem', borderRadius: '4px' }}>
-                Target Audience: {leads.filter(l => l.stage === cycleData.stage).length} total leads currently in {cycleData.stage}
-              </div>
-            )}
+            {cycleData.stage && (() => {
+              const targetedLeads = leads.filter(l => l.stage === cycleData.stage);
+              return (
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-brand-emerald)', backgroundColor: '#ecfdf5', padding: '0.75rem', borderRadius: '4px', border: '1px solid #d1fae5' }}>
+                  <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 800 }}>
+                    Target Audience: {targetedLeads.length} students in {cycleData.stage}
+                  </div>
+                  {targetedLeads.length > 0 && (
+                     <div style={{ maxHeight: '100px', overflowY: 'auto', color: '#065f46', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', paddingRight: '0.5rem' }}>
+                       {targetedLeads.map(l => (
+                         <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #a7f3d0', paddingBottom: '0.2rem' }}>
+                           <span>{l.name || 'Unknown'}</span>
+                           <span style={{ opacity: 0.7 }}>{l.phone}</span>
+                         </div>
+                       ))}
+                     </div>
+                  )}
+                  {targetedLeads.length === 0 && (
+                     <div style={{ color: '#ef4444' }}>No students currently in this stage.</div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', marginTop: '0.5rem' }}>
               <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#334155', marginBottom: '1rem' }}>Messages in Cycle</h3>

@@ -170,20 +170,17 @@ export default async function handler(req, res) {
       results.push({ id: automation.id, stats: automation.stats });
     }
 
-    // Save all new chat messages to Firebase
+    // Save all new chat messages to Firebase safely using individual PUT requests
     if (newChatMessages.length > 0) {
       try {
-        const getMsgs = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
-        let currentMsgs = await getMsgs.json();
-        if (!Array.isArray(currentMsgs)) currentMsgs = [];
-        
-        const combinedMsgs = [...currentMsgs, ...newChatMessages];
-        
-        await fetch(`${FIREBASE_URL}/whatsappMessages.json`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(combinedMsgs)
-        });
+        const promises = newChatMessages.map(msg => 
+          fetch(`${FIREBASE_URL}/whatsappMessages/${msg.id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(msg)
+          })
+        );
+        await Promise.all(promises);
       } catch (err) {
         console.error('Failed to log chat messages:', err);
       }
