@@ -19,21 +19,24 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST - Create new automation
+  // POST - Create new automation(s)
   if (req.method === 'POST') {
     try {
-      const newAutomation = req.body;
-      if (!newAutomation.id) {
-        return res.status(400).json({ error: 'Automation ID is required' });
-      }
+      const payload = req.body;
+      const automations = Array.isArray(payload) ? payload : [payload];
 
-      await fetch(`${FIREBASE_URL}/whatsappAutomations/${newAutomation.id}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAutomation)
-      });
+      for (const auto of automations) {
+        if (!auto.id) {
+          return res.status(400).json({ error: 'Automation ID is required' });
+        }
+        await fetch(`${FIREBASE_URL}/whatsappAutomations/${auto.id}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(auto)
+        });
+      }
       
-      return res.status(200).json({ success: true, message: 'Automation scheduled' });
+      return res.status(200).json({ success: true, message: 'Automation(s) scheduled' });
     } catch (err) {
       return res.status(500).json({ error: 'Failed to save automation' });
     }
@@ -42,12 +45,26 @@ export default async function handler(req, res) {
   // DELETE - Remove automation
   if (req.method === 'DELETE') {
     try {
-      const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'ID is required' });
-
-      await fetch(`${FIREBASE_URL}/whatsappAutomations/${id}.json`, {
-        method: 'DELETE'
-      });
+      const { id, cycleId } = req.query;
+      
+      if (cycleId) {
+        // Bulk delete by cycleId
+        const fbRes = await fetch(`${FIREBASE_URL}/whatsappAutomations.json`);
+        const data = await fbRes.json();
+        if (data) {
+          const promises = Object.values(data)
+            .filter(a => a.cycleId === cycleId)
+            .map(a => fetch(`${FIREBASE_URL}/whatsappAutomations/${a.id}.json`, { method: 'DELETE' }));
+          await Promise.all(promises);
+        }
+      } else if (id) {
+        // Delete by specific ID
+        await fetch(`${FIREBASE_URL}/whatsappAutomations/${id}.json`, {
+          method: 'DELETE'
+        });
+      } else {
+        return res.status(400).json({ error: 'ID or cycleId is required' });
+      }
       return res.status(200).json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: 'Failed to delete automation' });
