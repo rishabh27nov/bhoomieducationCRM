@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree } from 'lucide-react';
+import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree, X } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
 import CampaignReportsModal from './CampaignReportsModal';
 
