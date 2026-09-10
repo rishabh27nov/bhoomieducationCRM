@@ -112,6 +112,7 @@ export const PIPELINE_STAGES_B2B2C = [
 
 export const PIPELINE_STAGES_B2C = [
   'New Lead',
+  'Seminar',
   'Contacted / Engaged',
   'Action Pending',
   'Action Booked',
