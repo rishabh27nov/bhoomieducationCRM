@@ -262,6 +262,35 @@ export default function LeadsManager({
   const [segmentFilter, setSegmentFilter] = useState('ALL'); // 'ALL', 'B2C', 'B2B2C'
   const [schoolFilter, setSchoolFilter] = useState('ALL');
 
+  const normalizeCourseClassMatch = (lead, filterValue) => {
+    if (!filterValue || filterValue === 'ALL') return true;
+
+    const filterText = String(filterValue).trim().toLowerCase();
+    const searchableText = [
+      lead?.targetCourse,
+      lead?.course,
+      lead?.currentClass,
+      lead?.batch,
+      lead?.notes,
+      lead?.schoolName
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    if (!searchableText) return false;
+
+    if (filterText.includes('class 11') || filterText.includes('11th') || filterText.includes('class11')) {
+      return /(class\s*11|11th|11\s*th|class11)/i.test(searchableText);
+    }
+
+    if (filterText.includes('class 12') || filterText.includes('12th') || filterText.includes('class12')) {
+      return /(class\s*12|12th|12\s*th|class12)/i.test(searchableText);
+    }
+
+    return String(lead?.targetCourse || '').toLowerCase().includes(filterText);
+  };
+
   // Extract unique school names from leads for filter dropdown
   const uniqueSchoolNames = Array.from(
     new Set(leads.map((l) => l.schoolName).filter(Boolean))
@@ -283,7 +312,7 @@ export default function LeadsManager({
       (lead.phone && lead.phone.includes(searchQuery));
 
     const matchesStage = stageFilter === 'ALL' || lead.stage === stageFilter;
-    const matchesCourse = courseFilter === 'ALL' || lead.targetCourse.includes(courseFilter);
+    const matchesCourse = normalizeCourseClassMatch(lead, courseFilter);
     const matchesCounselor = isEmployeeRole || counselorFilter === 'ALL' || isCounselorMatch(lead.counselor, counselorFilter);
 
     const matchesSegment =
