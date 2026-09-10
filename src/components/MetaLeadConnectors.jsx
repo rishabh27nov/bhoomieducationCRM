@@ -47,52 +47,6 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [bulkCounselor, setBulkCounselor] = useState('');
   const [courseTypeFilter, setCourseTypeFilter] = useState('ALL');
-  const [dateAutoAssignFrom, setDateAutoAssignFrom] = useState(localStorage.getItem('lakshya_meta_auto_date') || '');
-  const [dateAutoAssignCounselor, setDateAutoAssignCounselor] = useState(localStorage.getItem('lakshya_meta_auto_counselor') || '');
-
-  // Refs so fetchMetaLeads (useCallback) can always access latest rule values
-  const dateAutoAssignFromRef = useRef('');
-  const dateAutoAssignCounselorRef = useRef('');
-  
-  useEffect(() => { 
-    dateAutoAssignFromRef.current = dateAutoAssignFrom; 
-    localStorage.setItem('lakshya_meta_auto_date', dateAutoAssignFrom);
-  }, [dateAutoAssignFrom]);
-  
-  useEffect(() => { 
-    dateAutoAssignCounselorRef.current = dateAutoAssignCounselor; 
-    localStorage.setItem('lakshya_meta_auto_counselor', dateAutoAssignCounselor);
-  }, [dateAutoAssignCounselor]);
-
-
-
-  // Date-based auto-assign: assign all leads ON or AFTER selected date to selected counselor
-  const applyDateAutoAssign = (dateVal, counselorVal) => {
-    if (!dateVal || !counselorVal) return;
-    const fromDate = new Date(dateVal);
-    fromDate.setHours(0, 0, 0, 0);
-    const toUpdate = [];
-    
-    // Use the latest ref or state if needed, but since it's triggered from onChange,
-    // we use map on metaRealLeads
-    const updatedLeads = metaRealLeads.map(lead => {
-      const leadDate = new Date(lead.createdAt);
-      leadDate.setHours(0, 0, 0, 0);
-      if (leadDate >= fromDate && lead.counselor !== counselorVal) {
-        const updated = { ...lead, counselor: counselorVal };
-        toUpdate.push(updated);
-        return updated;
-      }
-      return lead;
-    });
-
-    if (toUpdate.length > 0) {
-      setMetaRealLeads(updatedLeads);
-      if (onAddLead) {
-        onAddLead(toUpdate);
-      }
-    }
-  };
 
   const handleSelectDateGroup = (e, dateStr) => {
     const leadsForDate = metaRealLeads.filter(l => new Date(l.createdAt).toLocaleDateString('en-GB') === dateStr).map(l => l.id);
@@ -264,21 +218,6 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
 
       // Sort leads by created_time (newest first)
       allLeads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      // Auto-apply date rule if configured: assign leads on/after dateAutoAssignFrom to the selected counselor
-      const ruleDate = dateAutoAssignFromRef.current;
-      const ruleCounselor = dateAutoAssignCounselorRef.current;
-      if (ruleDate && ruleCounselor) {
-        const fromDate = new Date(ruleDate);
-        fromDate.setHours(0, 0, 0, 0);
-        allLeads.forEach((lead, i) => {
-          const leadDate = new Date(lead.createdAt);
-          leadDate.setHours(0, 0, 0, 0);
-          if (leadDate >= fromDate) {
-            allLeads[i] = { ...lead, counselor: ruleCounselor };
-          }
-        });
-      }
 
       setMetaRealLeads(allLeads);
       setMetaFetchStatus('success');
@@ -1237,32 +1176,6 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                 </button>
               </div>
             )}
-            {/* Date-Based Auto-Assign Rule */}
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'rgba(59, 130, 246, 0.08)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: '#93c5fd', fontWeight: 'bold' }}>📅 Date Auto-Assign:</span>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Leads from this date onwards →</span>
-              <input
-                type="date"
-                value={dateAutoAssignFrom}
-                onChange={e => {
-                  setDateAutoAssignFrom(e.target.value);
-                  applyDateAutoAssign(e.target.value, dateAutoAssignCounselor);
-                }}
-                style={{ background: 'rgba(2,6,23,0.8)', color: '#fff', border: '1px solid rgba(59,130,246,0.5)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', outline: 'none' }}
-              />
-              <select
-                value={dateAutoAssignCounselor}
-                onChange={e => {
-                  setDateAutoAssignCounselor(e.target.value);
-                  applyDateAutoAssign(dateAutoAssignFrom, e.target.value);
-                }}
-                style={{ background: 'rgba(2,6,23,0.8)', color: '#fff', border: '1px solid rgba(59,130,246,0.5)', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.78rem', outline: 'none' }}
-              >
-                <option value="">-- Select Counselor --</option>
-                {counselors.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
-              </select>
-            </div>
-            
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               {metaFetchStatus === 'loading' && <span style={{ fontSize: '0.8rem', color: '#f59e0b' }}>⏳ Fetching from Meta...</span>}
               {metaFetchStatus === 'success' && <span style={{ fontSize: '0.8rem', color: '#52b788' }}>✅ {metaRealLeads.length} Leads Fetched</span>}
