@@ -1,4 +1,45 @@
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+const PROCESSING_LEASE_MS = 15 * 60 * 1000;
+
+const automationUrl = (id) => `${FIREBASE_URL}/whatsappAutomations/${id}.json`;
+
+const isDue = (automation, now) => new Date(automation.scheduledTime).getTime() <= now;
+
+const canBeClaimed = (automation, now) => {
+  if (!isDue(automation, now)) return false;
+  if (automation.status === 'pending') return true;
+
+  const leaseEndsAt = new Date(automation.processingLeaseExpiresAt || 0).getTime();
+  return automation.status === 'processing' && (!Number.isFinite(leaseEndsAt) || leaseEndsAt <= now);
+};
+
+// Firebase ETags make this an atomic compare-and-set: only one request can claim a job.
+const claimAutomation = async (automationId, now) => {
+  const recordRes = await fetch(automationUrl(automationId), {
+    headers: { 'X-Firebase-ETag': 'true' }
+  });
+  const automation = await recordRes.json();
+  const etag = recordRes.headers.get('etag');
+
+  if (!automation || !etag || !canBeClaimed(automation, now)) return null;
+
+  const claimedAutomation = {
+    ...automation,
+    status: 'processing',
+    processingStartedAt: new Date(now).toISOString(),
+    processingLeaseExpiresAt: new Date(now + PROCESSING_LEASE_MS).toISOString()
+  };
+  const claimRes = await fetch(automationUrl(automationId), {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'if-match': etag
+    },
+    body: JSON.stringify(claimedAutomation)
+  });
+
+  return claimRes.ok ? claimedAutomation : null;
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,9 +61,7 @@ export default async function handler(req, res) {
     const automations = Object.values(automationsData);
     
     // Find due automations
-    const dueAutomations = automations.filter(a => 
-      a.status === 'pending' && new Date(a.scheduledTime).getTime() <= now
-    );
+    const dueAutomations = automations.filter(a => canBeClaimed(a, now));
 
     if (dueAutomations.length === 0) {
       return res.status(200).json({ success: true, message: 'No due automations.' });
@@ -52,7 +91,10 @@ export default async function handler(req, res) {
     const newChatMessages = []; // To store chat history
 
     // 3. Execute Automations
-    for (const automation of dueAutomations) {
+    for (const dueAutomation of dueAutomations) {
+      const automation = await claimAutomation(dueAutomation.id, now);
+      if (!automation) continue;
+
       // Find matching leads who haven't received this template yet (using dedicated sentTemplates node)
       const targetLeads = leadsList.filter(l => 
         l && 
@@ -99,7 +141,7 @@ export default async function handler(req, res) {
             successfulLeads.push({ name: lead.name, phone: lead.phone });
             
             // Track sent template using lead's ID as key (reliable, no index issues)
-            const currentTemplates = lead.sentTemplates || [];
+            const currentTemplates = sentTemplatesMap[lead.id] || lead.sentTemplates || [];
             if (!currentTemplates.includes(automation.template)) {
               const updatedSentTemplates = [...currentTemplates, automation.template];
               // Update by searching and patching the specific lead's sentTemplates field
@@ -108,6 +150,7 @@ export default async function handler(req, res) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedSentTemplates)
               });
+              sentTemplatesMap[lead.id] = updatedSentTemplates;
             }
 
             // Log for chat history
@@ -138,6 +181,7 @@ export default async function handler(req, res) {
       // Mark automation as completed
       automation.status = 'completed';
       automation.executedAt = new Date().toISOString();
+      automation.processingLeaseExpiresAt = null;
       automation.stats = { 
         success: successCount, 
         failed: failCount, 

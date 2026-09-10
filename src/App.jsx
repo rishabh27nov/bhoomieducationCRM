@@ -258,33 +258,6 @@ export default function App() {
     localStorage.setItem('lakshya_uploaded_documents', JSON.stringify(documents));
   }, [documents]);
 
-  // Smart Background Trigger for WhatsApp Automations
-  useEffect(() => {
-    // Only run if user is authenticated
-    if (!isAuthenticated) return;
-
-    // Check every 1 minute (60000 ms)
-    const intervalId = setInterval(async () => {
-      try {
-        await fetch('/api/whatsapp/execute-automations', { method: 'POST' });
-      } catch (err) {
-        // Silently fail if network error
-      }
-    }, 60000);
-
-    // Initial check after 10 seconds of opening CRM
-    const initialTimeout = setTimeout(async () => {
-      try {
-        await fetch('/api/whatsapp/execute-automations', { method: 'POST' });
-      } catch (err) {}
-    }, 10000);
-
-    return () => {
-      clearInterval(intervalId);
-      clearTimeout(initialTimeout);
-    };
-  }, [isAuthenticated]);
-
   // Central Database API Sync Engine (Firebase Realtime Cloud Database Sync)
   useEffect(() => {
     try {
@@ -1212,5 +1185,4 @@ export default function App() {
     </div>
   );
 }
-
 
