@@ -167,8 +167,18 @@ export default function App() {
   });
   const [activityLogs, setActivityLogs] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState({});
-  const [documents, setDocuments] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lakshya_attendance');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [documents, setDocuments] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lakshya_uploaded_documents');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   // Flag to prevent Firebase listener from overwriting locally-initiated saves
   const isSavingToFirebase = React.useRef(false);
 
@@ -239,6 +249,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('lakshya_notifications', JSON.stringify(notifications));
   }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('lakshya_attendance', JSON.stringify(attendanceRecords));
+  }, [attendanceRecords]);
+
+  useEffect(() => {
+    localStorage.setItem('lakshya_uploaded_documents', JSON.stringify(documents));
+  }, [documents]);
 
   // Smart Background Trigger for WhatsApp Automations
   useEffect(() => {
