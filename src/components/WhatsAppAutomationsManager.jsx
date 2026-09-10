@@ -3,6 +3,11 @@ import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileTe
 import { PIPELINE_STAGES } from '../data/mockData';
 import CampaignReportsModal from './CampaignReportsModal';
 
+const getPrimaryPhone = (phone) => String(phone || '')
+  .split(/[\/,;|]/)
+  .map(number => number.trim())
+  .find(Boolean) || 'N/A';
+
 export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) {
   const [automations, setAutomations] = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -243,7 +248,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                        {targetedLeads.map(l => (
                          <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #a7f3d0', paddingBottom: '0.2rem' }}>
                            <span>{l.name || 'Unknown'}</span>
-                           <span style={{ opacity: 0.7 }}>{l.phone}</span>
+                           <span style={{ opacity: 0.7 }}>{getPrimaryPhone(l.phone)}</span>
                          </div>
                        ))}
                      </div>

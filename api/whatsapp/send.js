@@ -35,7 +35,9 @@ export default async function handler(req, res) {
     const { phoneNumberId, accessToken } = settings;
 
     // Clean phone number - ensure it has country code
-    let cleanPhone = phone.replace(/\D/g, '');
+    // If a CRM record has two numbers, use the first one for a single WhatsApp send.
+    const selectedPhone = String(phone || '').split(/[\/,;|]/).map(value => value.trim()).find(Boolean);
+    let cleanPhone = (selectedPhone || '').replace(/\D/g, '');
     if (cleanPhone.length === 10) {
       cleanPhone = '91' + cleanPhone;
     }

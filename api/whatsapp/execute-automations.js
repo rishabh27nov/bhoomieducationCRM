@@ -68,7 +68,10 @@ export default async function handler(req, res) {
       const failedLeads = [];
 
       for (const lead of targetLeads) {
-        let cleanPhone = lead.phone.replace(/\D/g, '');
+        // A lead can contain multiple numbers separated by /, comma, ; or |.
+        // Send the campaign only to the first number, not a concatenation of all numbers.
+        const selectedPhone = String(lead.phone).split(/[\/,;|]/).map(phone => phone.trim()).find(Boolean);
+        let cleanPhone = selectedPhone.replace(/\D/g, '');
         if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
 
         const payload = {

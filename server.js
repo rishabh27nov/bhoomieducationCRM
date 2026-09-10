@@ -277,8 +277,9 @@ const server = http.createServer((req, res) => {
 
         const { phoneNumberId, accessToken } = currentDb.whatsappSettings;
 
-        // Clean phone number (remove +, spaces, non-digits)
-        let cleanPhone = payload.phone.replace(/\D/g, '');
+        // A lead may have multiple numbers; send to the first listed number only.
+        const selectedPhone = String(payload.phone || '').split(/[\/,;|]/).map(phone => phone.trim()).find(Boolean);
+        let cleanPhone = (selectedPhone || '').replace(/\D/g, '');
         // Default to India country code (+91) if it's just a 10 digit number
         if (cleanPhone.length === 10) {
           cleanPhone = '91' + cleanPhone;
