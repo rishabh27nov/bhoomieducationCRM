@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/whatsapp/execute-automations",
+      "schedule": "* * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/webhooks/meta-leads",
