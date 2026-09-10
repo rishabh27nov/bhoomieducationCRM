@@ -2,6 +2,22 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Send, AlertCircle, CheckCircle2, AlertTriangle, Phone } from 'lucide-react';
 
+const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+
+const getPrimaryPhone = (phone) => String(phone || '')
+  .split(/[\/,;|]/)
+  .map(number => number.trim())
+  .find(Boolean) || '';
+
+const createRecipientRecord = (lead, status, details = {}) => ({
+  leadId: lead.id || lead.leadId || null,
+  name: lead.name || 'Unknown',
+  phone: getPrimaryPhone(lead.phone),
+  sourcePhone: lead.phone || '',
+  status,
+  ...details
+});
+
 export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess }) {
   const [message, setMessage] = useState('');
   const [useTemplate, setUseTemplate] = useState(true);
@@ -46,6 +62,38 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     let failedCount = 0;
     const successfulLeads = [];
     const failedLeads = [];
+    const campaignId = `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const recipientResults = selectedLeads.map(lead => createRecipientRecord(lead, 'pending'));
+    const campaignLog = {
+      id: campaignId,
+      timestamp: new Date().toISOString(),
+      lastUpdatedAt: new Date().toISOString(),
+      status: 'sending',
+      campaignType: 'Manual Bulk',
+      template: useTemplate ? selectedTemplate : 'Custom Message',
+      targetAudience: totalLeads,
+      successfulCount: 0,
+      failedCount: 0,
+      recipientResults,
+      successfulLeads,
+      failedLeads
+    };
+
+    const saveCampaignLog = async () => {
+      campaignLog.lastUpdatedAt = new Date().toISOString();
+      try {
+        await fetch(`${FIREBASE_URL}/whatsappCampaignLogs/${campaignId}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(campaignLog)
+        });
+      } catch (err) {
+        console.error('Failed to save campaign log', err);
+      }
+    };
+
+    // Persist the campaign before sending, then save every recipient outcome.
+    await saveCampaignLog();
 
     for (let i = 0; i < selectedLeads.length; i++) {
       const lead = selectedLeads[i];
@@ -59,53 +107,50 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        const responseData = await response.json().catch(() => ({}));
         
         if (response.ok) {
           successCount++;
-          successfulLeads.push({ name: lead.name, phone: lead.phone });
+          const sentLead = createRecipientRecord(lead, 'sent', {
+            sentAt: new Date().toISOString(),
+            messageId: responseData?.message?.id || null
+          });
+          successfulLeads.push(sentLead);
+          recipientResults[i] = sentLead;
         } else {
           failedCount++;
-          const errorData = await response.json();
-          const errReason = errorData.error || 'Unknown Error';
-          failedLeads.push({ name: lead.name, phone: lead.phone, error: errReason });
-          console.error(`Failed to send to ${lead.phone}:`, errorData);
+          const errReason = responseData.error || 'Unknown Error';
+          const failedLead = createRecipientRecord(lead, 'failed', {
+            failedAt: new Date().toISOString(),
+            error: errReason
+          });
+          failedLeads.push(failedLead);
+          recipientResults[i] = failedLead;
+          console.error(`Failed to send to ${lead.phone}:`, responseData);
         }
       } catch (err) {
         failedCount++;
-        failedLeads.push({ name: lead.name, phone: lead.phone, error: err.message || 'Network Error' });
+        const failedLead = createRecipientRecord(lead, 'failed', {
+          failedAt: new Date().toISOString(),
+          error: err.message || 'Network Error'
+        });
+        failedLeads.push(failedLead);
+        recipientResults[i] = failedLead;
         console.error(`Failed to send to ${lead.phone}`, err);
       }
 
       setResults({ success: successCount, failed: failedCount });
       setProgress(((i + 1) / totalLeads) * 100);
+      campaignLog.successfulCount = successCount;
+      campaignLog.failedCount = failedCount;
+      await saveCampaignLog();
       
       // Wait 500ms between messages to avoid spamming the API
       await delay(500);
     }
 
-    // Save Campaign Log
-    const campaignLog = {
-      id: `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      campaignType: 'Manual Bulk',
-      template: useTemplate ? selectedTemplate : 'Custom Message',
-      targetAudience: totalLeads,
-      successfulCount: successCount,
-      failedCount: failedCount,
-      successfulLeads,
-      failedLeads
-    };
-
-    try {
-      const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
-      await fetch(`${FIREBASE_URL}/whatsappCampaignLogs/${campaignLog.id}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(campaignLog)
-      });
-    } catch (err) {
-      console.error('Failed to save campaign log', err);
-    }
+    campaignLog.status = 'completed';
+    await saveCampaignLog();
 
     setIsSending(false);
     setIsFinished(true);

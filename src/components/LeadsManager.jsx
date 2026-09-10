@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import BulkWhatsAppModal from './BulkWhatsAppModal';
+import CampaignReportsModal from './CampaignReportsModal';
 import WhatsAppChatModal from './WhatsAppChatModal';
 import { MessageSquare } from 'lucide-react';
 
@@ -53,6 +54,8 @@ export default function LeadsManager({
   const [showAddCoursePrompt, setShowAddCoursePrompt] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
+  const [showCampaignReports, setShowCampaignReports] = useState(false);
+  const [retryLeads, setRetryLeads] = useState(null);
   const [whatsappChatLead, setWhatsappChatLead] = useState(null);
 
   const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
@@ -974,6 +977,14 @@ export default function LeadsManager({
               📱 Send Bulk WhatsApp
             </button>
 
+            <button
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+              onClick={() => setShowCampaignReports(true)}
+            >
+              <FileText size={16} /> Campaign Reports
+            </button>
+
             {isAdmin && (
               <button
                 className="btn"
@@ -1673,12 +1684,27 @@ export default function LeadsManager({
 
       {isBulkWhatsAppOpen && (
         <BulkWhatsAppModal
-          selectedLeads={filteredLeads.filter(l => selectedLeadIds.includes(l.id))}
-          onClose={() => setIsBulkWhatsAppOpen(false)}
+          selectedLeads={retryLeads || filteredLeads.filter(l => selectedLeadIds.includes(l.id))}
+          onClose={() => {
+            setIsBulkWhatsAppOpen(false);
+            setRetryLeads(null);
+          }}
           onSuccess={(successCount) => {
             alert(`Successfully sent ${successCount} messages!`);
             setIsBulkWhatsAppOpen(false);
+            setRetryLeads(null);
             setSelectedLeadIds([]);
+          }}
+        />
+      )}
+
+      {showCampaignReports && (
+        <CampaignReportsModal
+          onClose={() => setShowCampaignReports(false)}
+          onRetryFailed={(failedLeads) => {
+            setShowCampaignReports(false);
+            setRetryLeads(failedLeads);
+            setIsBulkWhatsAppOpen(true);
           }}
         />
       )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, FileText, CheckCircle2, XCircle, Search, Clock, Calendar } from 'lucide-react';
 
-export default function CampaignReportsModal({ onClose }) {
+export default function CampaignReportsModal({ onClose, onRetryFailed }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null);
@@ -159,9 +159,20 @@ export default function CampaignReportsModal({ onClose }) {
               {/* Failed Section */}
               {selectedLog.failedLeads && selectedLog.failedLeads.length > 0 && (
                 <div>
-                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c', margin: '0 0 1rem 0' }}>
-                    <XCircle size={18} /> Failed Deliveries ({selectedLog.failedCount})
-                  </h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c', margin: 0 }}>
+                      <XCircle size={18} /> Failed Deliveries ({selectedLog.failedCount})
+                    </h4>
+                    {onRetryFailed && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => onRetryFailed(selectedLog.failedLeads)}
+                        style={{ backgroundColor: '#dc2626', whiteSpace: 'nowrap' }}
+                      >
+                        Retry Failed ({selectedLog.failedLeads.length})
+                      </button>
+                    )}
+                  </div>
                   <div style={{ border: '1px solid #fecaca', borderRadius: '8px', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                       <thead style={{ backgroundColor: '#fef2f2', color: '#991b1b', textAlign: 'left' }}>

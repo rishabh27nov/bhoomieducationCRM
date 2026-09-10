@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree, X } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
 import CampaignReportsModal from './CampaignReportsModal';
+import BulkWhatsAppModal from './BulkWhatsAppModal';
 
 const getPrimaryPhone = (phone) => String(phone || '')
   .split(/[\/,;|]/)
@@ -14,6 +15,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const [isLoading, setIsLoading] = useState(true);
   const [sentTemplatesMap, setSentTemplatesMap] = useState({});
   const [showReports, setShowReports] = useState(false);
+  const [retryLeads, setRetryLeads] = useState(null);
   
   const [cycleData, setCycleData] = useState({
     name: '',
@@ -449,7 +451,21 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
       </div>
 
       {showReports && (
-        <CampaignReportsModal onClose={() => setShowReports(false)} />
+        <CampaignReportsModal
+          onClose={() => setShowReports(false)}
+          onRetryFailed={(failedLeads) => {
+            setShowReports(false);
+            setRetryLeads(failedLeads);
+          }}
+        />
+      )}
+
+      {retryLeads && (
+        <BulkWhatsAppModal
+          selectedLeads={retryLeads}
+          onClose={() => setRetryLeads(null)}
+          onSuccess={() => setRetryLeads(null)}
+        />
       )}
     </div>
   );
