@@ -18,7 +18,7 @@ const createRecipientRecord = (lead, status, details = {}) => ({
   ...details
 });
 
-export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess }) {
+export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, initialTemplate = '', resumedFromCampaignId = null }) {
   const [message, setMessage] = useState('');
   const [useTemplate, setUseTemplate] = useState(true);
   const [availableTemplates, setAvailableTemplates] = useState([]);
@@ -40,7 +40,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
       .then(data => {
         if (data && data.templates && data.templates.length > 0) {
           setAvailableTemplates(data.templates);
-          setSelectedTemplate(data.templates[0]);
+          setSelectedTemplate(data.templates.includes(initialTemplate) ? initialTemplate : data.templates[0]);
         }
       })
       .catch(err => console.error("Failed to load templates", err));
@@ -48,7 +48,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     return () => {
       document.body.style.overflow = 'auto';
     };
-  }, []);
+  }, [initialTemplate]);
 
   // Simple delay function to prevent API rate limiting
   const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -73,6 +73,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
       status: 'sending',
       campaignType: 'Manual Bulk',
       template: useTemplate ? selectedTemplate : 'Custom Message',
+      ...(resumedFromCampaignId && { resumedFromCampaignId }),
       targetAudience: totalLeads,
       successfulCount: 0,
       failedCount: 0,

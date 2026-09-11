@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, FileText, CheckCircle2, XCircle, Search, Clock, Calendar } from 'lucide-react';
 
-export default function CampaignReportsModal({ onClose, onRetryFailed }) {
+export default function CampaignReportsModal({ onClose, onRetryFailed, onResumePending }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null);
@@ -47,6 +47,15 @@ export default function CampaignReportsModal({ onClose, onRetryFailed }) {
     log.template?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.campaignType?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getPendingRecipients = (log) => (log.recipientResults || [])
+    .filter(recipient => recipient.status === 'pending')
+    .map(recipient => ({
+      id: recipient.leadId || null,
+      leadId: recipient.leadId || null,
+      name: recipient.name,
+      phone: recipient.sourcePhone || recipient.phone
+    }));
 
   return ReactDOM.createPortal(
     <div style={{
@@ -156,6 +165,18 @@ export default function CampaignReportsModal({ onClose, onRetryFailed }) {
                 </button>
               </div>
 
+              {selectedLog.status === 'sending' && getPendingRecipients(selectedLog).length > 0 && onResumePending && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.9rem' }}>Campaign was interrupted</div>
+                    <div style={{ color: '#a16207', fontSize: '0.8rem', marginTop: '0.15rem' }}>{getPendingRecipients(selectedLog).length} students are still pending. Sent students will not be included.</div>
+                  </div>
+                  <button className="btn btn-primary btn-sm" onClick={() => onResumePending(getPendingRecipients(selectedLog), selectedLog.template, selectedLog.id)} style={{ backgroundColor: '#b45309', whiteSpace: 'nowrap' }}>
+                    Resume Remaining
+                  </button>
+                </div>
+              )}
+
               {/* Failed Section */}
               {selectedLog.failedLeads && selectedLog.failedLeads.length > 0 && (
                 <div>
@@ -166,7 +187,7 @@ export default function CampaignReportsModal({ onClose, onRetryFailed }) {
                     {onRetryFailed && (
                       <button
                         className="btn btn-primary btn-sm"
-                        onClick={() => onRetryFailed(selectedLog.failedLeads)}
+                        onClick={() => onRetryFailed(selectedLog.failedLeads, selectedLog.template)}
                         style={{ backgroundColor: '#dc2626', whiteSpace: 'nowrap' }}
                       >
                         Retry Failed ({selectedLog.failedLeads.length})

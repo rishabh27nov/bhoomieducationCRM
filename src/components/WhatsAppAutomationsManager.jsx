@@ -16,6 +16,8 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const [sentTemplatesMap, setSentTemplatesMap] = useState({});
   const [showReports, setShowReports] = useState(false);
   const [retryLeads, setRetryLeads] = useState(null);
+  const [retryTemplate, setRetryTemplate] = useState('');
+  const [resumedFromCampaignId, setResumedFromCampaignId] = useState(null);
   const [editingAutomation, setEditingAutomation] = useState(null);
   const [editForm, setEditForm] = useState({ template: '', date: '', time: '' });
   
@@ -580,9 +582,16 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
       {showReports && (
         <CampaignReportsModal
           onClose={() => setShowReports(false)}
-          onRetryFailed={(failedLeads) => {
+          onRetryFailed={(failedLeads, template) => {
             setShowReports(false);
             setRetryLeads(failedLeads);
+            setRetryTemplate(template || '');
+          }}
+          onResumePending={(pendingLeads, template, campaignId) => {
+            setShowReports(false);
+            setRetryLeads(pendingLeads);
+            setRetryTemplate(template || '');
+            setResumedFromCampaignId(campaignId);
           }}
         />
       )}
@@ -590,8 +599,18 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
       {retryLeads && (
         <BulkWhatsAppModal
           selectedLeads={retryLeads}
-          onClose={() => setRetryLeads(null)}
-          onSuccess={() => setRetryLeads(null)}
+          initialTemplate={retryTemplate}
+          resumedFromCampaignId={resumedFromCampaignId}
+          onClose={() => {
+            setRetryLeads(null);
+            setRetryTemplate('');
+            setResumedFromCampaignId(null);
+          }}
+          onSuccess={() => {
+            setRetryLeads(null);
+            setRetryTemplate('');
+            setResumedFromCampaignId(null);
+          }}
         />
       )}
     </div>

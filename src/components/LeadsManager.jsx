@@ -56,6 +56,8 @@ export default function LeadsManager({
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
   const [showCampaignReports, setShowCampaignReports] = useState(false);
   const [retryLeads, setRetryLeads] = useState(null);
+  const [retryTemplate, setRetryTemplate] = useState('');
+  const [resumedFromCampaignId, setResumedFromCampaignId] = useState(null);
   const [whatsappChatLead, setWhatsappChatLead] = useState(null);
 
   const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Institute';
@@ -1685,14 +1687,20 @@ export default function LeadsManager({
       {isBulkWhatsAppOpen && (
         <BulkWhatsAppModal
           selectedLeads={retryLeads || filteredLeads.filter(l => selectedLeadIds.includes(l.id))}
+          initialTemplate={retryTemplate}
+          resumedFromCampaignId={resumedFromCampaignId}
           onClose={() => {
             setIsBulkWhatsAppOpen(false);
             setRetryLeads(null);
+            setRetryTemplate('');
+            setResumedFromCampaignId(null);
           }}
           onSuccess={(successCount) => {
             alert(`Successfully sent ${successCount} messages!`);
             setIsBulkWhatsAppOpen(false);
             setRetryLeads(null);
+            setRetryTemplate('');
+            setResumedFromCampaignId(null);
             setSelectedLeadIds([]);
           }}
         />
@@ -1701,9 +1709,17 @@ export default function LeadsManager({
       {showCampaignReports && (
         <CampaignReportsModal
           onClose={() => setShowCampaignReports(false)}
-          onRetryFailed={(failedLeads) => {
+          onRetryFailed={(failedLeads, template) => {
             setShowCampaignReports(false);
             setRetryLeads(failedLeads);
+            setRetryTemplate(template || '');
+            setIsBulkWhatsAppOpen(true);
+          }}
+          onResumePending={(pendingLeads, template, campaignId) => {
+            setShowCampaignReports(false);
+            setRetryLeads(pendingLeads);
+            setRetryTemplate(template || '');
+            setResumedFromCampaignId(campaignId);
             setIsBulkWhatsAppOpen(true);
           }}
         />
