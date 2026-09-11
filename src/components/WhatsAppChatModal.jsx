@@ -23,8 +23,8 @@ export default function WhatsAppChatModal({ lead, onClose }) {
       <div style={{
         backgroundColor: '#ffffff',
         borderRadius: '16px',
-        width: '90%',
-        maxWidth: '500px',
+        width: '92%',
+        maxWidth: '780px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         display: 'flex',
         flexDirection: 'column',
@@ -53,7 +53,7 @@ export default function WhatsAppChatModal({ lead, onClose }) {
           </button>
         </div>
         <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
-          <WhatsAppChat lead={lead} />
+          <WhatsAppChat lead={lead} expanded />
         </div>
       </div>
     </div>,

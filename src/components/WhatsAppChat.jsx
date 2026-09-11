@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, CheckCircle2, User, Phone } from 'lucide-react';
 
-export default function WhatsAppChat({ lead }) {
+export default function WhatsAppChat({ lead, expanded = false }) {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +74,7 @@ export default function WhatsAppChat({ lead }) {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '300px',
+      height: expanded ? 'min(65vh, 560px)' : '300px',
       border: '1px solid #d1d5db',
       borderRadius: '8px',
       backgroundColor: '#efeae2', // WhatsApp default background color
