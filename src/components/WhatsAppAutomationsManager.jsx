@@ -196,6 +196,27 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     }
   };
 
+  const handleRetryFailedAutomation = async (automation) => {
+    try {
+      const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+      const res = await fetch(`${FIREBASE_URL}/whatsappCampaignLogs.json`);
+      const data = await res.json();
+      const executedAt = new Date(automation.executedAt || automation.scheduledTime).getTime();
+      const matchingReport = Object.values(data || {})
+        .filter(log => log && log.campaignType === 'Automation' && log.template === automation.template && Array.isArray(log.failedLeads) && log.failedLeads.length > 0)
+        .sort((a, b) => Math.abs(new Date(a.timestamp).getTime() - executedAt) - Math.abs(new Date(b.timestamp).getTime() - executedAt))[0];
+
+      if (!matchingReport) {
+        alert('Failed-recipient list was not found. Please open Campaign Reports to review this run.');
+        return;
+      }
+
+      setRetryLeads(matchingReport.failedLeads);
+    } catch (err) {
+      alert('Could not load failed recipients. Please try again.');
+    }
+  };
+
   // Group automations by cycleId
   const groupedAutomations = {};
   const standaloneAutomations = [];
@@ -453,6 +474,16 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                                 <Pencil size={13} />
                               </button>
                             )}
+                            {!isPending && msg.stats?.failed > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRetryFailedAutomation(msg)}
+                                title="Resend only to failed students"
+                                style={{ border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '4px', padding: '0.28rem 0.45rem', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700 }}
+                              >
+                                Retry {msg.stats.failed} Failed
+                              </button>
+                            )}
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: isPending ? '#eff6ff' : '#dcfce3', color: isPending ? '#1d4ed8' : '#166534', border: isPending ? '1px solid #bfdbfe' : '1px solid #b7e4c7' }}>
                               {isPending ? 'PENDING' : 'COMPLETED'}
                             </span>
@@ -486,6 +517,11 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                             {isPending && (
                               <button type="button" onClick={() => handleOpenEdit(auto)} title="Edit upcoming message" style={{ border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '4px', padding: '0.25rem', cursor: 'pointer', display: 'flex' }}>
                                 <Pencil size={13} />
+                              </button>
+                            )}
+                            {!isPending && auto.stats?.failed > 0 && (
+                              <button type="button" onClick={() => handleRetryFailedAutomation(auto)} title="Resend only to failed students" style={{ border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '4px', padding: '0.28rem 0.45rem', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700 }}>
+                                Retry {auto.stats.failed} Failed
                               </button>
                             )}
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: isPending ? '#eff6ff' : '#dcfce3', color: isPending ? '#1d4ed8' : '#166534' }}>
