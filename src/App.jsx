@@ -27,6 +27,7 @@ import MetaLeadConnectors from './components/MetaLeadConnectors';
 import WhatsAppSettingsManager from './components/WhatsAppSettingsManager';
 import WhatsAppAutomationsManager from './components/WhatsAppAutomationsManager';
 import WhatsAppReplies from './components/WhatsAppReplies';
+import WhatsAppChatModal from './components/WhatsAppChatModal';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -491,6 +492,7 @@ export default function App() {
 
 
   const [selectedLead, setSelectedLead] = useState(null);
+  const [chatLead, setChatLead] = useState(null);
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1109,7 +1111,7 @@ export default function App() {
           {activeTab === 'whatsapp_replies' && (
             <WhatsAppReplies
               leads={leads}
-              onOpenLead={(lead) => setSelectedLead(lead)}
+              onOpenChat={(lead) => setChatLead(lead)}
             />
           )}
 
@@ -1169,6 +1171,10 @@ export default function App() {
           currentUser={currentUser}
           courses={courses}
         />
+      )}
+
+      {chatLead && (
+        <WhatsAppChatModal lead={chatLead} onClose={() => setChatLead(null)} />
       )}
 
 

@@ -3,13 +3,15 @@ import { MessageCircle, RefreshCw, Search, User } from 'lucide-react';
 
 const digits = (value) => String(value || '').replace(/\D/g, '').slice(-10);
 
-export default function WhatsAppReplies({ leads = [], onOpenLead }) {
+export default function WhatsAppReplies({ leads = [], onOpenChat }) {
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
-  const loadReplies = async () => {
-    setLoading(true);
+  const loadReplies = async (isInitialLoad = false) => {
+    if (isInitialLoad) setLoading(true);
+    else setRefreshing(true);
     try {
       const res = await fetch(`/api/whatsapp/replies?t=${Date.now()}`);
       const data = await res.json();
@@ -17,13 +19,14 @@ export default function WhatsAppReplies({ leads = [], onOpenLead }) {
     } catch (error) {
       console.error('Failed to load WhatsApp replies', error);
     } finally {
-      setLoading(false);
+      if (isInitialLoad) setLoading(false);
+      else setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    loadReplies();
-    const interval = setInterval(loadReplies, 15000);
+    loadReplies(true);
+    const interval = setInterval(() => loadReplies(false), 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -42,7 +45,7 @@ export default function WhatsAppReplies({ leads = [], onOpenLead }) {
           <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.55rem' }}><MessageCircle color="#15803d" /> WhatsApp Replies</h1>
           <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>All incoming student replies saved from the Meta WhatsApp webhook.</p>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={loadReplies} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><RefreshCw size={16} /> Refresh</button>
+        <button type="button" className="btn btn-secondary" disabled={refreshing} onClick={() => loadReplies(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><RefreshCw size={16} /> {refreshing ? 'Refreshing...' : 'Refresh'}</button>
       </div>
 
       <div style={{ position: 'relative', marginBottom: '1rem' }}>
@@ -57,7 +60,7 @@ export default function WhatsAppReplies({ leads = [], onOpenLead }) {
           {filteredReplies.map(reply => {
             const lead = leadByPhone.get(digits(reply.leadPhone));
             return (
-              <button key={reply.id} type="button" onClick={() => lead && onOpenLead(lead)} style={{ textAlign: 'left', width: '100%', cursor: lead ? 'pointer' : 'default', border: '1px solid #d1fae5', borderRadius: '10px', background: '#fff', padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <button key={reply.id} type="button" onClick={() => lead && onOpenChat(lead)} style={{ textAlign: 'left', width: '100%', cursor: lead ? 'pointer' : 'default', border: '1px solid #d1fae5', borderRadius: '10px', background: '#fff', padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0, background: '#dcfce7', color: '#15803d', display: 'grid', placeItems: 'center' }}><User size={19} /></div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
