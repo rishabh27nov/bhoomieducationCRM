@@ -60,14 +60,11 @@ export default async function handler(req, res) {
 
         // Save to Firebase
         try {
-          const getRes = await fetch(firebaseDbUrl);
-          let currentMessages = await getRes.json();
-          if (!Array.isArray(currentMessages)) currentMessages = [];
-          currentMessages.push(incomingMessage);
-          await fetch(firebaseDbUrl, {
+          const firebaseMessageKey = String(incomingMessage.id).replace(/[.#$\[\]/]/g, '_');
+          await fetch(firebaseDbUrl.replace(/\.json$/, `/${firebaseMessageKey}.json`), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(currentMessages)
+            body: JSON.stringify(incomingMessage)
           });
           console.log('✅ Incoming message saved to Firebase');
         } catch (fbErr) {

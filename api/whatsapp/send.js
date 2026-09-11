@@ -1,4 +1,5 @@
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
+const firebaseMessageKey = (id) => String(id).replace(/[.#$\[\]/]/g, '_');
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -93,15 +94,10 @@ export default async function handler(req, res) {
     };
 
     try {
-      const msgsRes = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
-      let currentMessages = await msgsRes.json();
-      if (!Array.isArray(currentMessages)) currentMessages = [];
-      currentMessages.push(outgoingMsg);
-
-      await fetch(`${FIREBASE_URL}/whatsappMessages.json`, {
+      await fetch(`${FIREBASE_URL}/whatsappMessages/${firebaseMessageKey(outgoingMsg.id)}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentMessages)
+        body: JSON.stringify(outgoingMsg)
       });
     } catch (fbErr) {
       console.error('Firebase message save error:', fbErr);

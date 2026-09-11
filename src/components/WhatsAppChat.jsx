@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Send, CheckCircle2, User, Phone } from 'lucide-react';
 
+const getPrimaryPhone = (phone) => String(phone || '')
+  .split(/[\/,;|]/)
+  .map(number => number.trim())
+  .find(Boolean) || '';
+
 export default function WhatsAppChat({ lead }) {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -12,13 +17,14 @@ export default function WhatsAppChat({ lead }) {
         const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
         const res = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
         const data = await res.json();
-        if (Array.isArray(data) && lead.phone) {
-          const cleanLeadPhone = lead.phone.replace(/\D/g, '');
-          const filtered = data.filter(m => {
+        if (data && lead.phone) {
+          const messagesList = Array.isArray(data) ? data : Object.values(data);
+          const cleanLeadPhone = getPrimaryPhone(lead.phone).replace(/\D/g, '');
+          const filtered = messagesList.filter(m => {
             if (!m.leadPhone) return false;
-            const mPhone = m.leadPhone.replace(/\D/g, '');
+            const mPhone = getPrimaryPhone(m.leadPhone).replace(/\D/g, '');
             return mPhone.slice(-10) === cleanLeadPhone.slice(-10);
-          });
+          }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           setMessages(filtered);
         } else {
           setMessages([]);
