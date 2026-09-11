@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree, X } from 'lucide-react';
+import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree, X, Pencil } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
 import CampaignReportsModal from './CampaignReportsModal';
 import BulkWhatsAppModal from './BulkWhatsAppModal';
@@ -16,6 +16,8 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const [sentTemplatesMap, setSentTemplatesMap] = useState({});
   const [showReports, setShowReports] = useState(false);
   const [retryLeads, setRetryLeads] = useState(null);
+  const [editingAutomation, setEditingAutomation] = useState(null);
+  const [editForm, setEditForm] = useState({ template: '', date: '', time: '' });
   
   const [cycleData, setCycleData] = useState({
     name: '',
@@ -153,6 +155,44 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
       if (res.ok) fetchData();
     } catch (err) {
       alert('Failed to delete.');
+    }
+  };
+
+  const handleOpenEdit = (automation) => {
+    const scheduledDate = new Date(automation.scheduledTime);
+    const localDate = new Date(scheduledDate.getTime() - scheduledDate.getTimezoneOffset() * 60000).toISOString();
+    setEditingAutomation(automation);
+    setEditForm({
+      template: automation.template || '',
+      date: localDate.slice(0, 10),
+      time: localDate.slice(11, 16)
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    const scheduledTime = new Date(`${editForm.date}T${editForm.time}`).toISOString();
+    if (!editForm.template || Number.isNaN(new Date(scheduledTime).getTime())) {
+      alert('Please select a template and valid date/time.');
+      return;
+    }
+    if (new Date(scheduledTime).getTime() <= Date.now()) {
+      alert('The updated schedule must be in the future.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/whatsapp/automations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingAutomation.id, template: editForm.template, scheduledTime })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update automation');
+      setEditingAutomation(null);
+      fetchData();
+    } catch (err) {
+      alert(err.message || 'Failed to update automation.');
     }
   };
 
@@ -402,7 +442,17 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                               </div>
                             )}
                           </div>
-                          <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(msg)}
+                                title="Edit upcoming message"
+                                style={{ border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '4px', padding: '0.25rem', cursor: 'pointer', display: 'flex' }}
+                              >
+                                <Pencil size={13} />
+                              </button>
+                            )}
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: isPending ? '#eff6ff' : '#dcfce3', color: isPending ? '#1d4ed8' : '#166534', border: isPending ? '1px solid #bfdbfe' : '1px solid #b7e4c7' }}>
                               {isPending ? 'PENDING' : 'COMPLETED'}
                             </span>
@@ -433,6 +483,11 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            {isPending && (
+                              <button type="button" onClick={() => handleOpenEdit(auto)} title="Edit upcoming message" style={{ border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '4px', padding: '0.25rem', cursor: 'pointer', display: 'flex' }}>
+                                <Pencil size={13} />
+                              </button>
+                            )}
                             <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: isPending ? '#eff6ff' : '#dcfce3', color: isPending ? '#1d4ed8' : '#166534' }}>
                               {isPending ? 'PENDING' : 'COMPLETED'}
                             </span>
@@ -449,6 +504,42 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
           )}
         </div>
       </div>
+
+      {editingAutomation && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }}>
+          <form onSubmit={handleSaveEdit} style={{ width: '100%', maxWidth: '430px', backgroundColor: '#ffffff', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 25px 50px rgba(15, 23, 42, 0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#0f172a' }}>Edit Upcoming Message</h3>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Completed messages cannot be changed.</span>
+              </div>
+              <button type="button" onClick={() => setEditingAutomation(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}><X size={20} /></button>
+            </div>
+
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem' }}>Template</label>
+            <select className="form-input" value={editForm.template} onChange={e => setEditForm({ ...editForm, template: e.target.value })} required style={{ width: '100%', marginBottom: '1rem' }}>
+              <option value="">-- Select Template --</option>
+              {templates.map(template => <option key={template} value={template}>{template}</option>)}
+            </select>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem' }}>Date</label>
+                <input type="date" className="form-input" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} required style={{ width: '100%' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem' }}>Time</label>
+                <input type="time" className="form-input" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} required style={{ width: '100%' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setEditingAutomation(null)}>Cancel</button>
+              <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Pencil size={15} /> Save Changes</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showReports && (
         <CampaignReportsModal

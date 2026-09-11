@@ -2,7 +2,7 @@ const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebaseda
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -39,6 +39,38 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Automation(s) scheduled' });
     } catch (err) {
       return res.status(500).json({ error: 'Failed to save automation' });
+    }
+  }
+
+  // PATCH - Edit a future pending automation without changing its cycle details.
+  if (req.method === 'PATCH') {
+    try {
+      const { id, template, scheduledTime } = req.body || {};
+      if (!id || !template || !scheduledTime) {
+        return res.status(400).json({ error: 'ID, template and scheduled time are required' });
+      }
+
+      const existingRes = await fetch(`${FIREBASE_URL}/whatsappAutomations/${id}.json`);
+      const existing = await existingRes.json();
+      if (!existing) return res.status(404).json({ error: 'Automation not found' });
+      if (existing.status !== 'pending') {
+        return res.status(409).json({ error: 'Only pending automations can be edited' });
+      }
+
+      const updatedAutomation = {
+        ...existing,
+        template: template.trim(),
+        scheduledTime,
+        updatedAt: new Date().toISOString()
+      };
+      await fetch(`${FIREBASE_URL}/whatsappAutomations/${id}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedAutomation)
+      });
+      return res.status(200).json({ success: true, automation: updatedAutomation });
+    } catch (err) {
+      return res.status(500).json({ error: 'Failed to update automation' });
     }
   }
 
