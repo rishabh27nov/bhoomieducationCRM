@@ -26,6 +26,7 @@ import EmployeeSettingsManager from './components/EmployeeSettingsManager';
 import MetaLeadConnectors from './components/MetaLeadConnectors';
 import WhatsAppSettingsManager from './components/WhatsAppSettingsManager';
 import WhatsAppAutomationsManager from './components/WhatsAppAutomationsManager';
+import WhatsAppReplies from './components/WhatsAppReplies';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -1105,6 +1106,13 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'whatsapp_replies' && (
+            <WhatsAppReplies
+              leads={leads}
+              onOpenLead={(lead) => setSelectedLead(lead)}
+            />
+          )}
+
           {activeTab === 'analytics' && (
             <Analytics
               employees={employees}
@@ -1185,4 +1193,3 @@ export default function App() {
     </div>
   );
 }
-
