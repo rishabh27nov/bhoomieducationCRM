@@ -14,10 +14,12 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sentTemplatesMap, setSentTemplatesMap] = useState({});
+  const [campaignLogs, setCampaignLogs] = useState([]);
   const [showReports, setShowReports] = useState(false);
   const [retryLeads, setRetryLeads] = useState(null);
   const [retryTemplate, setRetryTemplate] = useState('');
   const [resumedFromCampaignId, setResumedFromCampaignId] = useState(null);
+  const [retrySourceAutomation, setRetrySourceAutomation] = useState(null);
   const [editingAutomation, setEditingAutomation] = useState(null);
   const [editForm, setEditForm] = useState({ template: '', date: '', time: '' });
   
@@ -36,16 +38,19 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [autoRes, setRes, stRes] = await Promise.all([
+      const [autoRes, setRes, stRes, logsRes] = await Promise.all([
         fetch(`/api/whatsapp/automations?t=${Date.now()}`),
         fetch(`/api/whatsapp/settings?t=${Date.now()}`),
-        fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/sentTemplates.json?t=${Date.now()}`)
+        fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/sentTemplates.json?t=${Date.now()}`),
+        fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/whatsappCampaignLogs.json?t=${Date.now()}`)
       ]);
       
       const autoData = await autoRes.json();
       setAutomations(Array.isArray(autoData) ? autoData : []);
       const stData = await stRes.json();
       setSentTemplatesMap(stData && typeof stData === 'object' ? stData : {});
+      const logsData = await logsRes.json();
+      setCampaignLogs(logsData && typeof logsData === 'object' ? Object.values(logsData).filter(Boolean) : []);
 
       const setData = await setRes.json();
       if (setData && setData.templates) {
@@ -57,6 +62,27 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getRetryDeliverySummary = (automation) => {
+    if (!automation.stats) return null;
+    const executionTime = new Date(automation.executedAt || automation.scheduledTime).getTime();
+    const matchingLogs = campaignLogs.filter(log => {
+      if (log.sourceAutomationId === automation.id) return true;
+      return automation.stats.failed === automation.stats.total &&
+        log.campaignType === 'Manual Bulk' &&
+        log.template === automation.template &&
+        log.targetAudience === automation.stats.total &&
+        new Date(log.timestamp).getTime() >= executionTime;
+    });
+    if (matchingLogs.length === 0) return null;
+    const latest = matchingLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+    return {
+      sent: (latest.successfulCount || 0) + (latest.skippedCount || 0),
+      failed: latest.failedCount || 0,
+      total: latest.targetAudience || automation.stats.total,
+      cycleName: latest.cycleName || automation.cycleName || 'Manual retry'
+    };
   };
 
   const handleAddMessage = () => {
@@ -214,6 +240,8 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
       }
 
       setRetryLeads(matchingReport.failedLeads);
+      setRetryTemplate(automation.template);
+      setRetrySourceAutomation(automation);
     } catch (err) {
       alert('Could not load failed recipients. Please try again.');
     }
@@ -447,6 +475,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                       const isPending = msg.status === 'pending';
                       const scheduledDate = new Date(msg.scheduledTime);
                       const isPastDue = isPending && scheduledDate.getTime() <= Date.now();
+                      const retrySummary = getRetryDeliverySummary(msg);
 
                       return (
                         <div key={msg.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: isPending ? '#fff' : '#f0fdf4', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
@@ -462,6 +491,11 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                             {msg.stats && (
                               <div style={{ fontSize: '0.7rem', marginTop: '0.2rem', color: '#64748b' }}>
                                 Executed: {msg.stats.success} Sent, {msg.stats.failed} Failed
+                              </div>
+                            )}
+                            {retrySummary && (
+                              <div style={{ fontSize: '0.7rem', marginTop: '0.25rem', color: '#047857', fontWeight: 700 }}>
+                                Updated delivery: {retrySummary.sent} Sent, {retrySummary.failed} Failed (Total {retrySummary.total})
                               </div>
                             )}
                           </div>
@@ -586,12 +620,14 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
             setShowReports(false);
             setRetryLeads(failedLeads);
             setRetryTemplate(template || '');
+            setRetrySourceAutomation(null);
           }}
           onResumePending={(pendingLeads, template, campaignId) => {
             setShowReports(false);
             setRetryLeads(pendingLeads);
             setRetryTemplate(template || '');
             setResumedFromCampaignId(campaignId);
+            setRetrySourceAutomation(null);
           }}
         />
       )}
@@ -601,15 +637,19 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
           selectedLeads={retryLeads}
           initialTemplate={retryTemplate}
           resumedFromCampaignId={resumedFromCampaignId}
+          sourceAutomation={retrySourceAutomation}
           onClose={() => {
             setRetryLeads(null);
             setRetryTemplate('');
             setResumedFromCampaignId(null);
+            setRetrySourceAutomation(null);
           }}
           onSuccess={() => {
             setRetryLeads(null);
             setRetryTemplate('');
             setResumedFromCampaignId(null);
+            setRetrySourceAutomation(null);
+            fetchData();
           }}
         />
       )}

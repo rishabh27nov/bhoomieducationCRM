@@ -18,7 +18,7 @@ const createRecipientRecord = (lead, status, details = {}) => ({
   ...details
 });
 
-export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, initialTemplate = '', resumedFromCampaignId = null }) {
+export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, initialTemplate = '', resumedFromCampaignId = null, sourceAutomation = null }) {
   const [message, setMessage] = useState('');
   const [useTemplate, setUseTemplate] = useState(true);
   const [availableTemplates, setAvailableTemplates] = useState([]);
@@ -74,6 +74,12 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
       campaignType: 'Manual Bulk',
       template: useTemplate ? selectedTemplate : 'Custom Message',
       ...(resumedFromCampaignId && { resumedFromCampaignId }),
+      ...(sourceAutomation && {
+        sourceAutomationId: sourceAutomation.id,
+        cycleId: sourceAutomation.cycleId || null,
+        cycleName: sourceAutomation.cycleName || null,
+        stage: sourceAutomation.stage || null
+      }),
       targetAudience: totalLeads,
       successfulCount: 0,
       failedCount: 0,

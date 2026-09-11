@@ -128,6 +128,11 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                               {log.campaignType}
                             </span>
                           </span>
+                          {log.cycleName && (
+                            <span style={{ padding: '2px 6px', backgroundColor: '#ecfdf5', color: '#047857', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                              Cycle: {log.cycleName}
+                            </span>
+                          )}
                         </div>
                       </div>
                       
@@ -158,6 +163,7 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                     <span>Type: <b>{selectedLog.campaignType}</b></span>
                     <span>Date: {formatDate(selectedLog.timestamp)}</span>
                     <span>Total Target: {selectedLog.targetAudience}</span>
+                    {selectedLog.cycleName && <span>Cycle: <b>{selectedLog.cycleName}</b></span>}
                   </div>
                 </div>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSelectedLog(null)}>
