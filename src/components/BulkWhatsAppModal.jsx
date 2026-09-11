@@ -25,7 +25,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState({ success: 0, failed: 0 });
+  const [results, setResults] = useState({ success: 0, failed: 0, skipped: 0 });
   const [isFinished, setIsFinished] = useState(false);
 
   const totalLeads = selectedLeads.length;
@@ -60,8 +60,10 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
     setIsSending(true);
     let successCount = 0;
     let failedCount = 0;
+    let skippedCount = 0;
     const successfulLeads = [];
     const failedLeads = [];
+    const skippedLeads = [];
     const campaignId = `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const recipientResults = selectedLeads.map(lead => createRecipientRecord(lead, 'pending'));
     const campaignLog = {
@@ -74,9 +76,11 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
       targetAudience: totalLeads,
       successfulCount: 0,
       failedCount: 0,
+      skippedCount: 0,
       recipientResults,
       successfulLeads,
-      failedLeads
+      failedLeads,
+      skippedLeads
     };
 
     const saveCampaignLog = async () => {
@@ -109,7 +113,15 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
         });
         const responseData = await response.json().catch(() => ({}));
         
-        if (response.ok) {
+        if (response.ok && responseData.skipped) {
+          skippedCount++;
+          const skippedLead = createRecipientRecord(lead, 'skipped', {
+            skippedAt: new Date().toISOString(),
+            reason: responseData.message || 'Already sent'
+          });
+          skippedLeads.push(skippedLead);
+          recipientResults[i] = skippedLead;
+        } else if (response.ok) {
           successCount++;
           const sentLead = createRecipientRecord(lead, 'sent', {
             sentAt: new Date().toISOString(),
@@ -139,10 +151,11 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
         console.error(`Failed to send to ${lead.phone}`, err);
       }
 
-      setResults({ success: successCount, failed: failedCount });
+      setResults({ success: successCount, failed: failedCount, skipped: skippedCount });
       setProgress(((i + 1) / totalLeads) * 100);
       campaignLog.successfulCount = successCount;
       campaignLog.failedCount = failedCount;
+      campaignLog.skippedCount = skippedCount;
       await saveCampaignLog();
       
       // Wait 500ms between messages to avoid spamming the API
@@ -285,7 +298,8 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess })
                   <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ color: '#15803d', fontWeight: 600 }}>✅ Sent: {results.success}</span>
                     <span style={{ color: '#dc2626', fontWeight: 600 }}>❌ Failed: {results.failed}</span>
-                    <span style={{ color: '#0f172a', fontWeight: 600 }}>⏳ Remaining: {totalLeads - results.success - results.failed}</span>
+                    <span style={{ color: '#a16207', fontWeight: 600 }}>Skipped: {results.skipped}</span>
+                    <span style={{ color: '#0f172a', fontWeight: 600 }}>⏳ Remaining: {totalLeads - results.success - results.failed - results.skipped}</span>
                   </div>
                 </div>
               )}

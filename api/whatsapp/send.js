@@ -1,5 +1,24 @@
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const firebaseMessageKey = (id) => String(id).replace(/[.#$\[\]/]/g, '_');
+const deliveryKey = (template, phone) => `${firebaseMessageKey(template)}_${String(phone).slice(-10)}`;
+
+const claimTemplateDelivery = async (template, phone) => {
+  const url = `${FIREBASE_URL}/whatsappTemplateDeliveries/${deliveryKey(template, phone)}.json`;
+  const now = Date.now();
+  const recordRes = await fetch(url, { headers: { 'X-Firebase-ETag': 'true' } });
+  const existing = await recordRes.json();
+  const etag = recordRes.headers.get('etag');
+  if (existing?.status === 'sent') return { skipped: true, existing };
+  if (existing?.status === 'processing' && new Date(existing.leaseExpiresAt).getTime() > now) return { skipped: true, existing };
+
+  const claimed = { template, phone, status: 'processing', startedAt: new Date(now).toISOString(), leaseExpiresAt: new Date(now + 15 * 60 * 1000).toISOString() };
+  const claimRes = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'if-match': etag || 'null_etag' },
+    body: JSON.stringify(claimed)
+  });
+  return claimRes.ok ? { claimed: true, url } : { skipped: true };
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -42,6 +61,15 @@ export default async function handler(req, res) {
     if (cleanPhone.length === 10) {
       cleanPhone = '91' + cleanPhone;
     }
+    const resolvedTemplate = templateName || 'lakshya_admission_enquiry';
+
+    let deliveryClaim = null;
+    if (isTemplate) {
+      deliveryClaim = await claimTemplateDelivery(resolvedTemplate, cleanPhone);
+      if (deliveryClaim.skipped) {
+        return res.status(200).json({ success: true, skipped: true, message: 'This template was already sent or is currently being sent to this number.' });
+      }
+    }
 
     // Prepare payload based on message type
     let payload = {
@@ -52,7 +80,7 @@ export default async function handler(req, res) {
     if (isTemplate) {
       payload.type = 'template';
       payload.template = {
-        name: templateName || 'lakshya_admission_enquiry',
+        name: resolvedTemplate,
         language: { code: languageCode || 'en' }
       };
     } else {
@@ -76,6 +104,9 @@ export default async function handler(req, res) {
     const metaResult = await metaResponse.json();
 
     if (!metaResponse.ok) {
+      if (deliveryClaim?.url) {
+        await fetch(deliveryClaim.url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: resolvedTemplate, phone: cleanPhone, status: 'failed', failedAt: new Date().toISOString() }) });
+      }
       console.error('Meta API Error:', metaResult);
       return res.status(400).json({ 
         error: `Failed to send via Meta API: ${metaResult?.error?.message || JSON.stringify(metaResult)}`,
@@ -92,6 +123,14 @@ export default async function handler(req, res) {
       direction: 'outgoing',
       status: 'sent'
     };
+
+    if (deliveryClaim?.url) {
+      await fetch(deliveryClaim.url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: resolvedTemplate, phone: cleanPhone, status: 'sent', sentAt: new Date().toISOString(), messageId: outgoingMsg.id })
+      });
+    }
 
     try {
       await fetch(`${FIREBASE_URL}/whatsappMessages/${firebaseMessageKey(outgoingMsg.id)}.json`, {
