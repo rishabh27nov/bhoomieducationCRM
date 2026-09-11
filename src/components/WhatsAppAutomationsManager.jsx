@@ -22,6 +22,8 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const [retrySourceAutomation, setRetrySourceAutomation] = useState(null);
   const [editingAutomation, setEditingAutomation] = useState(null);
   const [editForm, setEditForm] = useState({ template: '', date: '', time: '' });
+  const [savedCycles, setSavedCycles] = useState([]);
+  const [editingSavedCycleId, setEditingSavedCycleId] = useState(null);
   
   const [cycleData, setCycleData] = useState({
     name: '',
@@ -38,11 +40,12 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [autoRes, setRes, stRes, logsRes] = await Promise.all([
+      const [autoRes, setRes, stRes, logsRes, savedCyclesRes] = await Promise.all([
         fetch(`/api/whatsapp/automations?t=${Date.now()}`),
         fetch(`/api/whatsapp/settings?t=${Date.now()}`),
         fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/sentTemplates.json?t=${Date.now()}`),
-        fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/whatsappCampaignLogs.json?t=${Date.now()}`)
+        fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/whatsappCampaignLogs.json?t=${Date.now()}`),
+        fetch(`/api/whatsapp/cycles?t=${Date.now()}`)
       ]);
       
       const autoData = await autoRes.json();
@@ -51,6 +54,8 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
       setSentTemplatesMap(stData && typeof stData === 'object' ? stData : {});
       const logsData = await logsRes.json();
       setCampaignLogs(logsData && typeof logsData === 'object' ? Object.values(logsData).filter(Boolean) : []);
+      const savedCyclesData = await savedCyclesRes.json();
+      setSavedCycles(Array.isArray(savedCyclesData) ? savedCyclesData : []);
 
       const setData = await setRes.json();
       if (setData && setData.templates) {
@@ -106,15 +111,87 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     });
   };
 
+  const validateCycleTemplate = ({ requireSchedule }) => {
+    if (!cycleData.name.trim() || !cycleData.stage) {
+      alert('Please fill in Cycle Name and Target Stage.');
+      return false;
+    }
+    if (cycleData.messages.length === 0) {
+      alert('Please add at least one template to the cycle.');
+      return false;
+    }
+    for (let i = 0; i < cycleData.messages.length; i++) {
+      const msg = cycleData.messages[i];
+      if (!msg.template || (requireSchedule && (!msg.date || !msg.time))) {
+        alert(requireSchedule ? `Please fill all fields for Message ${i + 1}.` : `Please select a template for Message ${i + 1}.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const persistCycleTemplate = async ({ silent = false } = {}) => {
+    try {
+      const isUpdate = Boolean(editingSavedCycleId);
+      const res = await fetch(isUpdate ? `/api/whatsapp/cycles?id=${encodeURIComponent(editingSavedCycleId)}` : '/api/whatsapp/cycles', {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cycleData.name.trim(),
+          stage: cycleData.stage,
+          messages: cycleData.messages.map(({ id, template, date, time }) => ({ id, template, date, time }))
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save cycle template');
+      setEditingSavedCycleId(data.cycle?.id || editingSavedCycleId);
+      await fetchData();
+      if (!silent) alert(`Cycle template ${isUpdate ? 'updated' : 'saved'} in your library.`);
+      return true;
+    } catch (err) {
+      if (!silent) alert(err.message || 'Failed to save cycle template.');
+      return false;
+    }
+  };
+
+  const handleSaveCycleTemplate = async () => {
+    if (!validateCycleTemplate({ requireSchedule: false })) return;
+    await persistCycleTemplate();
+  };
+
+  const handleOpenSavedCycle = (cycle) => {
+    setEditingSavedCycleId(cycle.id);
+    setCycleData({
+      name: cycle.name || '',
+      stage: cycle.stage || '',
+      messages: (cycle.messages || []).map((msg, index) => ({
+        id: msg.id || `${Date.now()}-${index}`,
+        template: msg.template || '',
+        date: msg.date || '',
+        time: msg.time || ''
+      }))
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteSavedCycle = async (cycle) => {
+    if (!window.confirm(`Delete saved cycle template “${cycle.name}”? Scheduled runs and delivery history will remain safe.`)) return;
+    try {
+      const res = await fetch(`/api/whatsapp/cycles?id=${encodeURIComponent(cycle.id)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete cycle template');
+      if (editingSavedCycleId === cycle.id) setEditingSavedCycleId(null);
+      fetchData();
+    } catch (err) {
+      alert(err.message || 'Failed to delete cycle template.');
+    }
+  };
+
   const handleCreateCycle = async (e) => {
     e.preventDefault();
-    if (!cycleData.name || !cycleData.stage) {
-      alert("Please fill in Cycle Name and Target Stage.");
-      return;
-    }
-
-    if (cycleData.messages.length === 0) {
-      alert("Please add at least one template to the cycle.");
+    if (!validateCycleTemplate({ requireSchedule: true })) return;
+    // Every scheduled run is also retained as a reusable named cycle template.
+    if (!await persistCycleTemplate({ silent: true })) {
+      alert('Could not save this cycle template, so it was not scheduled. Please try again.');
       return;
     }
 
@@ -123,11 +200,6 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
 
     for (let i = 0; i < cycleData.messages.length; i++) {
       const msg = cycleData.messages[i];
-      if (!msg.template || !msg.date || !msg.time) {
-        alert(`Please fill all fields for Message ${i + 1}.`);
-        return;
-      }
-      
       const scheduledTime = new Date(`${msg.date}T${msg.time}`).toISOString();
       if (new Date(scheduledTime).getTime() <= Date.now()) {
         alert(`Scheduled time for Message ${i + 1} must be in the future.`);
@@ -296,7 +368,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
         {/* Create Cycle Form */}
         <div style={{ flex: '1 1 400px', backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ListTree size={18} color="var(--color-brand-primary)" /> Create New Cycle
+            <ListTree size={18} color="var(--color-brand-primary)" /> {editingSavedCycleId ? 'Edit Saved Cycle' : 'Create New Cycle'}
           </h2>
           
           <form onSubmit={handleCreateCycle} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -426,18 +498,54 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
 
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem', width: '100%', justifyContent: 'center', padding: '0.75rem' }}>
-              <CheckCircle size={16} /> Save Cycle
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={handleSaveCycleTemplate} style={{ flex: '1 1 180px', justifyContent: 'center', padding: '0.75rem' }}>
+                <CheckCircle size={16} /> {editingSavedCycleId ? 'Update Saved Cycle' : 'Save as Cycle Template'}
+              </button>
+              <button type="submit" className="btn btn-primary" style={{ flex: '1 1 180px', justifyContent: 'center', padding: '0.75rem' }}>
+                <Send size={16} /> Schedule This Cycle
+              </button>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#eff6ff', padding: '0.5rem', borderRadius: '6px' }}>
                <AlertCircle size={14} color="#3b82f6" />
-               <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600 }}>Note: Requires CRM to be open in browser to trigger accurately.</span>
+               <span style={{ fontSize: '0.7rem', color: '#1e40af', fontWeight: 600 }}>Save as Cycle Template keeps this setup in your library. Schedule This Cycle creates a separate dated run.</span>
             </div>
           </form>
         </div>
 
         {/* Cycles List */}
         <div style={{ flex: '2 1 600px', backgroundColor: '#ffffff', padding: '1.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ListTree size={18} color="#2563eb" /> Saved Cycle Library
+          </h2>
+          {isLoading ? (
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Loading saved cycles...</div>
+          ) : savedCycles.length === 0 ? (
+            <div style={{ padding: '1rem', marginBottom: '1.5rem', border: '1px dashed #cbd5e1', borderRadius: '8px', color: '#64748b', fontSize: '0.85rem' }}>
+              No saved cycle templates yet. Create one on the left, then use it again anytime.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
+              {savedCycles.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)).map(cycle => (
+                <div key={cycle.id} style={{ border: '1px solid #bfdbfe', backgroundColor: '#f8fbff', borderRadius: '8px', padding: '0.8rem', display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#1e3a8a', fontSize: '0.9rem' }}>{cycle.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>Target: <strong>{cycle.stage}</strong> · {(cycle.messages || []).length} template{(cycle.messages || []).length === 1 ? '' : 's'}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleOpenSavedCycle(cycle)} style={{ padding: '0.45rem 0.65rem', fontSize: '0.75rem' }}>
+                      <Pencil size={14} /> Open & Edit
+                    </button>
+                    <button type="button" onClick={() => handleDeleteSavedCycle(cycle)} title="Delete saved template only" style={{ padding: '0.4rem', border: '1px solid #fecaca', color: '#ef4444', backgroundColor: '#fff', borderRadius: '5px', cursor: 'pointer' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '0 -1.5rem 1.5rem', paddingTop: '1.5rem' }} />
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Send size={18} color="var(--color-brand-emerald)" /> Active Cycles & Automations
           </h2>
