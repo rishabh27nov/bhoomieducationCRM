@@ -44,11 +44,13 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
           contact: lead || { id: `whatsapp-${phoneKey}`, name: reply.senderName || 'WhatsApp contact', phone: reply.leadPhone },
           latest: reply,
           replyCount: 1,
+          unreadCount: reply.readAt ? 0 : 1,
           searchText: `${reply.senderName || ''} ${reply.leadPhone || ''} ${reply.text || ''} ${lead?.name || ''}`.toLowerCase()
         });
         return;
       }
       existing.replyCount += 1;
+      if (!reply.readAt) existing.unreadCount += 1;
       existing.searchText += ` ${reply.text || ''}`.toLowerCase();
       if (new Date(reply.timestamp).getTime() > new Date(existing.latest.timestamp).getTime()) existing.latest = reply;
     });
@@ -58,6 +60,17 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
   }, [replies, leadByPhone, search]);
 
   const formatDate = (timestamp) => new Date(timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const openConversation = (conversation) => {
+    onOpenChat(conversation.contact);
+    if (!conversation.unreadCount) return;
+    const readAt = new Date().toISOString();
+    setReplies(current => current.map(reply => digits(reply.leadPhone) === conversation.phoneKey && !reply.readAt ? { ...reply, readAt } : reply));
+    fetch('/api/whatsapp/replies', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: conversation.contact.phone || conversation.latest.leadPhone })
+    }).catch(error => console.error('Failed to mark WhatsApp replies as read', error));
+  };
 
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -79,9 +92,9 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {conversations.map(conversation => {
-            const { latest, contact, lead, replyCount } = conversation;
+            const { latest, lead, replyCount, unreadCount } = conversation;
             return (
-              <button key={conversation.phoneKey} type="button" onClick={() => onOpenChat(contact)} style={{ textAlign: 'left', width: '100%', cursor: 'pointer', border: '1px solid #d1fae5', borderRadius: '10px', background: '#fff', padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <button key={conversation.phoneKey} type="button" onClick={() => openConversation(conversation)} style={{ textAlign: 'left', width: '100%', cursor: 'pointer', border: '1px solid #d1fae5', borderRadius: '10px', background: '#fff', padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0, background: '#dcfce7', color: '#15803d', display: 'grid', placeItems: 'center' }}><User size={19} /></div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
@@ -91,7 +104,8 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
                   <div style={{ color: '#64748b', fontSize: '0.78rem', marginTop: '0.15rem' }}>{latest.leadPhone || 'No phone'} · Click to open chat</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginTop: '0.55rem' }}>
                     <div style={{ color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.45 }}>{latest.text || '[Media reply]'}</div>
-                    <span title={`${replyCount} incoming messages`} style={{ flexShrink: 0, minWidth: '24px', height: '24px', padding: '0 0.45rem', borderRadius: '999px', background: '#15803d', color: '#fff', fontSize: '0.75rem', fontWeight: 800, display: 'grid', placeItems: 'center' }}>{replyCount}</span>
+                    <span style={{ color: '#64748b', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>{replyCount} message{replyCount === 1 ? '' : 's'}</span>
+                    {unreadCount > 0 && <span title={`${unreadCount} unread replies`} style={{ flexShrink: 0, minWidth: '24px', height: '24px', padding: '0 0.45rem', borderRadius: '999px', background: '#15803d', color: '#fff', fontSize: '0.75rem', fontWeight: 800, display: 'grid', placeItems: 'center' }}>{unreadCount}</span>}
                   </div>
                 </div>
               </button>
