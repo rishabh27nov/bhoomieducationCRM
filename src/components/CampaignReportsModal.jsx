@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, FileText, CheckCircle2, XCircle, Search, Clock, Calendar } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { X, FileText, CheckCircle2, XCircle, Search, Clock, Calendar, Download, CheckSquare } from 'lucide-react';
 
 export default function CampaignReportsModal({ onClose, onRetryFailed, onResumePending }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLogIds, setSelectedLogIds] = useState([]);
 
   useEffect(() => {
     fetchLogs();
@@ -47,6 +49,73 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
     log.template?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.campaignType?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const allFilteredSelected = filteredLogs.length > 0 && filteredLogs.every(log => selectedLogIds.includes(log.id));
+  const toggleLogSelection = (id) => setSelectedLogIds(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
+  const toggleAllFiltered = () => setSelectedLogIds(current => allFilteredSelected
+    ? current.filter(id => !filteredLogs.some(log => log.id === id))
+    : [...new Set([...current, ...filteredLogs.map(log => log.id)])]);
+
+  const safeFilename = (value) => String(value || 'campaign-report')
+    .replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase();
+
+  const downloadPdf = (reports, filename) => {
+    if (!reports.length) return;
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 42;
+    let y = margin;
+    const ensureSpace = (height = 18) => {
+      if (y + height <= pageHeight - margin) return;
+      pdf.addPage();
+      y = margin;
+    };
+    const line = (text, { size = 9, color = [51, 65, 85], indent = 0, bold = false } = {}) => {
+      pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+      pdf.setFontSize(size);
+      pdf.setTextColor(...color);
+      pdf.splitTextToSize(String(text || '-'), pageWidth - margin * 2 - indent).forEach(part => {
+        ensureSpace(size + 5);
+        pdf.text(part, margin + indent, y);
+        y += size + 5;
+      });
+    };
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text('WhatsApp Campaign Delivery Report', margin, y);
+    y += 22;
+    line(`Downloaded: ${formatDate(new Date().toISOString())}`, { size: 8, color: [100, 116, 139] });
+    y += 8;
+
+    [...reports].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).forEach((report, reportIndex) => {
+      ensureSpace(80);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 16;
+      line(`Date: ${formatDate(report.timestamp)}`, { size: 12, color: [15, 23, 42], bold: true });
+      line(`Template: ${report.template || 'Unknown'}  |  Type: ${report.campaignType || 'Unknown'}${report.cycleName ? `  |  Cycle: ${report.cycleName}` : ''}`);
+      line(`Target: ${report.targetAudience || 0}   Sent: ${report.successfulCount || 0}   Failed: ${report.failedCount || 0}`, { bold: true });
+
+      const successful = report.successfulLeads || [];
+      if (successful.length) {
+        y += 4;
+        line(`Sent to (${successful.length})`, { size: 10, color: [21, 128, 61], bold: true });
+        successful.forEach((lead, index) => line(`${index + 1}. ${lead.name || 'Unknown'} — ${lead.phone || 'N/A'}`, { indent: 10 }));
+      }
+      const failed = report.failedLeads || [];
+      if (failed.length) {
+        y += 4;
+        line(`Failed (${failed.length})`, { size: 10, color: [185, 28, 28], bold: true });
+        failed.forEach((lead, index) => line(`${index + 1}. ${lead.name || 'Unknown'} — ${lead.phone || 'N/A'}${lead.error ? ` | ${lead.error}` : ''}`, { indent: 10, color: [127, 29, 29] }));
+      }
+      if (!successful.length && !failed.length) line('Recipient-level list was not stored for this older campaign record.', { size: 8, color: [100, 116, 139] });
+      if (reportIndex < reports.length - 1) y += 12;
+    });
+    pdf.save(`${safeFilename(filename)}.pdf`);
+  };
 
   const getPendingRecipients = (log) => (log.recipientResults || [])
     .filter(recipient => recipient.status === 'pending')
@@ -95,6 +164,24 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                 />
               </div>
 
+              {!loading && filteredLogs.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginTop: '-0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#334155', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} />
+                    Select all shown ({filteredLogs.length})
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={selectedLogIds.length === 0}
+                    onClick={() => downloadPdf(logs.filter(log => selectedLogIds.includes(log.id)), `whatsapp-campaigns-${new Date().toISOString().slice(0, 10)}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', opacity: selectedLogIds.length ? 1 : 0.55 }}
+                  >
+                    <Download size={14} /> Download selected PDF ({selectedLogIds.length})
+                  </button>
+                </div>
+              )}
+
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Loading logs...</div>
               ) : filteredLogs.length === 0 ? (
@@ -115,7 +202,16 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                       onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                       onMouseOut={(e) => e.currentTarget.style.transform = 'none'}
                     >
-                      <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', minWidth: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedLogIds.includes(log.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleLogSelection(log.id)}
+                          aria-label={`Select ${log.template} report`}
+                          style={{ width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0 }}
+                        />
+                        <div>
                         <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem', fontSize: '1.05rem' }}>
                           {log.template}
                         </div>
@@ -134,6 +230,7 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                             </span>
                           )}
                         </div>
+                        </div>
                       </div>
                       
                       <div style={{ display: 'flex', gap: '1rem', textAlign: 'center' }}>
@@ -145,6 +242,15 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                           <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{log.failedCount || 0}</div>
                           <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>Failed</div>
                         </div>
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          title="Download this report as PDF"
+                          onClick={(event) => { event.stopPropagation(); downloadPdf([log], `${log.template}-${new Date(log.timestamp).toISOString().slice(0, 10)}`); }}
+                          style={{ color: '#2563eb', border: '1px solid #bfdbfe', background: '#eff6ff', borderRadius: '7px', padding: '0.45rem' }}
+                        >
+                          <Download size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
