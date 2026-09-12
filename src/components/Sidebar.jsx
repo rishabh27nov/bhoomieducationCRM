@@ -18,7 +18,8 @@ import {
   Phone,
   Bot,
   MessageCircle,
-  MessagesSquare
+  MessagesSquare,
+  Database
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -40,6 +41,7 @@ export default function Sidebar({
     { id: 'whatsapp_automations', label: 'WhatsApp Automations', icon: Bot, badge: 'AUTO' },
     { id: 'whatsapp_replies', label: 'WhatsApp Replies', icon: MessageCircle, badge: 'INBOX' },
     { id: 'employee_chat', label: 'Employee Chat', icon: MessagesSquare, badge: employeeChatUnread > 0 ? String(employeeChatUnread) : 'TEAM', urgent: employeeChatUnread > 0 },
+    { id: 'excel_data', label: 'Excel Data', icon: Database, badge: 'LIVE' },
     { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: batchCount > 0 ? String(batchCount) : null },
     { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: employeeCount > 0 ? String(employeeCount) : null },
     { id: 'vault', label: 'Student Academic Vault', icon: FolderOpen },

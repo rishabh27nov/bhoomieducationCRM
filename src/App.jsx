@@ -29,6 +29,7 @@ import WhatsAppAutomationsManager from './components/WhatsAppAutomationsManager'
 import WhatsAppReplies from './components/WhatsAppReplies';
 import WhatsAppChatModal from './components/WhatsAppChatModal';
 import EmployeeChat from './components/EmployeeChat';
+import ExcelDataManager from './components/ExcelDataManager';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -1157,6 +1158,10 @@ export default function App() {
 
           {activeTab === 'employee_chat' && (
             <EmployeeChat currentUser={currentUser} employees={employees} onSharedDocument={handleSharedChatDocument} unreadCount={employeeChatUnread} onMarkRead={markEmployeeChatRead} />
+          )}
+
+          {activeTab === 'excel_data' && (
+            <ExcelDataManager />
           )}
 
           {activeTab === 'analytics' && (
