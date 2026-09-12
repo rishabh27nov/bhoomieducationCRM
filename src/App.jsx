@@ -28,6 +28,7 @@ import WhatsAppSettingsManager from './components/WhatsAppSettingsManager';
 import WhatsAppAutomationsManager from './components/WhatsAppAutomationsManager';
 import WhatsAppReplies from './components/WhatsAppReplies';
 import WhatsAppChatModal from './components/WhatsAppChatModal';
+import EmployeeChat from './components/EmployeeChat';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
@@ -496,6 +497,15 @@ export default function App() {
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSharedChatDocument = (document) => {
+    setDocuments(previous => {
+      if (previous.some(existing => existing.id === document.id)) return previous;
+      const updated = [document, ...previous];
+      saveToCentralDB({ documents: updated });
+      return updated;
+    });
+  };
 
   // Login handler
   const handleLoginSuccess = (userObj) => {
@@ -1113,6 +1123,10 @@ export default function App() {
               leads={leads}
               onOpenChat={(lead) => setChatLead(lead)}
             />
+          )}
+
+          {activeTab === 'employee_chat' && (
+            <EmployeeChat currentUser={currentUser} employees={employees} onSharedDocument={handleSharedChatDocument} />
           )}
 
           {activeTab === 'analytics' && (

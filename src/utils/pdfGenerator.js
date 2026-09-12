@@ -97,9 +97,9 @@ export function downloadDocumentFile(doc) {
   const fileName = doc.fileName || `${doc.title || 'Document'}.pdf`;
 
   // 1. If document has actual base64/Data URL from real upload
-  if (doc.fileDataUrl) {
+  if (doc.fileDataUrl || doc.fileUrl) {
     const a = document.createElement('a');
-    a.href = doc.fileDataUrl;
+    a.href = doc.fileDataUrl || doc.fileUrl;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();

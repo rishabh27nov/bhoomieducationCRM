@@ -17,7 +17,8 @@ import {
   Share2,
   Phone,
   Bot,
-  MessageCircle
+  MessageCircle,
+  MessagesSquare
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -37,6 +38,7 @@ export default function Sidebar({
     { id: 'whatsapp_setup', label: 'WhatsApp API Setup', icon: Phone, badge: 'API' },
     { id: 'whatsapp_automations', label: 'WhatsApp Automations', icon: Bot, badge: 'AUTO' },
     { id: 'whatsapp_replies', label: 'WhatsApp Replies', icon: MessageCircle, badge: 'INBOX' },
+    { id: 'employee_chat', label: 'Employee Chat', icon: MessagesSquare, badge: 'TEAM' },
     { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: batchCount > 0 ? String(batchCount) : null },
     { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: employeeCount > 0 ? String(employeeCount) : null },
     { id: 'vault', label: 'Student Academic Vault', icon: FolderOpen },
@@ -56,6 +58,7 @@ export default function Sidebar({
       'tasks',
       'attendance',
       'documents',
+      'employee_chat',
       'employee_settings'
     ];
     menuItems = menuItems.filter((item) => allowedEmployeeTabIds.includes(item.id));
