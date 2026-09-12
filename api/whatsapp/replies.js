@@ -25,6 +25,25 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, markedRead: unreadEntries.length, readAt });
     }
 
+    if (req.method === 'DELETE') {
+      const phone = req.body?.phone;
+      if (!phone) return res.status(400).json({ error: 'phone is required' });
+
+      const fbRes = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
+      const data = await fbRes.json();
+      const messagesById = Array.isArray(data)
+        ? Object.fromEntries(data.map((message, index) => [index, message]).filter(([, message]) => message))
+        : (data || {});
+      const targetPhone = lastTenDigits(phone);
+      const matchingEntries = Object.entries(messagesById).filter(([, message]) =>
+        lastTenDigits(message?.leadPhone) === targetPhone
+      );
+      await Promise.all(matchingEntries.map(([id]) => fetch(`${FIREBASE_URL}/whatsappMessages/${id}.json`, {
+        method: 'DELETE'
+      })));
+      return res.status(200).json({ success: true, deleted: matchingEntries.length });
+    }
+
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
     const fbRes = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
     const data = await fbRes.json();
