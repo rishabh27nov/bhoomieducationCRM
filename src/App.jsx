@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   INITIAL_LEADS,
   COUNSELORS,
@@ -218,6 +218,35 @@ export default function App() {
     }
     return user;
   });
+  const [employeeChatUnread, setEmployeeChatUnread] = useState(0);
+  const knownEmployeeChatMessageIds = useRef(new Set());
+
+  const employeeChatReadKey = () => `lakshya_employee_chat_last_read_${currentUser?.id || currentUser?.email || 'employee'}`;
+  const markEmployeeChatRead = () => {
+    try { localStorage.setItem(employeeChatReadKey(), new Date().toISOString()); } catch {}
+    setEmployeeChatUnread(0);
+  };
+
+  // Keep the chat notification badge live even when the user is on another CRM page.
+  useEffect(() => {
+    const chatRef = ref(firebaseDB, 'lakshya_crm_central_db/employeeChatMessages');
+    let firstLoad = true;
+    return onValue(chatRef, snapshot => {
+      const allMessages = Object.values(snapshot.val() || {}).filter(Boolean);
+      const currentUserId = String(currentUser?.id || currentUser?.email || 'employee');
+      const lastRead = new Date(localStorage.getItem(employeeChatReadKey()) || 0).getTime();
+      const incoming = allMessages.filter(message => String(message.senderId) !== currentUserId && new Date(message.timestamp).getTime() > lastRead);
+      setEmployeeChatUnread(incoming.length);
+
+      const newIncoming = allMessages.filter(message => !knownEmployeeChatMessageIds.current.has(message.id) && String(message.senderId) !== currentUserId);
+      knownEmployeeChatMessageIds.current = new Set(allMessages.map(message => message.id));
+      if (!firstLoad && newIncoming.length && document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') {
+        const latest = newIncoming[newIncoming.length - 1];
+        new Notification(`Employee Chat: ${latest.senderName || 'New message'}`, { body: latest.text || 'Sent a file' });
+      }
+      firstLoad = false;
+    });
+  }, [currentUser]);
 
 
   // Save changes to localStorage
@@ -982,6 +1011,7 @@ export default function App() {
         employeeCount={employees.length}
         taskCount={tasks.length}
         batchCount={0}
+        employeeChatUnread={employeeChatUnread}
         currentUser={currentUser}
       />
 
@@ -1126,7 +1156,7 @@ export default function App() {
           )}
 
           {activeTab === 'employee_chat' && (
-            <EmployeeChat currentUser={currentUser} employees={employees} onSharedDocument={handleSharedChatDocument} />
+            <EmployeeChat currentUser={currentUser} employees={employees} onSharedDocument={handleSharedChatDocument} unreadCount={employeeChatUnread} onMarkRead={markEmployeeChatRead} />
           )}
 
           {activeTab === 'analytics' && (

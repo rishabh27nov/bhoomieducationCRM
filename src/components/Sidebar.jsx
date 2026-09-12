@@ -27,6 +27,7 @@ export default function Sidebar({
   employeeCount = 0,
   taskCount = 0,
   batchCount = 0,
+  employeeChatUnread = 0,
   currentUser
 }) {
   const isEmployeeRole = currentUser?.role === 'Employee';
@@ -38,7 +39,7 @@ export default function Sidebar({
     { id: 'whatsapp_setup', label: 'WhatsApp API Setup', icon: Phone, badge: 'API' },
     { id: 'whatsapp_automations', label: 'WhatsApp Automations', icon: Bot, badge: 'AUTO' },
     { id: 'whatsapp_replies', label: 'WhatsApp Replies', icon: MessageCircle, badge: 'INBOX' },
-    { id: 'employee_chat', label: 'Employee Chat', icon: MessagesSquare, badge: 'TEAM' },
+    { id: 'employee_chat', label: 'Employee Chat', icon: MessagesSquare, badge: employeeChatUnread > 0 ? String(employeeChatUnread) : 'TEAM', urgent: employeeChatUnread > 0 },
     { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: batchCount > 0 ? String(batchCount) : null },
     { id: 'employees', label: 'Faculty & Team', icon: Contact, badge: employeeCount > 0 ? String(employeeCount) : null },
     { id: 'vault', label: 'Student Academic Vault', icon: FolderOpen },
@@ -152,8 +153,8 @@ export default function Sidebar({
                       fontWeight: 700,
                       padding: '0.15rem 0.5rem',
                       borderRadius: '9999px',
-                      backgroundColor: isActive ? '#52b788' : 'rgba(255, 255, 255, 0.1)',
-                      color: isActive ? '#081c15' : '#cbd5e1'
+                      backgroundColor: item.urgent ? '#ef4444' : (isActive ? '#52b788' : 'rgba(255, 255, 255, 0.1)'),
+                      color: item.urgent ? '#ffffff' : (isActive ? '#081c15' : '#cbd5e1')
                     }}>
                       {item.badge}
                     </span>

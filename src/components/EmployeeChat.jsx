@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Paperclip, Send, Users, Download, FileText, Loader2 } from 'lucide-react';
+import { Paperclip, Send, Users, Download, FileText, Loader2, Bell } from 'lucide-react';
 import { db as firebaseDB, storage, ref, onValue, update, storageRef, uploadBytes, getDownloadURL } from '../firebase';
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
-export default function EmployeeChat({ currentUser, employees = [], onSharedDocument }) {
+export default function EmployeeChat({ currentUser, employees = [], onSharedDocument, unreadCount = 0, onMarkRead }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -23,6 +23,16 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (unreadCount > 0) onMarkRead?.();
+  }, [unreadCount, onMarkRead]);
+
+  const enableBrowserAlerts = async () => {
+    if (!('Notification' in window)) return alert('Browser notifications are not supported on this device.');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') alert('Notifications were not enabled. Please allow them from your browser settings.');
+  };
 
   const getMentionedEmployees = (messageText) => employees
     .filter(employee => messageText.toLowerCase().includes(`@${String(employee.name || '').toLowerCase()}`))
@@ -109,7 +119,10 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
           <h1 style={{ margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.55rem' }}><Users color="#15803d" /> Employee Chat</h1>
           <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.88rem' }}>Internal team chat. Shared files also appear in Document Upload Hub.</p>
         </div>
-        <span style={{ background: '#dcfce7', color: '#166534', borderRadius: '999px', padding: '0.4rem 0.75rem', fontWeight: 700, fontSize: '0.78rem' }}>{employees.length} team members</span>
+        <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center' }}>
+          <button type="button" onClick={enableBrowserAlerts} title="Enable desktop chat notifications" style={{ border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#166534', borderRadius: '999px', padding: '0.4rem 0.65rem', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', gap: '0.3rem', alignItems: 'center' }}><Bell size={14} /> Alerts</button>
+          <span style={{ background: '#dcfce7', color: '#166534', borderRadius: '999px', padding: '0.4rem 0.75rem', fontWeight: 700, fontSize: '0.78rem' }}>{employees.length} team members</span>
+        </div>
       </div>
 
       <div style={{ flex: 1, minHeight: 0, background: '#efeae2', border: '1px solid #d1d5db', borderRadius: '14px', overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
