@@ -9,6 +9,7 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const messageInputRef = useRef(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -23,6 +24,10 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const getMentionedEmployees = (messageText) => employees
+    .filter(employee => messageText.toLowerCase().includes(`@${String(employee.name || '').toLowerCase()}`))
+    .map(employee => ({ id: employee.id, name: employee.name }));
+
   const saveMessage = async ({ messageText = '', attachment = null }) => {
     const id = `EMP-CHAT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const message = {
@@ -31,6 +36,7 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
       senderName: currentUser?.name || 'Employee',
       senderRole: currentUser?.role || 'Employee',
       text: messageText.trim(),
+      mentions: getMentionedEmployees(messageText),
       attachment,
       timestamp: new Date().toISOString()
     };
@@ -86,6 +92,16 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
     }
   };
 
+  const mentionMatch = text.match(/(^|\s)@([^\s@]*)$/);
+  const mentionQuery = mentionMatch?.[2]?.toLowerCase() || '';
+  const mentionCandidates = mentionMatch
+    ? employees.filter(employee => String(employee.name || '').toLowerCase().includes(mentionQuery)).slice(0, 6)
+    : [];
+  const insertMention = (employee) => {
+    setText(current => current.replace(/(^|\s)@[^\s@]*$/, `$1@${employee.name} `));
+    requestAnimationFrame(() => messageInputRef.current?.focus());
+  };
+
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', maxWidth: '1100px', margin: '0 auto', height: 'calc(100vh - 90px)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
@@ -103,6 +119,7 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
           return <div key={message.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '75%', background: isMine ? '#dcf8c6' : '#fff', borderRadius: '10px', padding: '0.65rem 0.8rem', boxShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
             {!isMine && <div style={{ color: '#075e54', fontWeight: 800, fontSize: '0.78rem', marginBottom: '0.3rem' }}>{message.senderName} <span style={{ color: '#64748b', fontWeight: 500 }}>· {message.senderRole}</span></div>}
             {message.text && <div style={{ color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{message.text}</div>}
+            {message.mentions?.length > 0 && <div style={{ marginTop: '0.35rem', color: '#075e54', fontSize: '0.72rem', fontWeight: 800 }}>{message.mentions.map(mention => `@${mention.name}`).join(' ')}</div>}
             {message.attachment && <a href={message.attachment.fileUrl} target="_blank" rel="noreferrer" style={{ marginTop: message.text ? '0.55rem' : 0, display: 'flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none', color: '#075e54', background: 'rgba(255,255,255,0.7)', padding: '0.5rem', borderRadius: '7px', fontWeight: 700, fontSize: '0.82rem' }}><FileText size={17} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{message.attachment.name}</span> <Download size={15} /></a>}
             <div style={{ textAlign: 'right', color: '#64748b', fontSize: '0.65rem', marginTop: '0.3rem' }}>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
           </div>;
@@ -110,10 +127,13 @@ export default function EmployeeChat({ currentUser, employees = [], onSharedDocu
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', background: '#fff', border: '1px solid #d1d5db', padding: '0.7rem', borderRadius: '12px' }}>
+      <form onSubmit={handleSend} style={{ position: 'relative', display: 'flex', gap: '0.65rem', alignItems: 'center', background: '#fff', border: '1px solid #d1d5db', padding: '0.7rem', borderRadius: '12px' }}>
+        {mentionCandidates.length > 0 && <div style={{ position: 'absolute', left: '3rem', bottom: 'calc(100% + 0.5rem)', width: '300px', maxHeight: '220px', overflowY: 'auto', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', boxShadow: '0 12px 28px rgba(15,23,42,0.18)', zIndex: 3, padding: '0.35rem' }}>
+          {mentionCandidates.map(employee => <button key={employee.id || employee.name} type="button" onClick={() => insertMention(employee)} style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', padding: '0.6rem 0.7rem', borderRadius: '7px', color: '#1e293b', fontWeight: 700 }}><span style={{ color: '#15803d' }}>@</span>{employee.name} <span style={{ color: '#64748b', fontWeight: 500, fontSize: '0.75rem' }}>· {employee.role || 'Employee'}</span></button>)}
+        </div>}
         <input ref={fileInputRef} type="file" onChange={handleFile} style={{ display: 'none' }} />
         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Share file (max 25 MB)" style={{ border: 'none', background: 'transparent', color: '#15803d', cursor: 'pointer', display: 'grid', placeItems: 'center', padding: '0.4rem' }}>{uploading ? <Loader2 size={21} className="animate-spin" /> : <Paperclip size={21} />}</button>
-        <input className="form-input" value={text} onChange={event => setText(event.target.value)} placeholder="Write a message to your team..." style={{ flex: 1, border: 'none', boxShadow: 'none' }} />
+        <input ref={messageInputRef} className="form-input" value={text} onChange={event => setText(event.target.value)} placeholder="Write a message to your team... Use @ to tag someone" style={{ flex: 1, border: 'none', boxShadow: 'none' }} />
         <button type="submit" disabled={!text.trim() || uploading} title="Send message" style={{ width: '40px', height: '40px', borderRadius: '50%', border: 'none', background: '#15803d', color: '#fff', cursor: text.trim() ? 'pointer' : 'not-allowed', display: 'grid', placeItems: 'center' }}><Send size={18} /></button>
       </form>
     </div>
