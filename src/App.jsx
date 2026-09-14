@@ -197,8 +197,17 @@ export default function App() {
       [dateStr]: mergedForDate
     };
     setAttendanceRecords(updated);
+    // Save only this date under its own Firebase path. This preserves every
+    // other saved attendance date even when another CRM screen saves data.
+    try {
+      localStorage.setItem('lakshya_attendance', JSON.stringify(updated));
+      update(ref(firebaseDB, 'lakshya_crm_central_db/attendanceRecords'), {
+        [dateStr]: mergedForDate
+      }).catch((error) => console.warn('Attendance cloud save failed:', error));
+    } catch (error) {
+      console.warn('Attendance local save failed:', error);
+    }
     logActivity('Staff Attendance Updated', `Staff marked/updated attendance register for date ${dateStr}`);
-    saveToCentralDB({ attendanceRecords: updated });
     try {
       window.dispatchEvent(new CustomEvent('lakshya_attendance_updated', { detail: updated }));
     } catch {}
@@ -416,7 +425,6 @@ export default function App() {
         tasks,
         activityLogs,
         notifications,
-        attendanceRecords,
         documents,
         ...override
       };
