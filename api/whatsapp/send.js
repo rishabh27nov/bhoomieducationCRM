@@ -1,6 +1,9 @@
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const firebaseMessageKey = (id) => String(id).replace(/[.#$\[\]/]/g, '_');
 const deliveryKey = (template, phone) => `${firebaseMessageKey(template)}_${String(phone).slice(-10)}`;
+const indiaDateKey = (value = new Date()) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+}).format(new Date(value));
 
 const claimTemplateDelivery = async (template, phone) => {
   const url = `${FIREBASE_URL}/whatsappTemplateDeliveries/${deliveryKey(template, phone)}.json`;
@@ -8,10 +11,14 @@ const claimTemplateDelivery = async (template, phone) => {
   const recordRes = await fetch(url, { headers: { 'X-Firebase-ETag': 'true' } });
   const existing = await recordRes.json();
   const etag = recordRes.headers.get('etag');
-  if (existing?.status === 'sent') return { skipped: true, existing };
+  const today = indiaDateKey();
+  const previousSendDate = existing?.sentAt ? indiaDateKey(existing.sentAt) : existing?.dateKey;
+  // A student receives the same template at most once per India calendar day.
+  // Tomorrow, the old delivery is replaced by a new claim and can be sent again.
+  if (existing?.status === 'sent' && previousSendDate === today) return { skipped: true, existing };
   if (existing?.status === 'processing' && new Date(existing.leaseExpiresAt).getTime() > now) return { skipped: true, existing };
 
-  const claimed = { template, phone, status: 'processing', startedAt: new Date(now).toISOString(), leaseExpiresAt: new Date(now + 15 * 60 * 1000).toISOString() };
+  const claimed = { template, phone, dateKey: today, status: 'processing', startedAt: new Date(now).toISOString(), leaseExpiresAt: new Date(now + 15 * 60 * 1000).toISOString() };
   const claimRes = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'if-match': etag || 'null_etag' },
@@ -105,7 +112,7 @@ export default async function handler(req, res) {
 
     if (!metaResponse.ok) {
       if (deliveryClaim?.url) {
-        await fetch(deliveryClaim.url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: resolvedTemplate, phone: cleanPhone, status: 'failed', failedAt: new Date().toISOString() }) });
+        await fetch(deliveryClaim.url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: resolvedTemplate, phone: cleanPhone, dateKey: indiaDateKey(), status: 'failed', failedAt: new Date().toISOString() }) });
       }
       console.error('Meta API Error:', metaResult);
       return res.status(400).json({ 
@@ -128,7 +135,7 @@ export default async function handler(req, res) {
       await fetch(deliveryClaim.url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template: resolvedTemplate, phone: cleanPhone, status: 'sent', sentAt: new Date().toISOString(), messageId: outgoingMsg.id })
+        body: JSON.stringify({ template: resolvedTemplate, phone: cleanPhone, dateKey: indiaDateKey(), status: 'sent', sentAt: new Date().toISOString(), messageId: outgoingMsg.id })
       });
     }
 
