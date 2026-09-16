@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import LakshyaLogo from './LakshyaLogo';
-import { Shield, User, Lock, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Shield, User, Lock, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Eye, EyeOff, Building2, Chrome, Loader2 } from 'lucide-react';
 import { ADMIN_CREDENTIALS, INSTITUTE_CREDENTIALS } from '../data/mockData';
+import { auth, googleProvider, signInWithPopup, signOut } from '../firebase';
 
 export default function LoginPage({ onLoginSuccess, employees = [] }) {
   const [loginMode, setLoginMode] = useState('admin'); // 'admin', 'institute', 'employee'
@@ -9,6 +10,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
 
   const handleLoginSubmit = (e) => {
@@ -86,6 +88,35 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
       } else {
         setErrorMessage('Invalid Email/Phone or Password. Please check credentials set by Admin.');
       }
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setErrorMessage('');
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const googleUser = result.user;
+      const email = String(googleUser.email || '').trim().toLowerCase();
+      const ownerEmails = [ADMIN_CREDENTIALS.email, 'bhoomieducation44@gmail.com'].map(value => value.toLowerCase());
+      const matchedEmployee = employees.find(employee => String(employee.email || '').trim().toLowerCase() === email);
+      const isDefaultInstitute = email === String(INSTITUTE_CREDENTIALS.email || '').toLowerCase();
+
+      if (ownerEmails.includes(email)) {
+        onLoginSuccess({ ...ADMIN_CREDENTIALS, name: googleUser.displayName || ADMIN_CREDENTIALS.name, email, firebaseUid: googleUser.uid, authProvider: 'google' });
+      } else if (isDefaultInstitute) {
+        onLoginSuccess({ ...INSTITUTE_CREDENTIALS, name: googleUser.displayName || INSTITUTE_CREDENTIALS.name, email, firebaseUid: googleUser.uid, authProvider: 'google' });
+      } else if (matchedEmployee) {
+        onLoginSuccess({ ...matchedEmployee, name: googleUser.displayName || matchedEmployee.name, email, firebaseUid: googleUser.uid, authProvider: 'google' });
+      } else {
+        await signOut(auth);
+        setErrorMessage('This Google email is not linked to an employee profile. Ask the Admin to add the same official email in Employee Settings.');
+      }
+    } catch (error) {
+      console.error('Google sign-in failed', error);
+      setErrorMessage(error?.code === 'auth/popup-closed-by-user' ? 'Google sign-in was cancelled.' : 'Google sign-in could not be completed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -363,6 +394,19 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
             <span>Log In to {loginMode === 'admin' ? 'Admin Portal' : 'Employee Dashboard'}</span>
             <ArrowRight size={18} />
           </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700 }}>
+            <span style={{ height: '1px', flex: 1, background: '#e2e8f0' }} /> OR <span style={{ height: '1px', flex: 1, background: '#e2e8f0' }} />
+          </div>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            style={{ width: '100%', padding: '0.78rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#1e293b', fontWeight: 800, cursor: googleLoading ? 'wait' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.55rem' }}
+          >
+            {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <Chrome size={18} color="#4285f4" />} Continue with Google
+          </button>
+          <p style={{ margin: '-0.55rem 0 0', textAlign: 'center', fontSize: '0.7rem', color: '#64748b' }}>Use the official Gmail saved in your employee profile.</p>
 
 
         </form>
