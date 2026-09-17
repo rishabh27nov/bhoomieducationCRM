@@ -1,4 +1,5 @@
 import { authorize } from '../../lib/whatsappAccess.js';
+import { replyWindow } from '../../lib/whatsappDelivery.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const firebaseMessageKey = (id) => String(id).replace(/[.#$\[\]/]/g, '_');
 const deliveryKey = (template, phone) => `${firebaseMessageKey(template)}_${String(phone).slice(-10)}`;
@@ -52,6 +53,13 @@ export default async function handler(req, res) {
 
     const access = await authorize(req, res, { phone });
     if (!access) return;
+
+    if (!isTemplate) {
+      const historyResponse = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
+      if (!historyResponse.ok) return res.status(503).json({ error: 'Unable to check the WhatsApp reply window. Please retry.' });
+      const window = replyWindow(await historyResponse.json(), phone);
+      if (!window.open) return res.status(409).json({ code: 'REPLY_WINDOW_CLOSED', error: 'No student reply recorded in the last 24 hours. Send an approved template and wait for the student to reply, or ask the student to message your business WhatsApp number first.' });
+    }
 
     // Fetch WhatsApp credentials from Firebase
     const settingsRes = await fetch(`${FIREBASE_URL}/whatsappSettings.json`);
@@ -134,7 +142,7 @@ export default async function handler(req, res) {
       text: isTemplate ? `[Template Sent: ${templateName || 'lakshya_admission_enquiry'}]` : message,
       timestamp: new Date().toISOString(),
       direction: 'outgoing',
-      status: 'sent'
+      status: 'accepted'
     };
 
     if (deliveryClaim?.url) {

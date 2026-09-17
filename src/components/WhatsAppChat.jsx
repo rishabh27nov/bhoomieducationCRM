@@ -11,9 +11,11 @@ export default function WhatsAppChat({ lead, expanded = false }) {
   const [templates, setTemplates] = useState([]);
   const [template, setTemplate] = useState('');
   const [accessDenied, setAccessDenied] = useState(false);
+  const [windowOpen, setWindowOpen] = useState(false);
+  const [sendError, setSendError] = useState('');
   useEffect(() => {
     let active = true;
-    setMessages([]); setInputText(''); setError(''); setAccessDenied(false);
+    setMessages([]); setInputText(''); setError(''); setSendError(''); setAccessDenied(false); setWindowOpen(false);
     const fetchMessages = async () => {
       try {
         const res = await whatsappFetch('/api/whatsapp/messages?phone=' + encodeURIComponent(lead.phone || ''));
@@ -23,7 +25,7 @@ export default function WhatsAppChat({ lead, expanded = false }) {
           setMessages([]); setAccessDenied([401, 403].includes(res.status));
           throw new Error(data.error || 'Could not load messages.');
         }
-        setAccessDenied(false); setMessages(data.messages || []); setError('');
+        setAccessDenied(false); setMessages(data.messages || []); setWindowOpen(data.replyWindow?.open === true); setError('');
       } catch (err) { if (active) setError(err.message); }
     };
     fetchMessages();
@@ -36,7 +38,7 @@ export default function WhatsAppChat({ lead, expanded = false }) {
 
   const send = async (isTemplate = false) => {
     if (isLoading || accessDenied || (!isTemplate && !inputText.trim())) return;
-    setIsLoading(true); setError('');
+    setIsLoading(true); setSendError('');
     const text = inputText.trim();
     try {
       const res = await whatsappFetch('/api/whatsapp/send', {
@@ -48,10 +50,10 @@ export default function WhatsAppChat({ lead, expanded = false }) {
         if ([401, 403].includes(res.status)) { setAccessDenied(true); setMessages([]); }
         throw new Error(data.error || 'Message could not be sent.');
       }
-      if (data.skipped) setError(data.message);
+      if (data.skipped) setSendError(data.message);
       else if (data.message) setMessages(previous => [...previous.filter(message => message.id !== data.message.id), data.message]);
       if (!isTemplate) setInputText('');
-    } catch (err) { setError(err.message); }
+    } catch (err) { setSendError(err.message); }
     finally { setIsLoading(false); }
   };
   const handleSendMessage = e => { e.preventDefault(); send(); };
@@ -128,6 +130,9 @@ export default function WhatsAppChat({ lead, expanded = false }) {
             flexDirection: 'column'
           }}>
             <span style={{ fontSize: '0.9rem', color: '#303030', wordWrap: 'break-word' }}>{msg.text}</span>
+            {msg.status === 'failed' && <span role="alert" style={{ fontSize: '0.8rem', color: '#b91c1c', marginTop: '4px' }}>
+              Delivery failed: {(msg.deliveryErrors || []).map(item => `${item.code ? `(${item.code}) ` : ''}${item.message}`).join('; ') || 'WhatsApp could not deliver this message.'}
+            </span>}
             <div style={{
               alignSelf: 'flex-end',
               fontSize: '0.65rem',
@@ -139,14 +144,17 @@ export default function WhatsAppChat({ lead, expanded = false }) {
             }}>
               {formatTime(msg.timestamp)}
               {msg.direction === 'outgoing' && (
-                <CheckCircle2 size={12} color={msg.status === 'read' ? '#34b7f1' : '#999'} />
+                <span style={{ color: msg.status === 'failed' ? '#b91c1c' : msg.status === 'read' ? '#0284c7' : '#64748b' }}>
+                  {msg.status === 'accepted' ? 'Awaiting delivery' : msg.status === 'delivered' ? 'Delivered' : msg.status === 'read' ? 'Read' : msg.status === 'failed' ? 'Failed' : 'Sent — delivery unconfirmed'}
+                </span>
               )}
             </div>
           </div>
         ))}
       </div>
 
-      {error && <div role="alert" style={{ padding: '0.6rem', color: '#b91c1c', background: '#fff1f2' }}>{error}</div>}
+      {(error || sendError) && <div role="alert" style={{ padding: '0.6rem', color: '#b91c1c', background: '#fff1f2' }}>{sendError || error}</div>}
+      {!windowOpen && <div style={{ padding: '0.6rem', fontSize: '0.8rem', background: '#fff7ed', color: '#9a3412' }}>Normal replies need a student message within the last 24 hours. Send an approved template and wait for their reply, or ask them to message your business WhatsApp number first.</div>}
       {templates.length > 0 && <div style={{ padding: '0.6rem', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
         <select aria-label="WhatsApp template" value={template} onChange={e => setTemplate(e.target.value)} disabled={isLoading || accessDenied}>
           <option value="">Choose an approved template</option>
@@ -176,11 +184,11 @@ export default function WhatsAppChat({ lead, expanded = false }) {
             outline: 'none',
             fontSize: '0.9rem'
           }}
-          disabled={isLoading || accessDenied}
+          disabled={isLoading || accessDenied || !windowOpen}
         />
         <button
           type="submit"
-          disabled={isLoading || accessDenied || !inputText.trim()}
+          disabled={isLoading || accessDenied || !windowOpen || !inputText.trim()}
           style={{
             backgroundColor: '#128c7e',
             color: 'white',

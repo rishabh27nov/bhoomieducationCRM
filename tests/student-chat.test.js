@@ -17,7 +17,7 @@ function response() {
   return { code: 200, headers: {}, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
 }
 function mockDatabase(t, overrides = {}) {
-  const data = { employees, leads: [own, foreign], whatsappMessages: { one: { id: 'one', leadPhone: own.phone, direction: 'incoming', timestamp: '2026-01-01' }, two: { id: 'two', leadPhone: foreign.phone, direction: 'incoming', timestamp: '2026-01-02' } }, whatsappSettings: { accessToken: 'private-token', phoneNumberId: 'private-id', templates: ['welcome'] }, ...overrides };
+  const data = { employees, leads: [own, foreign], whatsappMessages: { one: { id: 'one', leadPhone: own.phone, direction: 'incoming', timestamp: new Date().toISOString() }, two: { id: 'two', leadPhone: foreign.phone, direction: 'incoming', timestamp: '2026-01-02' } }, whatsappSettings: { accessToken: 'private-token', phoneNumberId: 'private-id', templates: ['welcome'] }, ...overrides };
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     calls.push({ url, options });
