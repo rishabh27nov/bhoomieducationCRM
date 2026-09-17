@@ -1,4 +1,13 @@
 import http from 'http';
+import sendWhatsApp from './api/whatsapp/send.js';
+import whatsappWebhook from './api/webhooks/whatsapp.js';
+import whatsappMessages from './api/whatsapp/messages.js';
+import whatsappStudents from './api/whatsapp/students.js';
+import whatsappReplies from './api/whatsapp/replies.js';
+import whatsappSettings from './api/whatsapp/settings.js';
+import whatsappAutomations from './api/whatsapp/automations.js';
+import whatsappCycles from './api/whatsapp/cycles.js';
+import executeAutomations from './api/whatsapp/execute-automations.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -70,7 +79,7 @@ function saveDatabase(dbData) {
 const server = http.createServer((req, res) => {
   // CORS Headers for cross-origin browser access
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // Handle preflight OPTIONS request
@@ -81,6 +90,29 @@ const server = http.createServer((req, res) => {
   }
 
   const url = req.url;
+  const parsedUrl = new URL(url, 'http://localhost');
+  const whatsappHandlers = {
+    '/api/webhooks/whatsapp': whatsappWebhook,
+    '/api/whatsapp/send': sendWhatsApp, '/api/whatsapp/messages': whatsappMessages,
+    '/api/whatsapp/students': whatsappStudents, '/api/whatsapp/replies': whatsappReplies,
+    '/api/whatsapp/settings': whatsappSettings, '/api/whatsapp/automations': whatsappAutomations,
+    '/api/whatsapp/cycles': whatsappCycles, '/api/whatsapp/execute-automations': executeAutomations
+  };
+  if (whatsappHandlers[parsedUrl.pathname]) {
+    req.query = Object.fromEntries(parsedUrl.searchParams);
+    res.status = code => { res.statusCode = code; return res; };
+    res.send = data => res.end(String(data));
+    res.json = data => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)); };
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        req.body = body ? JSON.parse(body) : {};
+        await whatsappHandlers[parsedUrl.pathname](req, res);
+      } catch { if (!res.writableEnded) res.status(500).json({ error: 'Request failed' }); }
+    });
+    return;
+  }
 
   // Health check endpoint
   if (url === '/api/health') {
@@ -197,144 +229,6 @@ const server = http.createServer((req, res) => {
   }
 
   // WhatsApp API Webhooks
-  if (url.startsWith('/api/webhooks/whatsapp')) {
-    // GET verification handshake from Meta Developer Console
-    if (req.method === 'GET') {
-      const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-      const mode = parsedUrl.searchParams.get('hub.mode');
-      const token = parsedUrl.searchParams.get('hub.verify_token');
-      const challenge = parsedUrl.searchParams.get('hub.challenge');
-
-      // TODO: Replace 'bhoomi_whatsapp_token' with your actual verify token later
-      if (mode === 'subscribe' && token === 'bhoomi_whatsapp_token') {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(challenge);
-        return;
-      }
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'WhatsApp Verification failed' }));
-      return;
-    }
-
-    // POST webhook event (Incoming WhatsApp message from student)
-    if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body);
-          const currentDb = loadDatabase();
-          
-          if (!currentDb.whatsappMessages) {
-             currentDb.whatsappMessages = [];
-          }
-
-          // Very basic parsing of Meta's complex JSON payload structure
-          if (payload.entry && payload.entry[0].changes && payload.entry[0].changes[0].value.messages) {
-            const msgObj = payload.entry[0].changes[0].value.messages[0];
-            const senderPhone = payload.entry[0].changes[0].value.contacts[0].wa_id;
-            
-            const incomingMsg = {
-               id: msgObj.id,
-               leadPhone: senderPhone,
-               text: msgObj.text ? msgObj.text.body : '[Media/Non-Text Message]',
-               timestamp: new Date().toISOString(),
-               direction: 'incoming',
-               status: 'received'
-            };
-            
-            currentDb.whatsappMessages.push(incomingMsg);
-            saveDatabase(currentDb);
-            console.log('Received WhatsApp Message:', incomingMsg.text);
-          }
-          
-          // Always return 200 OK immediately so Meta doesn't retry
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, note: 'Error parsing but returning 200' }));
-        }
-      });
-      return;
-    }
-  }
-
-  // Send WhatsApp Message Endpoint (CRM -> Meta API)
-  if (url === '/api/whatsapp/send' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const currentDb = loadDatabase();
-        
-        if (!currentDb.whatsappSettings || !currentDb.whatsappSettings.phoneNumberId || !currentDb.whatsappSettings.accessToken) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'WhatsApp API Credentials not configured in settings.' }));
-          return;
-        }
-
-        const { phoneNumberId, accessToken } = currentDb.whatsappSettings;
-
-        // A lead may have multiple numbers; send to the first listed number only.
-        const selectedPhone = String(payload.phone || '').split(/[\/,;|]/).map(phone => phone.trim()).find(Boolean);
-        let cleanPhone = (selectedPhone || '').replace(/\D/g, '');
-        // Default to India country code (+91) if it's just a 10 digit number
-        if (cleanPhone.length === 10) {
-          cleanPhone = '91' + cleanPhone;
-        }
-
-        // Call Meta Graph API
-        const metaResponse = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            to: cleanPhone,
-            type: 'text',
-            text: { body: payload.message }
-          })
-        });
-
-        const metaResult = await metaResponse.json();
-
-        if (!metaResponse.ok) {
-          console.error('Meta API Error:', metaResult);
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to send via Meta API', details: metaResult }));
-          return;
-        }
-
-        if (!currentDb.whatsappMessages) currentDb.whatsappMessages = [];
-
-        // Save outgoing message to DB
-        const outgoingMsg = {
-           id: metaResult.messages ? metaResult.messages[0].id : `MSG-OUT-${Date.now()}`,
-           leadPhone: payload.phone, // Target phone number
-           text: payload.message,
-           timestamp: new Date().toISOString(),
-           direction: 'outgoing',
-           status: 'sent'
-        };
-        
-        currentDb.whatsappMessages.push(outgoingMsg);
-        saveDatabase(currentDb);
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: outgoingMsg }));
-      } catch(err) {
-        console.error('Local Server Error in /api/whatsapp/send:', err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Internal Server Error sending message' }));
-      }
-    });
-    return;
-  }
-
   // 404 Route
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint Not Found' }));

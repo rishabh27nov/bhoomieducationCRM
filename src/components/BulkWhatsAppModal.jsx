@@ -1,3 +1,4 @@
+import { whatsappFetch } from '../utils/whatsappApi';
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Send, AlertCircle, CheckCircle2, AlertTriangle, Phone } from 'lucide-react';
@@ -35,7 +36,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
     document.body.style.overflow = 'hidden';
     
     // Fetch available templates
-    fetch(`/api/whatsapp/settings?t=${Date.now()}`)
+    whatsappFetch(`/api/whatsapp/settings?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.templates && data.templates.length > 0) {
@@ -113,7 +114,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
           ? { phone: lead.phone, isTemplate: true, templateName: selectedTemplate, languageCode: 'en' }
           : { phone: lead.phone, message: message };
 
-        const response = await fetch('/api/whatsapp/send', {
+        const response = await whatsappFetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

@@ -75,7 +75,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
           (empDigits.endsWith(userDigits) || userDigits.endsWith(empDigits));
 
         const isIdentityMatch = matchesEmail || matchesUsername || matchesId || matchesPhone;
-        const isPasswordMatch = emp.password === cleanPass || cleanPass === 'emp123';
+        const isPasswordMatch = emp.password === cleanPass;
 
         return isIdentityMatch && isPasswordMatch;
       });

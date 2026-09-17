@@ -1,3 +1,4 @@
+import { authorize } from '../../lib/whatsappAccess.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const PROCESSING_LEASE_MS = 15 * 60 * 1000;
 
@@ -49,6 +50,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+    if (!isCron && !await authorize(req, res, { adminOnly: true })) return;
     const now = Date.now();
 
     // 1. Fetch Automations

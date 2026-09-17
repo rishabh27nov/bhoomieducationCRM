@@ -1,3 +1,4 @@
+import { authorize } from '../../lib/whatsappAccess.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const firebaseMessageKey = (id) => String(id).replace(/[.#$\[\]/]/g, '_');
 const deliveryKey = (template, phone) => `${firebaseMessageKey(template)}_${String(phone).slice(-10)}`;
@@ -30,7 +31,7 @@ const claimTemplateDelivery = async (template, phone) => {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -48,6 +49,9 @@ export default async function handler(req, res) {
     if (!isTemplate && !message) {
       return res.status(400).json({ error: 'message is required for non-template sends' });
     }
+
+    const access = await authorize(req, res, { phone });
+    if (!access) return;
 
     // Fetch WhatsApp credentials from Firebase
     const settingsRes = await fetch(`${FIREBASE_URL}/whatsappSettings.json`);
@@ -125,6 +129,8 @@ export default async function handler(req, res) {
     const outgoingMsg = {
       id: metaResult.messages?.[0]?.id || `MSG-OUT-${Date.now()}`,
       leadPhone: phone,
+      senderId: access.user.id || access.user.username,
+      senderName: access.user.name,
       text: isTemplate ? `[Template Sent: ${templateName || 'lakshya_admission_enquiry'}]` : message,
       timestamp: new Date().toISOString(),
       direction: 'outgoing',

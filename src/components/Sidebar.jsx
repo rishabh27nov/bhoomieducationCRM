@@ -40,6 +40,7 @@ export default function Sidebar({
     { id: 'whatsapp_setup', label: 'WhatsApp API Setup', icon: Phone, badge: 'API' },
     { id: 'whatsapp_automations', label: 'WhatsApp Automations', icon: Bot, badge: 'AUTO' },
     { id: 'whatsapp_replies', label: 'WhatsApp Replies', icon: MessageCircle, badge: 'INBOX' },
+    { id: 'student_chat', label: 'Student Chat', icon: MessageCircle },
     { id: 'employee_chat', label: 'Employee Chat', icon: MessagesSquare, badge: employeeChatUnread > 0 ? String(employeeChatUnread) : 'TEAM', urgent: employeeChatUnread > 0 },
     { id: 'excel_data', label: 'Excel Data', icon: Database, badge: 'LIVE' },
     { id: 'applications', label: 'Batches & Admissions', icon: BookOpen, badge: batchCount > 0 ? String(batchCount) : null },
@@ -61,6 +62,7 @@ export default function Sidebar({
       'tasks',
       'attendance',
       'documents',
+      'student_chat',
       'employee_chat',
       'employee_settings'
     ];

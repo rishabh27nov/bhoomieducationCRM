@@ -1,3 +1,4 @@
+import StudentChat from './components/StudentChat';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   INITIAL_LEADS,
@@ -1163,6 +1164,8 @@ export default function App() {
               onOpenChat={(lead) => setChatLead(lead)}
             />
           )}
+
+          {activeTab === 'student_chat' && <StudentChat key={currentUser?.id || currentUser?.username} />}
 
           {activeTab === 'employee_chat' && (
             <EmployeeChat currentUser={currentUser} employees={employees} onSharedDocument={handleSharedChatDocument} unreadCount={employeeChatUnread} onMarkRead={markEmployeeChatRead} />

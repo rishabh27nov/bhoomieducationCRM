@@ -1,6 +1,10 @@
+import { authorize } from '../../lib/whatsappAccess.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 
 export default async function handler(req, res) {
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  try { if (!await authorize(req, res, { adminOnly: true })) return; }
+  catch { return res.status(503).json({ error: 'Unable to verify access' }); }
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

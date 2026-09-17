@@ -1,3 +1,4 @@
+import { whatsappFetch } from '../utils/whatsappApi';
 import React, { useEffect, useMemo, useState } from 'react';
 import { MessageCircle, RefreshCw, Search, Trash2, User } from 'lucide-react';
 
@@ -14,7 +15,7 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
     if (isInitialLoad) setLoading(true);
     else setRefreshing(true);
     try {
-      const res = await fetch(`/api/whatsapp/replies?t=${Date.now()}`);
+      const res = await whatsappFetch(`/api/whatsapp/replies?t=${Date.now()}`);
       const data = await res.json();
       setReplies(res.ok && Array.isArray(data.replies) ? data.replies : []);
     } catch (error) {
@@ -66,7 +67,7 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
     if (!conversation.unreadCount) return;
     const readAt = new Date().toISOString();
     setReplies(current => current.map(reply => digits(reply.leadPhone) === conversation.phoneKey && !reply.readAt ? { ...reply, readAt } : reply));
-    fetch('/api/whatsapp/replies', {
+    whatsappFetch('/api/whatsapp/replies', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: conversation.contact.phone || conversation.latest.leadPhone })
@@ -79,7 +80,7 @@ export default function WhatsAppReplies({ leads = [], onOpenChat }) {
     if (!confirmed) return;
     setDeletingPhone(conversation.phoneKey);
     try {
-      const response = await fetch('/api/whatsapp/replies', {
+      const response = await whatsappFetch('/api/whatsapp/replies', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: conversation.contact.phone || conversation.latest.leadPhone })

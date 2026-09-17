@@ -1,3 +1,4 @@
+import { whatsappFetch } from '../utils/whatsappApi';
 import React, { useState, useEffect } from 'react';
 import { Save, AlertCircle, Phone, Key, HelpCircle, Plus, Trash2, List } from 'lucide-react';
 
@@ -9,7 +10,7 @@ export default function WhatsAppSettingsManager({ currentUser }) {
   const [saveMessage, setSaveMessage] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/whatsapp/settings?t=${Date.now()}`)
+    whatsappFetch(`/api/whatsapp/settings?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.phoneNumberId) {
@@ -41,7 +42,7 @@ export default function WhatsAppSettingsManager({ currentUser }) {
     };
 
     try {
-      const response = await fetch('/api/whatsapp/settings', {
+      const response = await whatsappFetch('/api/whatsapp/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedSettings)

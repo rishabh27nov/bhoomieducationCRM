@@ -1,3 +1,4 @@
+import { whatsappFetch } from '../utils/whatsappApi';
 import React, { useState, useEffect } from 'react';
 import { Send, CheckCircle2, User, Phone } from 'lucide-react';
 
@@ -6,65 +7,54 @@ export default function WhatsAppChat({ lead, expanded = false }) {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [error, setError] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [template, setTemplate] = useState('');
+  const [accessDenied, setAccessDenied] = useState(false);
   useEffect(() => {
+    let active = true;
+    setMessages([]); setInputText(''); setError(''); setAccessDenied(false);
     const fetchMessages = async () => {
       try {
-        const res = await fetch(`/api/whatsapp/messages?phone=${encodeURIComponent(lead.phone || '')}`);
+        const res = await whatsappFetch('/api/whatsapp/messages?phone=' + encodeURIComponent(lead.phone || ''));
         const data = await res.json();
-        if (res.ok && Array.isArray(data.messages)) {
-          setMessages(data.messages);
-        } else {
-          setMessages([]);
+        if (!active) return;
+        if (!res.ok) {
+          setMessages([]); setAccessDenied([401, 403].includes(res.status));
+          throw new Error(data.error || 'Could not load messages.');
         }
-      } catch (err) {
-        console.error('Failed to fetch WhatsApp messages', err);
-      }
+        setAccessDenied(false); setMessages(data.messages || []); setError('');
+      } catch (err) { if (active) setError(err.message); }
     };
-    
     fetchMessages();
+    whatsappFetch('/api/whatsapp/settings').then(res => res.json()).then(data => {
+      if (active) setTemplates(Array.isArray(data.templates) ? data.templates : []);
+    }).catch(() => {});
     const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, [lead]);
+    return () => { active = false; clearInterval(interval); };
+  }, [lead.id, lead.phone]);
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-
-    setIsLoading(true);
-    
-    const newMsg = {
-      id: Date.now(),
-      direction: 'outgoing',
-      text: inputText,
-      timestamp: new Date().toISOString(),
-      status: 'sent'
-    };
-    setMessages(prev => [...prev, newMsg]);
-    setInputText('');
-
+  const send = async (isTemplate = false) => {
+    if (isLoading || accessDenied || (!isTemplate && !inputText.trim())) return;
+    setIsLoading(true); setError('');
+    const text = inputText.trim();
     try {
-      const res = await fetch('/api/whatsapp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: lead.phone, message: newMsg.text })
+      const res = await whatsappFetch('/api/whatsapp/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: lead.phone, message: text, isTemplate, templateName: template })
       });
-      
       const data = await res.json();
-      
       if (!res.ok || !data.success) {
-        console.error('WhatsApp API Error:', data);
-        alert(`Failed to send WhatsApp message: ${data.error || 'Unknown error'}`);
-        // Remove the optimistically added message
-        setMessages(prev => prev.filter(m => m.id !== newMsg.id));
+        if ([401, 403].includes(res.status)) { setAccessDenied(true); setMessages([]); }
+        throw new Error(data.error || 'Message could not be sent.');
       }
-    } catch (err) {
-      console.error('Failed to send WhatsApp message', err);
-      alert('Network error while sending WhatsApp message. Is the server running?');
-      setMessages(prev => prev.filter(m => m.id !== newMsg.id));
-    } finally {
-      setIsLoading(false);
-    }
+      if (data.skipped) setError(data.message);
+      else if (data.message) setMessages(previous => [...previous.filter(message => message.id !== data.message.id), data.message]);
+      if (!isTemplate) setInputText('');
+    } catch (err) { setError(err.message); }
+    finally { setIsLoading(false); }
   };
+  const handleSendMessage = e => { e.preventDefault(); send(); };
 
   const formatTime = (isoString) => {
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -156,6 +146,15 @@ export default function WhatsAppChat({ lead, expanded = false }) {
         ))}
       </div>
 
+      {error && <div role="alert" style={{ padding: '0.6rem', color: '#b91c1c', background: '#fff1f2' }}>{error}</div>}
+      {templates.length > 0 && <div style={{ padding: '0.6rem', background: '#f8fafc', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <select aria-label="WhatsApp template" value={template} onChange={e => setTemplate(e.target.value)} disabled={isLoading || accessDenied}>
+          <option value="">Choose an approved template</option>
+          {templates.map(name => <option key={name} value={name}>{name}</option>)}
+        </select>
+        <button type="button" className="btn" disabled={!template || isLoading || accessDenied} onClick={() => send(true)}>Send template</button>
+        <small style={{ width: '100%', color: '#64748b' }}>To start a conversation, send an approved template. Free-text replies depend on WhatsApp's messaging window.</small>
+      </div>}
       {/* Input Area */}
       <form onSubmit={handleSendMessage} style={{
         display: 'flex',
@@ -177,11 +176,11 @@ export default function WhatsAppChat({ lead, expanded = false }) {
             outline: 'none',
             fontSize: '0.9rem'
           }}
-          disabled={isLoading}
+          disabled={isLoading || accessDenied}
         />
         <button
           type="submit"
-          disabled={isLoading || !inputText.trim()}
+          disabled={isLoading || accessDenied || !inputText.trim()}
           style={{
             backgroundColor: '#128c7e',
             color: 'white',

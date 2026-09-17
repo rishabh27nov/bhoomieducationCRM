@@ -1,3 +1,4 @@
+import { whatsappFetch } from '../utils/whatsappApi';
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree, X, Pencil } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
@@ -41,11 +42,11 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     setIsLoading(true);
     try {
       const [autoRes, setRes, stRes, logsRes, savedCyclesRes] = await Promise.all([
-        fetch(`/api/whatsapp/automations?t=${Date.now()}`),
-        fetch(`/api/whatsapp/settings?t=${Date.now()}`),
+        whatsappFetch(`/api/whatsapp/automations?t=${Date.now()}`),
+        whatsappFetch(`/api/whatsapp/settings?t=${Date.now()}`),
         fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/sentTemplates.json?t=${Date.now()}`),
         fetch(`https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db/whatsappCampaignLogs.json?t=${Date.now()}`),
-        fetch(`/api/whatsapp/cycles?t=${Date.now()}`)
+        whatsappFetch(`/api/whatsapp/cycles?t=${Date.now()}`)
       ]);
       
       const autoData = await autoRes.json();
@@ -133,7 +134,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const persistCycleTemplate = async ({ silent = false } = {}) => {
     try {
       const isUpdate = Boolean(editingSavedCycleId);
-      const res = await fetch(isUpdate ? `/api/whatsapp/cycles?id=${encodeURIComponent(editingSavedCycleId)}` : '/api/whatsapp/cycles', {
+      const res = await whatsappFetch(isUpdate ? `/api/whatsapp/cycles?id=${encodeURIComponent(editingSavedCycleId)}` : '/api/whatsapp/cycles', {
         method: isUpdate ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,7 +178,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const handleDeleteSavedCycle = async (cycle) => {
     if (!window.confirm(`Delete saved cycle template “${cycle.name}”? Scheduled runs and delivery history will remain safe.`)) return;
     try {
-      const res = await fetch(`/api/whatsapp/cycles?id=${encodeURIComponent(cycle.id)}`, { method: 'DELETE' });
+      const res = await whatsappFetch(`/api/whatsapp/cycles?id=${encodeURIComponent(cycle.id)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete cycle template');
       if (editingSavedCycleId === cycle.id) setEditingSavedCycleId(null);
       fetchData();
@@ -220,7 +221,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     }
 
     try {
-      const res = await fetch('/api/whatsapp/automations', {
+      const res = await whatsappFetch('/api/whatsapp/automations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAutomations)
@@ -241,7 +242,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const handleDeleteCycle = async (cycleId) => {
     if (!window.confirm("Delete this entire Sequence Cycle? All scheduled messages inside it will be cancelled.")) return;
     try {
-      const res = await fetch(`/api/whatsapp/automations?cycleId=${cycleId}`, { method: 'DELETE' });
+      const res = await whatsappFetch(`/api/whatsapp/automations?cycleId=${cycleId}`, { method: 'DELETE' });
       if (res.ok) fetchData();
     } catch (err) {
       alert('Failed to delete cycle.');
@@ -251,7 +252,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   const handleDeleteSingle = async (id) => {
     if (!window.confirm("Delete this single automation?")) return;
     try {
-      const res = await fetch(`/api/whatsapp/automations?id=${id}`, { method: 'DELETE' });
+      const res = await whatsappFetch(`/api/whatsapp/automations?id=${id}`, { method: 'DELETE' });
       if (res.ok) fetchData();
     } catch (err) {
       alert('Failed to delete.');
@@ -282,7 +283,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     }
 
     try {
-      const res = await fetch('/api/whatsapp/automations', {
+      const res = await whatsappFetch('/api/whatsapp/automations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingAutomation.id, template: editForm.template, scheduledTime })
