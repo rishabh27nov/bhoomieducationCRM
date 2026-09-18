@@ -45,11 +45,11 @@ export default function AddLeadModal({
     setShowAddCourseInput(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) return;
 
-    onAddLead({
+    const saved = await onAddLead({
       ...formData,
       id: `LKD-${1000 + Math.floor(Math.random() * 9000)}`,
       stage: formData.studentCategory === 'Academic' ? 'Onboarding' : 'New Lead',
@@ -58,7 +58,7 @@ export default function AddLeadModal({
       lastContact: 'Just now'
     });
 
-    onClose();
+    if (saved !== false) onClose();
   };
 
 

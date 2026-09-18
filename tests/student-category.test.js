@@ -1,10 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { studentCategory, bulkRecipients, resolveRecipientCategory, ACADEMIC_STAGES } from '../lib/studentCategory.js';
+import { studentCategory, bulkRecipients, resolveRecipientCategory, ACADEMIC_STAGES, importClassification } from '../lib/studentCategory.js';
 import { getPipelineStagesForLead } from '../src/data/mockData.js';
 import executeAutomations from '../api/whatsapp/execute-automations.js';
 
 const employees = [{ name: 'Academic Teacher', category: 'Academic' }];
+test('bulk import follows selected employee even from the other category page', () => {
+  assert.deepEqual(importClassification(employees[0], 'Sales', 'B2B2C'), {
+    studentCategory: 'Academic', leadType: 'Academic', stage: 'Onboarding'
+  });
+  assert.deepEqual(importClassification({ category: 'Sales' }, 'Academic', 'B2B2C'), {
+    studentCategory: 'Sales', leadType: 'B2B2C'
+  });
+  assert.equal(importClassification({}, 'Academic', 'B2C').studentCategory, 'Academic');
+});
 const students = [
   { id: 'b2c', leadType: 'B2C', currentClass: 'Class 12', phone: '9000000001' },
   { id: 'b2b2c', leadType: 'B2B2C', currentClass: 'Class 12', phone: '9000000002' },

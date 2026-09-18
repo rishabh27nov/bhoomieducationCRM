@@ -878,7 +878,7 @@ export default function App() {
 
 
   // Handle add lead / bulk add leads (Admin & Employees)
-  const handleAddLead = (newLeadData) => {
+  const handleAddLead = async (newLeadData) => {
 
     const incomingLeads = Array.isArray(newLeadData) ? newLeadData : [newLeadData];
 
@@ -902,15 +902,16 @@ export default function App() {
       }
     });
 
-    // Save to state, localStorage, and Firebase immediately
+    // Only report success after Firebase acknowledges the write.
+    try {
+      await set(ref(firebaseDB, 'lakshya_crm_central_db/leads'), updatedLeads);
+    } catch (error) {
+      console.error('Firebase lead save failed:', error);
+      alert('Students could not be saved to Firebase. Please retry.');
+      return false;
+    }
     setLeads(updatedLeads);
     localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
-    // Direct Firebase write to ensure data is saved properly
-    try {
-      set(ref(firebaseDB, 'lakshya_crm_central_db/leads'), updatedLeads);
-    } catch (e) {
-      saveToCentralDB({ leads: updatedLeads });
-    }
 
     if (Array.isArray(newLeadData)) {
       logActivity(

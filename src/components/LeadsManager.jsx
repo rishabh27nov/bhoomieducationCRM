@@ -1,4 +1,4 @@
-import { studentCategory, ACADEMIC_STAGES, resolveRecipientCategory } from '../../lib/studentCategory.js';
+import { studentCategory, ACADEMIC_STAGES, resolveRecipientCategory, importClassification } from '../../lib/studentCategory.js';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
@@ -195,7 +195,11 @@ export default function LeadsManager({
   const [selectedLeadType, setSelectedLeadType] = useState('B2C');
   const [customSchoolName, setCustomSchoolName] = useState('');
 
-  const handleConfirmImportWithCounselor = () => {
+  const selectedImportEmployee = employees.find(emp => emp.name === selectedAssignCounselor);
+  const importCategory = selectedImportEmployee?.category || studentView;
+  const [isImportSaving, setIsImportSaving] = useState(false);
+  const handleConfirmImportWithCounselor = async () => {
+    if (isImportSaving) return;
     if (!importedRowsData.length || !onAddLead) return;
 
     // Force manual selection — no auto-assignment allowed
@@ -218,9 +222,7 @@ export default function LeadsManager({
       return {
         id: `LKD-${Date.now()}-${index}-${Math.floor(Math.random() * 10000)}`,
         ...row,
-        studentCategory: studentView,
-        ...(studentView === 'Academic' ? { stage: ACADEMIC_STAGES[0] } : {}),
-        leadType: selectedLeadType || row.leadType || 'B2C',
+        ...importClassification(selectedImportEmployee, studentView, selectedLeadType),
         schoolName: finalSchoolName,
         counselor: finalCounselor,
         createdAt: finalDate,
@@ -229,9 +231,17 @@ export default function LeadsManager({
       };
     });
 
-    onAddLead(formattedRows);
+    setIsImportSaving(true);
+    try {
+      if (await onAddLead(formattedRows) === false) return;
+    } catch (error) {
+      alert('Firebase save failed. Please retry the import.');
+      return;
+    } finally {
+      setIsImportSaving(false);
+    }
 
-    alert(`🎉 Successfully imported ${formattedRows.length} [${selectedLeadType}] student enquiries on Date [${customImportDate}] and assigned to Employee [${selectedAssignCounselor}]!`);
+    alert(`🎉 Successfully imported ${formattedRows.length} [${importCategory === 'Academic' ? 'Academic' : selectedLeadType}] student enquiries on Date [${customImportDate}] and assigned to Employee [${selectedAssignCounselor}]!`);
     setShowAssignModal(false);
     setImportedRowsData([]);
     setCustomSchoolName('');
@@ -1556,7 +1566,11 @@ export default function LeadsManager({
                 </label>
                 <select
                   value={selectedAssignCounselor}
-                  onChange={(e) => setSelectedAssignCounselor(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedAssignCounselor(e.target.value);
+                    const employee = employees.find(emp => emp.name === e.target.value);
+                    setSelectedLeadType(employee?.salesSegment || 'B2C');
+                  }}
                   className="form-select"
                   style={{
                     width: '100%',
@@ -1572,7 +1586,7 @@ export default function LeadsManager({
                   </option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.name}>
-                      👤 {emp.name} ({emp.role} - {emp.email})
+                      👤 {emp.name} ({emp.category || 'Category not assigned'} / {emp.role} - {emp.email})
                     </option>
                   ))}
                 </select>
@@ -1585,8 +1599,9 @@ export default function LeadsManager({
 
               <div>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem', display: 'block' }}>
-                  2. 🏢 Select Lead Category / Segment (B2C vs B2B2C) *
+                  2. Student Category: {importCategory}
                 </label>
+                {importCategory === 'Academic' ? <p style={{ color: '#166534', fontWeight: 700 }}>Academic students - saved to Academic pipeline in Firebase.</p> : <>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
@@ -1645,6 +1660,7 @@ export default function LeadsManager({
                     </datalist>
                   </div>
                 )}
+              </>}
               </div>
 
               <div>
@@ -1688,7 +1704,7 @@ export default function LeadsManager({
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={importedRowsData.length === 0}
+                  disabled={isImportSaving || importedRowsData.length === 0 || !selectedAssignCounselor}
                   onClick={handleConfirmImportWithCounselor}
                   style={{ fontSize: '0.85rem', fontWeight: 800, opacity: importedRowsData.length > 0 ? 1 : 0.6 }}
                 >
