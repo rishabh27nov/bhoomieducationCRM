@@ -1,3 +1,4 @@
+import { studentCategory, ACADEMIC_STAGES, resolveRecipientCategory } from '../../lib/studentCategory.js';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
@@ -30,6 +31,7 @@ import { MessageSquare } from 'lucide-react';
 
 export default function LeadsManager({
   leads,
+  studentView = 'Sales',
   onSelectLead,
   onOpenAddLead,
   onUpdateLeadStage,
@@ -45,6 +47,7 @@ export default function LeadsManager({
   onUpdateLeadFee,
   onBulkUpdateCounselor
 }) {
+  const [includeAcademic, setIncludeAcademic] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'kanban'
   const [stageFilter, setStageFilter] = useState('ALL');
   const [courseFilter, setCourseFilter] = useState('ALL');
@@ -215,6 +218,8 @@ export default function LeadsManager({
       return {
         id: `LKD-${Date.now()}-${index}-${Math.floor(Math.random() * 10000)}`,
         ...row,
+        studentCategory: studentView,
+        ...(studentView === 'Academic' ? { stage: ACADEMIC_STAGES[0] } : {}),
         leadType: selectedLeadType || row.leadType || 'B2C',
         schoolName: finalSchoolName,
         counselor: finalCounselor,
@@ -266,6 +271,7 @@ export default function LeadsManager({
 
   const [segmentFilter, setSegmentFilter] = useState('ALL'); // 'ALL', 'B2C', 'B2B2C'
   const [schoolFilter, setSchoolFilter] = useState('ALL');
+  useEffect(() => { setSelectedLeadIds([]); }, [studentView, viewMode, stageFilter, courseFilter, counselorFilter, sourceFilter, segmentFilter, schoolFilter, searchQuery]);
 
   const normalizeCourseClassMatch = (lead, filterValue) => {
     if (!filterValue || filterValue === 'ALL') return true;
@@ -303,6 +309,8 @@ export default function LeadsManager({
 
   // Filter Leads
   const filteredLeads = leads.filter(lead => {
+    const academic = studentCategory(lead) === 'Academic';
+    if (studentView === 'Academic' ? !academic : academic && (!includeAcademic || viewMode === 'kanban')) return false;
     // Employee Role Restriction: Employee CANNOT view any other counselor's leads!
     if (isEmployeeRole && !isCounselorMatch(lead.counselor, currentUser?.name)) {
       return false;
@@ -378,6 +386,7 @@ export default function LeadsManager({
     const exportData = filteredLeads.map((l) => ({
       'Lead ID': l.id,
       'Student Name': l.name,
+      'Category': studentCategory(l),
       'Email ID': l.email,
       'Phone Number': l.phone,
       'Target Course': l.targetCourse,
@@ -414,7 +423,7 @@ export default function LeadsManager({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
-            Student Enquiries (NEET & JEE)
+            {studentView} Students (NEET & JEE)
           </h1>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Manage prospective student admission pipeline & counseling stages
@@ -533,10 +542,11 @@ export default function LeadsManager({
       </div>
 
       {/* Filter Bar & Quick Action */}
+      {studentView === 'Sales' && viewMode === 'table' && <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><input type="checkbox" checked={includeAcademic} onChange={e => { setIncludeAcademic(e.target.checked); setSelectedLeadIds([]); }} /> Include Academic students in results (and bulk selection)</label>}
       <div className="glass-card" style={{ padding: '1rem 1.25rem', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
           {/* Segment Filter (B2C vs B2B2C) */}
-          <select
+          {studentView === 'Sales' && <select
             className="form-select"
             style={{ width: 'auto', minWidth: '150px', fontWeight: 700, borderColor: segmentFilter !== 'ALL' ? 'var(--color-brand-emerald)' : undefined }}
             value={segmentFilter}
@@ -550,7 +560,7 @@ export default function LeadsManager({
             <option value="ALL">🏢 All Segments (B2B2C & B2C)</option>
             <option value="B2C">🎓 B2C Only</option>
             <option value="B2B2C">🏫 B2B2C Only</option>
-          </select>
+          </select>}
 
           {/* Dynamic School Filter (Shows when B2B2C is selected or when school records exist) */}
           {(segmentFilter === 'B2B2C' || (segmentFilter === 'ALL' && uniqueSchoolNames.length > 0)) && (
@@ -579,6 +589,7 @@ export default function LeadsManager({
           {/* Stage Filter */}
           {(() => {
             const leadsForStageDropdown = leads.filter(lead => {
+               if (studentView === 'Academic' ? studentCategory(lead) !== 'Academic' : studentCategory(lead) === 'Academic' && !includeAcademic) return false;
                if (isEmployeeRole && !isCounselorMatch(lead.counselor, currentUser?.name)) return false;
                if (!isEmployeeRole && counselorFilter !== 'ALL' && !isCounselorMatch(lead.counselor, counselorFilter)) return false;
                return true;
@@ -600,6 +611,8 @@ export default function LeadsManager({
                relevantStandardStages = [...PIPELINE_STAGES_B2B2C, ...PIPELINE_STAGES_B2C];
             }
 
+            if (studentView === 'Academic') relevantStandardStages = ACADEMIC_STAGES;
+            else if (includeAcademic) relevantStandardStages = [...relevantStandardStages, ...ACADEMIC_STAGES];
             const customStages = Array.from(new Set(leadsForStageDropdown.map(l => l.stage).filter(s => s && !relevantStandardStages.includes(s))));
             const allAvailableStages = [...relevantStandardStages, ...customStages];
 
@@ -937,7 +950,7 @@ export default function LeadsManager({
                 const newStage = e.target.value;
                 if (newStage) {
                   if (window.confirm(`Are you sure you want to change pipeline stage to "${newStage}" for ${selectedLeadIds.length} selected lead(s)?`)) {
-                    selectedLeadIds.forEach(id => onUpdateLeadStage(id, newStage));
+                    filteredLeads.filter(lead => selectedLeadIds.includes(lead.id)).forEach(lead => onUpdateLeadStage(lead.id, newStage));
                     setSelectedLeadIds([]);
                   }
                   e.target.value = '';
@@ -952,6 +965,8 @@ export default function LeadsManager({
                 let availableStages = PIPELINE_STAGES;
                 if (hasB2B2C && !hasB2C) availableStages = PIPELINE_STAGES_B2B2C;
                 else if (hasB2C && !hasB2B2C) availableStages = PIPELINE_STAGES_B2C;
+                if (selectedLeadsObjects.every(lead => studentCategory(lead) === 'Academic')) availableStages = ACADEMIC_STAGES;
+                else if (selectedLeadsObjects.some(lead => studentCategory(lead) === 'Academic')) availableStages = [];
                 
                 return availableStages.map(stage => (
                   <option key={stage} value={stage}>{stage}</option>
@@ -1179,6 +1194,7 @@ export default function LeadsManager({
                       <span>{lead.phone || 'N/A'}</span>
                     </div>
 
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>{studentCategory(lead)}</span>
                     {lead.schoolName && (
                       <div style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '1px' }}>
                         🏫 {lead.schoolName}
@@ -1266,7 +1282,8 @@ export default function LeadsManager({
                         backgroundColor: '#f8faf9'
                       }}
                     >
-                      {getPipelineStagesForLead(lead.leadType).map(s => (
+                      {lead.stage && !getPipelineStagesForLead(lead.leadType, studentCategory(lead)).includes(lead.stage) && <option value={lead.stage}>{lead.stage}</option>}
+                      {getPipelineStagesForLead(lead.leadType, studentCategory(lead)).map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
@@ -1355,7 +1372,7 @@ export default function LeadsManager({
           overflowX: 'auto',
           paddingBottom: '1rem'
         }}>
-          {(segmentFilter === 'B2B' ? PIPELINE_STAGES_B2B2C : PIPELINE_STAGES_B2C).map(stage => {
+          {Array.from(new Set([...(studentView === 'Academic' ? ACADEMIC_STAGES : segmentFilter === 'B2B2C' ? PIPELINE_STAGES_B2B2C : segmentFilter === 'B2C' ? PIPELINE_STAGES_B2C : PIPELINE_STAGES), ...filteredLeads.map(lead => lead.stage).filter(Boolean)])).map(stage => {
             const stageLeads = filteredLeads.filter(l => l.stage === stage);
             return (
               <div key={stage} style={{
@@ -1686,7 +1703,7 @@ export default function LeadsManager({
 
       {isBulkWhatsAppOpen && (
         <BulkWhatsAppModal
-          selectedLeads={retryLeads || filteredLeads.filter(l => selectedLeadIds.includes(l.id))}
+          selectedLeads={(retryLeads || filteredLeads.filter(l => selectedLeadIds.includes(l.id))).map(lead => ({ ...lead, studentCategory: resolveRecipientCategory(lead, leads) }))}
           initialTemplate={retryTemplate}
           resumedFromCampaignId={resumedFromCampaignId}
           onClose={() => {

@@ -1,3 +1,4 @@
+import { studentCategory } from '../../lib/studentCategory.js';
 import React, { useState } from 'react';
 import { PIPELINE_STAGES, getPipelineStagesForLead } from '../data/mockData';
 import {
@@ -153,7 +154,8 @@ export default function LeadModal({
     phone: lead?.phone || '',
     email: lead?.email || '',
     feeBudget: lead?.feeBudget || 'N/A',
-    targetCourse: lead?.targetCourse || ''
+    targetCourse: lead?.targetCourse || '',
+    studentCategory: studentCategory(lead, employees)
   });
 
   if (!lead) return null;
@@ -267,7 +269,8 @@ export default function LeadModal({
                   phone: lead.phone,
                   email: lead.email,
                   feeBudget: lead.feeBudget || 'N/A',
-                  targetCourse: lead.targetCourse
+                  targetCourse: lead.targetCourse,
+                  studentCategory: studentCategory(lead, employees)
                 });
                 setIsEditingStudent(!isEditingStudent);
               }}
@@ -311,6 +314,12 @@ export default function LeadModal({
               flexDirection: 'column',
               gap: '0.85rem'
             }}>
+              <label>Student Category
+                <select className="form-select" value={editForm.studentCategory} onChange={e => setEditForm({ ...editForm, studentCategory: e.target.value })}>
+                  <option value="Sales">Sales</option>
+                  <option value="Academic">Academic</option>
+                </select>
+              </label>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 ✏️ Edit Student Details
               </div>
@@ -456,10 +465,10 @@ export default function LeadModal({
           {/* Pipeline Stage Change */}
           <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', display: 'block', marginBottom: '0.5rem' }}>
-              Update Admission Pipeline Stage ({lead.leadType === 'B2B' || lead.leadType === 'B2B2C' ? '🏫 B2B2C Pipeline' : '🎓 B2C Pipeline'}):
+              Update {studentCategory(lead, employees)} Pipeline Stage ({studentCategory(lead, employees) === 'Academic' ? 'Academic Pipeline' : lead.leadType === 'B2B' || lead.leadType === 'B2B2C' ? '🏫 B2B2C Pipeline' : '🎓 B2C Pipeline'}):
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {getPipelineStagesForLead(lead.leadType).map(stage => {
+              {getPipelineStagesForLead(lead.leadType, studentCategory(lead, employees)).map(stage => {
                 const isActive = lead.stage === stage;
                 return (
                   <button

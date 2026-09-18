@@ -15,6 +15,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import EmployeeProfileModal from './EmployeeProfileModal';
+import { employeeCategoryLabel } from '../utils/employeeCategory';
 import StaffAttendanceCalendar from './StaffAttendanceCalendar';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { isCounselorMatch } from '../data/mockData';
@@ -82,6 +83,7 @@ export default function EmployeesManager({
         'Employee ID': emp.id,
         'Full Name': emp.name,
         'Role': emp.role,
+        'Category': employeeCategoryLabel(emp),
         'Official Email': emp.email,
         'Phone Number': emp.phone || '',
         'Username': emp.username || emp.id,
@@ -298,6 +300,9 @@ export default function EmployeesManager({
                         }}>
                           Role: {emp.role}
                         </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                          Category: {employeeCategoryLabel(emp)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -354,6 +359,7 @@ export default function EmployeesManager({
                 paddingTop: '0.75rem',
                 borderTop: '1px solid var(--border-subtle)',
                 fontSize: '0.75rem',
+                flexWrap: 'wrap',
                 gap: '0.5rem'
               }}
               onClick={(e) => e.stopPropagation()}
@@ -374,6 +380,16 @@ export default function EmployeesManager({
                   title="Change Employee Password"
                 >
                   🔑 Change Password
+                </button>
+              )}
+
+              {isAdmin && (
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.72rem', padding: '0.35rem 0.6rem' }}
+                  onClick={() => setSelectedEmployeeProfile({ employee: emp, initialTab: 'security' })}
+                >
+                  Edit Profile{currentUser?.role === 'Admin' ? ' / Category' : ''}
                 </button>
               )}
 
@@ -402,7 +418,7 @@ export default function EmployeesManager({
       {/* Employee Profile & History Modal */}
       {selectedEmployeeProfile && (
         <EmployeeProfileModal
-          employee={selectedEmployeeProfile.employee}
+          employee={employees.find(emp => emp.id === selectedEmployeeProfile.employee.id) || selectedEmployeeProfile.employee}
           initialTab={selectedEmployeeProfile.initialTab || 'activities'}
           onClose={() => setSelectedEmployeeProfile(null)}
           activityLogs={activityLogs}

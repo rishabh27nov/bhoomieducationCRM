@@ -1,3 +1,4 @@
+import { studentCategory } from '../../lib/studentCategory.js';
 import { authorize } from '../../lib/whatsappAccess.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const PROCESSING_LEASE_MS = 15 * 60 * 1000;
@@ -71,12 +72,15 @@ export default async function handler(req, res) {
     }
 
     // 2. Fetch Settings, Leads, and SentTemplates tracking
-    const [settingsRes, leadsRes, stRes] = await Promise.all([
+    const [settingsRes, leadsRes, stRes, employeesRes] = await Promise.all([
       fetch(`${FIREBASE_URL}/whatsappSettings.json?t=${now}`),
       fetch(`${FIREBASE_URL}/leads.json?t=${now}`),
-      fetch(`${FIREBASE_URL}/sentTemplates.json?t=${now}`)
+      fetch(`${FIREBASE_URL}/sentTemplates.json?t=${now}`),
+      fetch(`${FIREBASE_URL}/employees.json?t=${now}`)
     ]);
 
+    if (!employeesRes.ok) throw new Error('Unable to load student categories');
+    const employees = Object.values(await employeesRes.json() || {}).filter(Boolean);
     const settings = await settingsRes.json();
     const leadsList = await leadsRes.json();
     const sentTemplatesMap = (await stRes.json()) || {};
@@ -101,7 +105,8 @@ export default async function handler(req, res) {
       // Find matching leads who haven't received this template yet (using dedicated sentTemplates node)
       const targetLeads = leadsList.filter(l => 
         l && 
-        l.stage === automation.stage && 
+        l.stage === automation.stage &&
+        (automation.includeAcademic === true || studentCategory(l, employees) !== 'Academic') &&
         l.phone && 
         !((sentTemplatesMap[l.id] || [])).includes(automation.template)
       );
@@ -141,7 +146,7 @@ export default async function handler(req, res) {
           
           if (metaRes.ok) {
             successCount++;
-            successfulLeads.push({ name: lead.name, phone: lead.phone });
+            successfulLeads.push({ leadId: lead.id, studentCategory: studentCategory(lead, employees), name: lead.name, phone: lead.phone });
             
             // Track sent template using lead's ID as key (reliable, no index issues)
             const currentTemplates = sentTemplatesMap[lead.id] || lead.sentTemplates || [];
@@ -169,12 +174,12 @@ export default async function handler(req, res) {
             failCount++;
             const errData = await metaRes.json();
             lastError = errData?.error?.message || 'Unknown Meta API Error';
-            failedLeads.push({ name: lead.name, phone: lead.phone, error: lastError });
+            failedLeads.push({ leadId: lead.id, studentCategory: studentCategory(lead, employees), name: lead.name, phone: lead.phone, error: lastError });
           }
         } catch (e) {
           failCount++;
           lastError = e.message;
-          failedLeads.push({ name: lead.name, phone: lead.phone, error: lastError });
+          failedLeads.push({ leadId: lead.id, studentCategory: studentCategory(lead, employees), name: lead.name, phone: lead.phone, error: lastError });
         }
         
         // Small delay to prevent rate limit

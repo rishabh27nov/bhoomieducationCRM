@@ -8,7 +8,8 @@ export default function AddLeadModal({
   counselors = COUNSELORS,
   courses = DEFAULT_COURSES,
   onAddCourse,
-  currentUser
+  currentUser,
+  defaultCategory = 'Sales'
 }) {
   const todayStr = new Date().toISOString().split('T')[0];
   const defaultCounselor = (currentUser?.role === 'Employee' && currentUser?.name)
@@ -16,6 +17,7 @@ export default function AddLeadModal({
     : (counselors.length > 0 ? counselors[0].name : '');
 
   const [formData, setFormData] = useState({
+    studentCategory: defaultCategory,
     name: '',
     email: '',
     phone: '',
@@ -50,7 +52,7 @@ export default function AddLeadModal({
     onAddLead({
       ...formData,
       id: `LKD-${1000 + Math.floor(Math.random() * 9000)}`,
-      stage: 'New Enquiry',
+      stage: formData.studentCategory === 'Academic' ? 'Onboarding' : 'New Lead',
       score: 78,
       createdAt: formData.createdAt || todayStr,
       lastContact: 'Just now'
@@ -81,6 +83,7 @@ export default function AddLeadModal({
         style={{
           width: '100%',
           maxWidth: '540px',
+          maxHeight: '90vh',
           backgroundColor: '#ffffff',
           borderRadius: 'var(--radius-xl)',
           overflow: 'hidden',
@@ -108,8 +111,9 @@ export default function AddLeadModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <label>Student Category<select className="form-select" value={formData.studentCategory} onChange={e => setFormData({ ...formData, studentCategory: e.target.value })}><option value="Sales">Sales</option><option value="Academic">Academic</option></select></label>
+          {formData.studentCategory === 'Sales' && <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>Enquiry Segment (B2C vs B2B2C) *</label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
@@ -163,7 +167,7 @@ export default function AddLeadModal({
                 />
               </div>
             )}
-          </div>
+          </div>}
 
           <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Student Full Name *</label>
@@ -265,7 +269,7 @@ export default function AddLeadModal({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Assign Academic Counselor *</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Assign Counselor *</label>
               <select
                 className="form-select"
                 value={formData.counselor}

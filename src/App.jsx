@@ -1,4 +1,6 @@
+import { studentCategory, ACADEMIC_STAGES } from '../lib/studentCategory.js';
 import StudentChat from './components/StudentChat';
+import { validateEmployeeCategory } from './utils/employeeCategory';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   INITIAL_LEADS,
@@ -676,6 +678,18 @@ export default function App() {
   const handleUpdateEmployeeProfile = (empId, updatedFields) => {
     const targetEmp = employees.find((e) => e.id === empId);
     if (!targetEmp) return;
+    updatedFields = { ...updatedFields };
+    if (currentUser?.role !== 'Admin') {
+      delete updatedFields.category;
+      delete updatedFields.salesSegment;
+    } else if ('category' in updatedFields || 'salesSegment' in updatedFields) {
+      try {
+        Object.assign(updatedFields, validateEmployeeCategory({ ...targetEmp, ...updatedFields }));
+      } catch (error) {
+        alert(error.message);
+        return false;
+      }
+    }
 
     const oldName = targetEmp.name;
     const newName = updatedFields.name || oldName;
@@ -836,6 +850,10 @@ export default function App() {
 
   // Handle direct full student profile edit
   const handleUpdateLeadProfile = (leadId, updatedFields) => {
+    const previous = leads.find(lead => lead.id === leadId);
+    if (updatedFields.studentCategory && previous && updatedFields.studentCategory !== studentCategory(previous, employees)) {
+      updatedFields = { ...updatedFields, stage: updatedFields.studentCategory === 'Academic' ? ACADEMIC_STAGES[0] : 'New Lead' };
+    }
     const updatedLeads = leads.map(l => l.id === leadId ? { ...l, ...updatedFields } : l);
     setLeads(updatedLeads);
     localStorage.setItem('lakshya_leads', JSON.stringify(updatedLeads));
@@ -919,7 +937,13 @@ export default function App() {
   const handleAddEmployee = (newEmployeeData) => {
     if (currentUser?.role !== 'Admin') {
       alert('Permission Denied: Only Admin has authority to create new employee IDs.');
-      return;
+      return false;
+    }
+    try {
+      newEmployeeData = { ...newEmployeeData, ...validateEmployeeCategory(newEmployeeData) };
+    } catch (error) {
+      alert(error.message);
+      return false;
     }
     const updatedEmployees = [newEmployeeData, ...employees];
     setEmployees(updatedEmployees);
@@ -1002,6 +1026,8 @@ export default function App() {
     }
   };
 
+  const categorizedLeads = leads.map(lead => ({ ...lead, studentCategory: studentCategory(lead, employees) }));
+
   // If not authenticated, render Login Page
   if (!isAuthenticated) {
     return (
@@ -1036,7 +1062,7 @@ export default function App() {
           employees={employees}
           onLogout={handleLogout}
           tasks={tasks}
-          leads={leads}
+          leads={categorizedLeads}
           notifications={notifications}
           countdownFormatted={countdownFormatted}
           isIdle={isIdle}
@@ -1051,7 +1077,7 @@ export default function App() {
               <Dashboard
                 setActiveTab={setActiveTab}
                 onSelectLead={(lead) => setSelectedLead(lead)}
-                leads={leads}
+                leads={categorizedLeads}
                 employees={employees}
                 tasks={tasks}
                 searchQuery={searchQuery}
@@ -1059,7 +1085,7 @@ export default function App() {
             ) : (
               <EmployeeDashboard
                 currentUser={currentUser}
-                leads={leads}
+                leads={categorizedLeads}
                 tasks={tasks}
                 activityLogs={activityLogs}
                 onUpdateLeadStage={handleUpdateLeadStage}
@@ -1070,9 +1096,9 @@ export default function App() {
           )}
 
 
-          {activeTab === 'leads' && (
-            <LeadsManager
-              leads={leads}
+          {(activeTab === 'leads' || activeTab === 'academic_students') && (
+            <LeadsManager key={activeTab} studentView={activeTab === 'academic_students' ? 'Academic' : 'Sales'}
+              leads={categorizedLeads}
               onSelectLead={(lead) => setSelectedLead(lead)}
               onOpenAddLead={() => setIsAddLeadOpen(true)}
               onUpdateLeadStage={handleUpdateLeadStage}
@@ -1108,7 +1134,7 @@ export default function App() {
               onDeleteEmployee={handleDeleteEmployee}
               currentUser={currentUser}
               activityLogs={activityLogs}
-              leads={leads}
+              leads={categorizedLeads}
               tasks={tasks}
               onUpdatePassword={handlePasswordChange}
               onUpdateEmployee={handleUpdateEmployeeProfile}
@@ -1137,7 +1163,7 @@ export default function App() {
 
           {activeTab === 'meta_connectors' && (
             <MetaLeadConnectors
-              leads={leads}
+              leads={categorizedLeads}
               onAddLead={handleAddLead}
               counselors={employees}
             />
@@ -1154,13 +1180,13 @@ export default function App() {
           {activeTab === 'whatsapp_automations' && (
             <WhatsAppAutomationsManager
               currentUser={currentUser}
-              leads={leads}
+              leads={categorizedLeads}
             />
           )}
 
           {activeTab === 'whatsapp_replies' && (
             <WhatsAppReplies
-              leads={leads}
+              leads={categorizedLeads}
               onOpenChat={(lead) => setChatLead(lead)}
             />
           )}
@@ -1178,7 +1204,7 @@ export default function App() {
           {activeTab === 'analytics' && (
             <Analytics
               employees={employees}
-              leads={leads}
+              leads={categorizedLeads}
             />
           )}
 
@@ -1219,7 +1245,7 @@ export default function App() {
       {/* Modals & Drawers */}
       {selectedLead && (
         <LeadModal
-          lead={selectedLead}
+          lead={{ ...selectedLead, studentCategory: studentCategory(selectedLead, employees) }}
           onClose={() => setSelectedLead(null)}
           onUpdateStage={handleUpdateLeadStage}
           onUpdateCounselor={handleUpdateLeadCounselor}
@@ -1239,7 +1265,7 @@ export default function App() {
 
 
       {isAddLeadOpen && (
-        <AddLeadModal
+        <AddLeadModal defaultCategory={activeTab === 'academic_students' ? 'Academic' : 'Sales'}
           onClose={() => setIsAddLeadOpen(false)}
           onAddLead={handleAddLead}
           counselors={employees}

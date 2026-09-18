@@ -123,6 +123,7 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
       id: recipient.leadId || null,
       leadId: recipient.leadId || null,
       name: recipient.name,
+      studentCategory: recipient.studentCategory,
       phone: recipient.sourcePhone || recipient.phone
     }));
 

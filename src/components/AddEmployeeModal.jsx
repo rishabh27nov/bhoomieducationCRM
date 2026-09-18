@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import EmployeeCategoryFields from './EmployeeCategoryFields';
 import { X, UserPlus, ShieldCheck, Mail, Phone, Briefcase, Eye, EyeOff } from 'lucide-react';
 
 export default function AddEmployeeModal({ onClose, onAddEmployee }) {
@@ -7,6 +8,8 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
     id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
     name: '',
     role: 'Employee',
+    category: '',
+    salesSegment: '',
     email: '',
     phone: '',
     username: '',
@@ -21,7 +24,7 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
 
     const finalEmpId = formData.id.trim() || `EMP-${Math.floor(100 + Math.random() * 900)}`;
 
-    onAddEmployee({
+    const result = onAddEmployee({
       ...formData,
       id: finalEmpId,
       username: formData.username || finalEmpId.toLowerCase(),
@@ -31,7 +34,7 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
       joinedDate: new Date().toISOString().split('T')[0]
     });
 
-    onClose();
+    if (result !== false) onClose();
   };
 
   return (
@@ -55,6 +58,7 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
         style={{
           width: '100%',
           maxWidth: '520px',
+          maxHeight: '90vh',
           backgroundColor: '#ffffff',
           borderRadius: 'var(--radius-xl)',
           overflow: 'hidden',
@@ -82,7 +86,9 @@ export default function AddEmployeeModal({ onClose, onAddEmployee }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <EmployeeCategoryFields category={formData.category} salesSegment={formData.salesSegment}
+            onChange={(fields) => setFormData(prev => ({ ...prev, ...fields }))} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Employee ID *</label>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import EmployeeCategoryFields from './EmployeeCategoryFields';
 import { X, User, Activity, ListChecks, FileText, Mail, Phone, Calendar, Shield, KeyRound, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 import { isCounselorMatch } from '../data/mockData';
@@ -21,6 +22,7 @@ export default function EmployeeProfileModal({
   const [emailInput, setEmailInput] = useState(employee?.email || '');
   const [phoneInput, setPhoneInput] = useState(employee?.phone || '');
   const [roleInput, setRoleInput] = useState(employee?.role || 'Employee');
+  const [categoryFields, setCategoryFields] = useState({ category: employee?.category || '', salesSegment: employee?.salesSegment || '' });
   const [avatarInput, setAvatarInput] = useState(employee?.avatar || '');
   const [newPasswordInput, setNewPasswordInput] = useState(employee?.password || 'emp123');
   const [showPassword, setShowPassword] = useState(false);
@@ -68,16 +70,18 @@ export default function EmployeeProfileModal({
     if (!nameInput.trim() || !emailInput.trim()) return;
 
     if (onUpdateEmployee) {
-      onUpdateEmployee(employee.id, {
+      const result = onUpdateEmployee(employee.id, {
         id: empIdInput.trim() || employee.id,
         name: nameInput.trim(),
         username: usernameInput.trim() || employee.id,
         email: emailInput.trim(),
         phone: phoneInput.trim(),
         role: roleInput,
+        ...(isAdmin ? categoryFields : {}),
         avatar: avatarInput || employee.avatar,
         password: newPasswordInput.trim()
       });
+      if (result === false) return;
     } else if (onUpdatePassword) {
       onUpdatePassword(employee.id, newPasswordInput.trim());
     }
@@ -462,6 +466,7 @@ export default function EmployeeProfileModal({
               )}
 
               <form onSubmit={handleProfileSaveSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '520px' }}>
+                <EmployeeCategoryFields {...categoryFields} onChange={setCategoryFields} disabled={!isAdmin} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.25rem', display: 'block' }}>Employee ID (Code) *</label>
@@ -635,4 +640,3 @@ export default function EmployeeProfileModal({
     </div>
   );
 }
-

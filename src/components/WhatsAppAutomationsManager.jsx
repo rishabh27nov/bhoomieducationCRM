@@ -1,4 +1,5 @@
 import { whatsappFetch } from '../utils/whatsappApi';
+import { studentCategory, ACADEMIC_STAGES, resolveRecipientCategory } from '../../lib/studentCategory.js';
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Send, CheckCircle, Clock3, Trash2, AlertCircle, FileText, Plus, ListTree, X, Pencil } from 'lucide-react';
 import { PIPELINE_STAGES } from '../data/mockData';
@@ -28,6 +29,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
   
   const [cycleData, setCycleData] = useState({
     name: '',
+    includeAcademic: false,
     stage: '',
     messages: [
       { id: Date.now(), template: '', date: '', time: '' }
@@ -140,6 +142,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
         body: JSON.stringify({
           name: cycleData.name.trim(),
           stage: cycleData.stage,
+        includeAcademic: cycleData.includeAcademic === true,
           messages: cycleData.messages.map(({ id, template, date, time }) => ({ id, template, date, time }))
         })
       });
@@ -164,6 +167,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
     setEditingSavedCycleId(cycle.id);
     setCycleData({
       name: cycle.name || '',
+      includeAcademic: cycle.includeAcademic === true,
       stage: cycle.stage || '',
       messages: (cycle.messages || []).map((msg, index) => ({
         id: msg.id || `${Date.now()}-${index}`,
@@ -213,6 +217,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
         cycleName: cycleData.name,
         template: msg.template,
         stage: cycleData.stage,
+          includeAcademic: cycleData.includeAcademic === true,
         scheduledTime,
         status: 'pending',
         createdBy: currentUser?.name || 'Admin',
@@ -395,15 +400,16 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
                   required
                 >
                   <option value="">-- Select Stage --</option>
-                  {PIPELINE_STAGES.map(stage => (
+                  {[...PIPELINE_STAGES, ...(cycleData.includeAcademic ? ACADEMIC_STAGES : [])].map(stage => (
                     <option key={stage} value={stage}>{stage}</option>
                   ))}
                 </select>
               </div>
             </div>
             
+            <label><input type="checkbox" checked={cycleData.includeAcademic === true} onChange={e => setCycleData({ ...cycleData, includeAcademic: e.target.checked, stage: '' })} /> Include Academic students</label>
             {cycleData.stage && (() => {
-              const targetedLeads = leads.filter(l => l.stage === cycleData.stage);
+              const targetedLeads = leads.filter(l => l.stage === cycleData.stage && (cycleData.includeAcademic === true || studentCategory(l) !== 'Academic'));
               return (
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-brand-emerald)', backgroundColor: '#ecfdf5', padding: '0.75rem', borderRadius: '4px', border: '1px solid #d1fae5' }}>
                   <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: 800 }}>
@@ -743,7 +749,7 @@ export default function WhatsAppAutomationsManager({ currentUser, leads = [] }) 
 
       {retryLeads && (
         <BulkWhatsAppModal
-          selectedLeads={retryLeads}
+          selectedLeads={retryLeads.map(lead => ({ ...lead, studentCategory: resolveRecipientCategory(lead, leads) }))}
           initialTemplate={retryTemplate}
           resumedFromCampaignId={resumedFromCampaignId}
           sourceAutomation={retrySourceAutomation}

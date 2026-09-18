@@ -35,7 +35,8 @@ export default function Sidebar({
 
   let menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'leads', label: 'Student Enquiries', icon: Users },
+    { id: 'leads', label: 'Sales Students', icon: Users },
+    { id: 'academic_students', label: 'Academic Students', icon: BookOpen },
     { id: 'meta_connectors', label: 'Meta (FB & IG) Ads', icon: Share2, badge: 'LIVE' },
     { id: 'whatsapp_setup', label: 'WhatsApp API Setup', icon: Phone, badge: 'API' },
     { id: 'whatsapp_automations', label: 'WhatsApp Automations', icon: Bot, badge: 'AUTO' },
@@ -58,6 +59,7 @@ export default function Sidebar({
     const allowedEmployeeTabIds = [
       'dashboard',
       'leads',
+      'academic_students',
       'employees',
       'tasks',
       'attendance',

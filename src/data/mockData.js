@@ -1,3 +1,5 @@
+import { ACADEMIC_STAGES } from '../../lib/studentCategory.js';
+
 export const ADMIN_CREDENTIALS = {
   username: 'admin',
   password: 'admin123',
@@ -128,7 +130,8 @@ export const PIPELINE_STAGES_B2C = [
 
 export const PIPELINE_STAGES = Array.from(new Set([...PIPELINE_STAGES_B2B2C, ...PIPELINE_STAGES_B2C]));
 
-export const getPipelineStagesForLead = (leadType) => {
+export const getPipelineStagesForLead = (leadType, category) => {
+  if (category === 'Academic' || leadType === 'Academic') return ACADEMIC_STAGES;
   if (leadType === 'B2B2C' || leadType === 'B2B') {
     return PIPELINE_STAGES_B2B2C;
   }

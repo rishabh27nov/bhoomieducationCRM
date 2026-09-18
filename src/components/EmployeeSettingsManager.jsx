@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import EmployeeCategoryFields from './EmployeeCategoryFields';
 import {
   UserCog,
   User,
@@ -57,6 +58,7 @@ export default function EmployeeSettingsManager({
   const [email, setEmail] = useState(selectedEmployee.email || '');
   const [phone, setPhone] = useState(selectedEmployee.phone || '');
   const [role, setRole] = useState(selectedEmployee.role || 'Employee');
+  const [categoryFields, setCategoryFields] = useState({ category: selectedEmployee.category || '', salesSegment: selectedEmployee.salesSegment || '' });
   const [password, setPassword] = useState(selectedEmployee.password || 'emp123');
   const [confirmPassword, setConfirmPassword] = useState(selectedEmployee.password || 'emp123');
   const [avatar, setAvatar] = useState(selectedEmployee.avatar || '');
@@ -74,6 +76,7 @@ export default function EmployeeSettingsManager({
       setEmail(emp.email || '');
       setPhone(emp.phone || '');
       setRole(emp.role || 'Employee');
+      setCategoryFields({ category: emp.category || '', salesSegment: emp.salesSegment || '' });
       setPassword(emp.password || 'emp123');
       setConfirmPassword(emp.password || 'emp123');
       setAvatar(emp.avatar || '');
@@ -117,13 +120,15 @@ export default function EmployeeSettingsManager({
       email: email.trim(),
       phone: phone.trim(),
       role: role,
+      ...(isAdmin ? categoryFields : {}),
       password: password.trim(),
       avatar: avatar || selectedEmployee.avatar
     };
 
     // Update global employee array in parent
     if (onUpdateEmployee) {
-      onUpdateEmployee(selectedEmpId, updatedData);
+      const result = onUpdateEmployee(selectedEmpId, updatedData);
+      if (result === false) return;
     }
 
     // If updating currently logged in user, update currentUser state in App
@@ -324,6 +329,9 @@ export default function EmployeeSettingsManager({
         )}
 
         <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <EmployeeCategoryFields {...categoryFields} onChange={setCategoryFields} disabled={!isAdmin} />
+          </div>
           
           {/* Section 1: Basic Profile Details */}
           <div>

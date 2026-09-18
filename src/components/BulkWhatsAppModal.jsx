@@ -1,4 +1,5 @@
 import { whatsappFetch } from '../utils/whatsappApi';
+import { bulkRecipients, studentCategory } from '../../lib/studentCategory.js';
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Send, AlertCircle, CheckCircle2, AlertTriangle, Phone } from 'lucide-react';
@@ -13,6 +14,7 @@ const getPrimaryPhone = (phone) => String(phone || '')
 const createRecipientRecord = (lead, status, details = {}) => ({
   leadId: lead.id || lead.leadId || null,
   name: lead.name || 'Unknown',
+  studentCategory: studentCategory(lead),
   phone: getPrimaryPhone(lead.phone),
   sourcePhone: lead.phone || '',
   status,
@@ -29,7 +31,10 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
   const [results, setResults] = useState({ success: 0, failed: 0, skipped: 0 });
   const [isFinished, setIsFinished] = useState(false);
 
-  const totalLeads = selectedLeads.length;
+  const [includeAcademic, setIncludeAcademic] = useState(false);
+  const recipients = bulkRecipients(selectedLeads, includeAcademic);
+  const academicCount = selectedLeads.filter(lead => studentCategory(lead) === 'Academic').length;
+  const totalLeads = recipients.length;
 
   useEffect(() => {
     // Prevent background scrolling
@@ -66,7 +71,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
     const failedLeads = [];
     const skippedLeads = [];
     const campaignId = `bulk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const recipientResults = selectedLeads.map(lead => createRecipientRecord(lead, 'pending'));
+    const recipientResults = recipients.map(lead => createRecipientRecord(lead, 'pending'));
     const campaignLog = {
       id: campaignId,
       timestamp: new Date().toISOString(),
@@ -82,6 +87,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
         stage: sourceAutomation.stage || null
       }),
       targetAudience: totalLeads,
+      includeAcademic,
       successfulCount: 0,
       failedCount: 0,
       skippedCount: 0,
@@ -107,8 +113,8 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
     // Persist the campaign before sending, then save every recipient outcome.
     await saveCampaignLog();
 
-    for (let i = 0; i < selectedLeads.length; i++) {
-      const lead = selectedLeads[i];
+    for (let i = 0; i < recipients.length; i++) {
+      const lead = recipients[i];
       try {
         const payload = useTemplate 
           ? { phone: lead.phone, isTemplate: true, templateName: selectedTemplate, languageCode: 'en' }
@@ -232,6 +238,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
             </div>
           </div>
 
+          {academicCount > 0 && <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}><input type="checkbox" checked={includeAcademic} disabled={isSending || isFinished} onChange={e => setIncludeAcademic(e.target.checked)} /> Include {academicCount} selected Academic students</label>}
           {!isFinished ? (
             <form onSubmit={handleSendBulk}>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -319,7 +326,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
                 <button 
                   type="submit" 
                   className="btn btn-primary" 
-                  disabled={isSending || (!useTemplate && !message.trim())}
+                  disabled={isSending || totalLeads === 0 || (!useTemplate && !message.trim())}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#15803d' }}
                 >
                   {isSending ? 'Sending...' : <><Send size={16} /> Send to {totalLeads}</>}
