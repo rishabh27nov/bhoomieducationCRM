@@ -5,7 +5,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/
 
 // Production Firebase Configuration for Bhoomi CRM
 const firebaseConfig = {
-  apiKey: "AIzaSyAZVHMcC7oYLRUbcqIfzLYYUhZspWjoLXU",
+  apiKey: "AIzaSyAZVHMqc7oYLRUbcqIfzLYYUhZspVjolXU",
   authDomain: "bhoomi-crm.firebaseapp.com",
   databaseURL: "https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "bhoomi-crm",

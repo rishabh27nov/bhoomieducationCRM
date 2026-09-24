@@ -114,7 +114,19 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
       }
     } catch (error) {
       console.error('Google sign-in failed', error);
-      setErrorMessage(error?.code === 'auth/popup-closed-by-user' ? 'Google sign-in was cancelled.' : 'Google sign-in could not be completed. Please try again.');
+      const code = error?.code || 'unknown-error';
+      const messages = {
+        'auth/popup-closed-by-user': 'Google sign-in was cancelled. Keep the popup open until sign-in finishes.',
+        'auth/popup-blocked': 'Your browser blocked the Google popup. Allow popups for this CRM and try again.',
+        'auth/cancelled-popup-request': 'Another Google sign-in is already open. Complete that popup first.',
+        'auth/unauthorized-domain': `This website is not authorized for Google login. Add ${window.location.hostname} in Firebase Console > Authentication > Settings > Authorized domains.`,
+        'auth/operation-not-allowed': 'Enable Google in Firebase Console > Authentication > Sign-in method.',
+        'auth/operation-not-supported-in-this-environment': 'Google login needs a supported browser with web storage enabled. Open the CRM in a regular browser window.',
+        'auth/network-request-failed': 'Google login could not reach Firebase. Check your connection and browser network restrictions.',
+        'auth/invalid-api-key': 'Firebase rejected the app API key. The administrator needs to check the Firebase app configuration.',
+        'auth/user-disabled': 'This Firebase account is disabled. Contact the administrator.'
+      };
+      setErrorMessage(`${messages[code] || 'Google sign-in could not be completed. Share this error code with the administrator.'} (${code})`);
     } finally {
       setGoogleLoading(false);
     }
