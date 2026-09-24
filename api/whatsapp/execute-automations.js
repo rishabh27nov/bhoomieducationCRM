@@ -145,8 +145,10 @@ export default async function handler(req, res) {
           });
           
           if (metaRes.ok) {
+            const metaResult = await metaRes.json();
+            const messageId = metaResult.messages?.[0]?.id || null;
             successCount++;
-            successfulLeads.push({ leadId: lead.id, studentCategory: studentCategory(lead, employees), name: lead.name, phone: lead.phone });
+            successfulLeads.push({ messageId, status: 'accepted', leadId: lead.id, studentCategory: studentCategory(lead, employees), name: lead.name, phone: lead.phone });
             
             // Track sent template using lead's ID as key (reliable, no index issues)
             const currentTemplates = sentTemplatesMap[lead.id] || lead.sentTemplates || [];
@@ -163,12 +165,12 @@ export default async function handler(req, res) {
 
             // Log for chat history
             newChatMessages.push({
-              id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              id: messageId || `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               direction: 'outgoing',
               leadPhone: lead.phone,
               text: `[Automated Template: ${automation.template}]`,
               timestamp: new Date().toISOString(),
-              status: 'sent'
+              status: 'accepted'
             });
           } else {
             failCount++;

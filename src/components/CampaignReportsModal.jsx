@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { campaignDelivery } from '../../lib/campaignDelivery.js';
 import { jsPDF } from 'jspdf';
 import { X, FileText, CheckCircle2, XCircle, Search, Clock, Calendar, Download, CheckSquare } from 'lucide-react';
 
@@ -12,22 +13,31 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
 
   useEffect(() => {
     fetchLogs();
+    const timer = setInterval(() => fetchLogs(false), 15000);
+    return () => clearInterval(timer);
   }, []);
 
-  const fetchLogs = async () => {
-    setLoading(true);
+  const fetchLogs = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
       const res = await fetch(`${FIREBASE_URL}/whatsappCampaignLogs.json`);
+      if (!res.ok) throw new Error('Campaign reports unavailable');
       const data = await res.json();
+      let receipts = {};
+      try {
+        const response = await fetch(`${FIREBASE_URL}/whatsappMessageStatuses.json`, { cache: 'no-store' });
+        if (response.ok) receipts = await response.json() || {};
+      } catch { /* Without receipts, delivery remains unconfirmed. */ }
       
       if (data) {
         // Firebase might return an object or array depending on keys.
         // We know we used PUT with string IDs, so it should be an object mapping ID -> log.
-        const logArray = Object.values(data).filter(Boolean);
+        const logArray = Object.values(data).filter(Boolean).map(log => campaignDelivery(log, receipts));
         // Sort by timestamp descending (newest first)
         logArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setLogs(logArray);
+        setSelectedLog(current => current ? logArray.find(log => log.id === current.id) || current : null);
       }
     } catch (err) {
       console.error('Failed to fetch campaign logs', err);
@@ -97,15 +107,19 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
       y += 16;
       line(`Date: ${formatDate(report.timestamp)}`, { size: 12, color: [15, 23, 42], bold: true });
       line(`Template: ${report.template || 'Unknown'}  |  Type: ${report.campaignType || 'Unknown'}${report.cycleName ? `  |  Cycle: ${report.cycleName}` : ''}`);
-      line(`Target: ${report.targetAudience || 0}   Sent: ${report.successfulCount || 0}   Failed: ${report.failedCount || 0}`, { bold: true });
+      line(`Target: ${report.targetAudience || 0}   Delivered: ${report.successfulCount || 0}   Unconfirmed: ${report.unconfirmedCount || 0}   Failed: ${report.failedCount || 0}`, { bold: true });
 
       const successful = report.successfulLeads || [];
       if (successful.length) {
         y += 4;
-        line(`Sent to (${successful.length})`, { size: 10, color: [21, 128, 61], bold: true });
+        line(`Delivered to (${successful.length})`, { size: 10, color: [21, 128, 61], bold: true });
         successful.forEach((lead, index) => line(`${index + 1}. ${lead.name || 'Unknown'} — ${lead.phone || 'N/A'}`, { indent: 10 }));
       }
       const failed = report.failedLeads || [];
+      if (report.unconfirmedCount) {
+        line(`Delivery unconfirmed (${report.unconfirmedCount})`, { bold: true });
+        (report.unconfirmedLeads || []).forEach(lead => line(`${lead.name || 'Unknown'} - ${lead.phone || 'N/A'} | Delivery unconfirmed`, { indent: 10 }));
+      }
       if (failed.length) {
         y += 4;
         line(`Failed (${failed.length})`, { size: 10, color: [185, 28, 28], bold: true });
@@ -237,8 +251,9 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                       <div style={{ display: 'flex', gap: '1rem', textAlign: 'center' }}>
                         <div style={{ backgroundColor: '#f0fdf4', color: '#15803d', padding: '0.5rem', borderRadius: '8px', minWidth: '60px' }}>
                           <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{log.successfulCount || 0}</div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>Sent</div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>Delivered</div>
                         </div>
+                        <div style={{ color: '#92400e', padding: '0.5rem' }}><b>{log.unconfirmedCount || 0}</b><div style={{ fontSize: '0.7rem' }}>Unconfirmed</div></div>
                         <div style={{ backgroundColor: '#fef2f2', color: '#b91c1c', padding: '0.5rem', borderRadius: '8px', minWidth: '60px' }}>
                           <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>{log.failedCount || 0}</div>
                           <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase' }}>Failed</div>
@@ -327,6 +342,19 @@ export default function CampaignReportsModal({ onClose, onRetryFailed, onResumeP
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {selectedLog.unconfirmedCount > 0 && (
+                <div style={{ padding: '1rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', color: '#92400e' }}>
+                  <h4 style={{ margin: '0 0 0.5rem' }}>Delivery unconfirmed ({selectedLog.unconfirmedCount})</h4>
+                  <p style={{ fontSize: '0.85rem' }}>Delivery has not been confirmed. Older records without a message ID cannot be verified. Status refreshes every 15 seconds.</p>
+                  <table style={{ width: '100%', textAlign: 'left', fontSize: '0.9rem' }}>
+                    <thead><tr><th>Student Name</th><th>Phone</th><th>Status</th></tr></thead>
+                    <tbody>{selectedLog.unconfirmedLeads.map((lead, idx) => (
+                      <tr key={idx}><td style={{ padding: '0.5rem 0' }}>{lead.name || 'Unknown'}</td><td>{lead.phone}</td><td>Delivery unconfirmed</td></tr>
+                    ))}</tbody>
+                  </table>
                 </div>
               )}
 

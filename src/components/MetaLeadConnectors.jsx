@@ -57,7 +57,7 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     }
   };
 
-  const handleBulkAssign = () => {
+  const handleBulkAssign = async () => {
     if (selectedLeads.length === 0) return alert('Please select at least one lead.');
     if (!bulkCounselor) return alert('Please select a counselor to assign.');
     
@@ -84,11 +84,11 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
       return lead;
     });
     
+    if (onAddLead && toUpdate.length > 0) {
+      if (await onAddLead(toUpdate) === false) return;
+    }
     setMetaRealLeads(updatedLeads);
     setSelectedLeads([]);
-    if (onAddLead && toUpdate.length > 0) {
-      onAddLead(toUpdate);
-    }
     
     if (ignoredCount > 0) {
       alert(`${newlyAssignedCount} new leads assigned to ${bulkCounselor}. ${ignoredCount} leads were skipped because they already exist in the CRM.`);
@@ -288,7 +288,7 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     }
   };
 
-  const handleRunSimulator = (e) => {
+  const handleRunSimulator = async (e) => {
     e.preventDefault();
     if (!simData.name || !simData.phone) {
       alert('Please fill Name and Phone number for simulation');
@@ -314,7 +314,7 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
     };
 
     if (onAddLead) {
-      onAddLead(newLead);
+      if (await onAddLead(newLead) === false) return;
     }
 
     const newLogItem = {
@@ -1312,10 +1312,10 @@ export default function MetaLeadConnectors({ leads, onAddLead, counselors }) {
                         <td style={{ padding: '0.85rem 1rem' }}>
                           <select
                             value={lead.counselor || 'Unassigned'}
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const updatedLead = { ...lead, counselor: e.target.value };
+                              if (onAddLead && await onAddLead(updatedLead) === false) return;
                               setMetaRealLeads(prev => prev.map(l => l.id === lead.id ? updatedLead : l));
-                              if (onAddLead) onAddLead(updatedLead);
                             }}
                             style={{
                               background: lead.counselor === 'Unassigned' ? '#d97706' : '#10b981',

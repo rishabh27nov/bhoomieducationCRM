@@ -1,4 +1,5 @@
 import { studentCategory, ACADEMIC_STAGES } from '../lib/studentCategory.js';
+import { mergeIncomingLeads } from '../lib/mergeIncomingLeads.js';
 import StudentChat from './components/StudentChat';
 import { validateEmployeeCategory } from './utils/employeeCategory';
 import React, { useState, useEffect, useRef } from 'react';
@@ -883,31 +884,15 @@ export default function App() {
     const incomingLeads = Array.isArray(newLeadData) ? newLeadData : [newLeadData];
 
     // Compute updated leads using current leads state directly (not inside setter)
-    let updatedLeads = [...leads];
-    incomingLeads.forEach(incomingLead => {
-      const existingIndex = updatedLeads.findIndex(l => l.id === incomingLead.id);
-      if (existingIndex >= 0) {
-        const existingLead = updatedLeads[existingIndex];
-        // Preserve custom notes, stage, counselor, and status from the existing lead!
-        updatedLeads[existingIndex] = { 
-          ...existingLead, 
-          ...incomingLead,
-          notes: existingLead.notes ? existingLead.notes : incomingLead.notes,
-          stage: existingLead.stage ? existingLead.stage : incomingLead.stage,
-          status: existingLead.status ? existingLead.status : incomingLead.status,
-          counselor: existingLead.counselor ? existingLead.counselor : incomingLead.counselor
-        };
-      } else {
-        updatedLeads.unshift(incomingLead);
-      }
-    });
+    const updatedLeads = mergeIncomingLeads(leads, incomingLeads);
 
     // Only report success after Firebase acknowledges the write.
     try {
       await set(ref(firebaseDB, 'lakshya_crm_central_db/leads'), updatedLeads);
     } catch (error) {
       console.error('Firebase lead save failed:', error);
-      alert('Students could not be saved to Firebase. Please retry.');
+      const reason = error.code || 'Invalid student data or connection error';
+      alert(`Students could not be saved to Firebase (${reason}). Your import was not completed. Please retry; if it persists, share this error code.`);
       return false;
     }
     setLeads(updatedLeads);

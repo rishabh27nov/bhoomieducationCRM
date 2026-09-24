@@ -137,7 +137,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
           recipientResults[i] = skippedLead;
         } else if (response.ok) {
           successCount++;
-          const sentLead = createRecipientRecord(lead, 'sent', {
+          const sentLead = createRecipientRecord(lead, 'accepted', {
             sentAt: new Date().toISOString(),
             messageId: responseData?.message?.id || null
           });
@@ -311,7 +311,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
                     <div style={{ width: `${progress}%`, height: '100%', backgroundColor: '#15803d', transition: 'width 0.3s ease' }}></div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#15803d', fontWeight: 600 }}>✅ Sent: {results.success}</span>
+                    <span style={{ color: '#15803d', fontWeight: 600 }}>Accepted: {results.success}</span>
                     <span style={{ color: '#dc2626', fontWeight: 600 }}>❌ Failed: {results.failed}</span>
                     <span style={{ color: '#a16207', fontWeight: 600 }}>Skipped: {results.skipped}</span>
                     <span style={{ color: '#0f172a', fontWeight: 600 }}>⏳ Remaining: {totalLeads - results.success - results.failed - results.skipped}</span>
@@ -342,7 +342,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
                 Broadcast Complete!
               </h3>
               <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-                Successfully sent {results.success} messages. 
+                Send requests accepted: {results.success}. Check campaign reports for confirmed delivery.
                 {results.failed > 0 && <span style={{ color: '#dc2626', fontWeight: 600 }}> ({results.failed} failed)</span>}
               </p>
               <button className="btn btn-primary" onClick={onClose}>
