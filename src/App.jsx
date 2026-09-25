@@ -37,7 +37,7 @@ import ExcelDataManager from './components/ExcelDataManager';
 
 import AddLeadModal from './components/AddLeadModal';
 import AddEmployeeModal from './components/AddEmployeeModal';
-import { db as firebaseDB, ref, onValue, set, update } from './firebase';
+import { auth, db as firebaseDB, ref, onValue, set, signOut, update } from './firebase';
 
 // Automatic cache cleanup for sample/mock data reset
 try {
@@ -64,6 +64,19 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  // A saved CRM browser session is not sufficient for protected Firebase data.
+  // Clear legacy sessions that predate Firebase Authentication so users must sign in again.
+  useEffect(() => {
+    let active = true;
+    auth.authStateReady().then(() => {
+      if (!active || auth.currentUser) return;
+      setIsAuthenticated(false);
+      localStorage.removeItem('lakshya_auth');
+      localStorage.removeItem('lakshya_user');
+    }).catch(error => console.warn('Firebase session check failed:', error));
+    return () => { active = false; };
+  }, []);
 
   const [courses, setCourses] = useState(() => {
     try {
@@ -632,6 +645,7 @@ export default function App() {
 
   // Logout handler
   const handleLogout = () => {
+    signOut(auth).catch(error => console.warn('Firebase sign-out failed:', error));
     setIsAuthenticated(false);
     setCurrentUser(ADMIN_CREDENTIALS);
     localStorage.removeItem('lakshya_auth');
