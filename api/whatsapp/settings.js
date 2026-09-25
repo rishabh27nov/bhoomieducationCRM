@@ -1,4 +1,4 @@
-import { authorize } from '../../lib/whatsappAccess.js';
+import { authorize, firebaseUrl } from '../../lib/whatsappAccess.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 
 export default async function handler(req, res) {
@@ -17,7 +17,8 @@ export default async function handler(req, res) {
   // GET - Fetch WhatsApp settings from Firebase
   if (req.method === 'GET') {
     try {
-      const fbRes = await fetch(`${FIREBASE_URL}/whatsappSettings.json`);
+      const fbRes = await fetch(firebaseUrl('whatsappSettings', req));
+      if (!fbRes.ok) throw new Error('Settings are unavailable');
       const settings = await fbRes.json();
       return res.status(200).json(access.isAdmin ? (settings || {}) : { templates: settings?.templates || [] });
     } catch (err) {
@@ -39,11 +40,12 @@ export default async function handler(req, res) {
         templates: templates || ['lakshya_admission_enquiry']
       };
 
-      await fetch(`${FIREBASE_URL}/whatsappSettings.json`, {
+      const response = await fetch(firebaseUrl('whatsappSettings', req), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
+      if (!response.ok) throw new Error('Settings could not be saved');
 
       return res.status(200).json({ success: true, settings });
     } catch (err) {

@@ -1,4 +1,4 @@
-import { authorize } from '../../lib/whatsappAccess.js';
+import { authorize, firebaseUrl } from '../../lib/whatsappAccess.js';
 import { replyWindow } from '../../lib/whatsappDelivery.js';
 const FIREBASE_URL = 'https://bhoomi-crm-default-rtdb.asia-southeast1.firebasedatabase.app/lakshya_crm_central_db';
 const firebaseMessageKey = (id) => String(id).replace(/[.#$\[\]/]/g, '_');
@@ -7,8 +7,8 @@ const indiaDateKey = (value = new Date()) => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
 }).format(new Date(value));
 
-const claimTemplateDelivery = async (template, phone) => {
-  const url = `${FIREBASE_URL}/whatsappTemplateDeliveries/${deliveryKey(template, phone)}.json`;
+const claimTemplateDelivery = async (template, phone, req) => {
+  const url = firebaseUrl(`whatsappTemplateDeliveries/${deliveryKey(template, phone)}`, req);
   const now = Date.now();
   const recordRes = await fetch(url, { headers: { 'X-Firebase-ETag': 'true' } });
   const existing = await recordRes.json();
@@ -55,14 +55,14 @@ export default async function handler(req, res) {
     if (!access) return;
 
     if (!isTemplate) {
-      const historyResponse = await fetch(`${FIREBASE_URL}/whatsappMessages.json`);
+      const historyResponse = await fetch(firebaseUrl('whatsappMessages', req));
       if (!historyResponse.ok) return res.status(503).json({ error: 'Unable to check the WhatsApp reply window. Please retry.' });
       const window = replyWindow(await historyResponse.json(), phone);
       if (!window.open) return res.status(409).json({ code: 'REPLY_WINDOW_CLOSED', error: 'No student reply recorded in the last 24 hours. Send an approved template and wait for the student to reply, or ask the student to message your business WhatsApp number first.' });
     }
 
     // Fetch WhatsApp credentials from Firebase
-    const settingsRes = await fetch(`${FIREBASE_URL}/whatsappSettings.json`);
+    const settingsRes = await fetch(firebaseUrl('whatsappSettings', req));
     const settings = await settingsRes.json();
 
     if (!settings || !settings.phoneNumberId || !settings.accessToken) {
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
     let deliveryClaim = null;
     if (isTemplate) {
-      deliveryClaim = await claimTemplateDelivery(resolvedTemplate, cleanPhone);
+      deliveryClaim = await claimTemplateDelivery(resolvedTemplate, cleanPhone, req);
       if (deliveryClaim.skipped) {
         return res.status(200).json({ success: true, skipped: true, message: 'This template was already sent or is currently being sent to this number.' });
       }
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      await fetch(`${FIREBASE_URL}/whatsappMessages/${firebaseMessageKey(outgoingMsg.id)}.json`, {
+      await fetch(firebaseUrl(`whatsappMessages/${firebaseMessageKey(outgoingMsg.id)}`, req), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(outgoingMsg)
