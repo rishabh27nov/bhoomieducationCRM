@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import LakshyaLogo from './LakshyaLogo';
 import { Shield, User, Lock, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Eye, EyeOff, Building2, Chrome, Loader2 } from 'lucide-react';
 import { ADMIN_CREDENTIALS, INSTITUTE_CREDENTIALS } from '../data/mockData';
-import { auth, googleProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from '../firebase';
+import { auth, db, get, googleProvider, ref, signInWithEmailAndPassword, signInWithPopup, signOut } from '../firebase';
 
 export default function LoginPage({ onLoginSuccess, employees = [] }) {
   const [loginMode, setLoginMode] = useState('admin'); // 'admin', 'institute', 'employee'
   const [usernameInput, setUsernameInput] = useState('');
+  const [employeePhoneInput, setEmployeePhoneInput] = useState('');
+  const [employeeEmailInput, setEmployeeEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -18,10 +20,12 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
     setErrorMessage('');
 
     const cleanUser = usernameInput.trim();
+    const cleanPhone = employeePhoneInput.replace(/\D/g, '').slice(-10);
+    const cleanEmail = employeeEmailInput.trim().toLowerCase();
     const cleanPass = passwordInput.trim();
 
-    if (!cleanUser || !cleanPass) {
-      setErrorMessage('Please enter Email / Phone Number / Username and Password.');
+    if (!cleanPass || (loginMode === 'employee' ? (!cleanPhone || !cleanEmail) : !cleanUser)) {
+      setErrorMessage(loginMode === 'employee' ? 'Please enter your allotted phone number, official email and password.' : 'Please enter Email / Phone Number / Username and Password.');
       return;
     }
 
@@ -73,27 +77,24 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
         }
       }
     } else {
-      // Employee login check by Email, Phone Number, Username, or Employee ID
-      const matchedEmployee = employees.find((emp) => {
-        const matchesEmail = emp.email?.toLowerCase() === cleanUser.toLowerCase();
-        const matchesUsername = emp.username?.toLowerCase() === cleanUser.toLowerCase();
-        const matchesId = emp.id?.toLowerCase() === cleanUser.toLowerCase();
-
-        const empDigits = getDigits(emp.phone);
-        const matchesPhone =
-          userDigits.length >= 7 &&
-          (empDigits.endsWith(userDigits) || userDigits.endsWith(empDigits));
-
-        const isIdentityMatch = matchesEmail || matchesUsername || matchesId || matchesPhone;
-        const isPasswordMatch = emp.password === cleanPass;
-
-        return isIdentityMatch && isPasswordMatch;
-      });
-
-      if (matchedEmployee) {
-        await signInWithExistingPassword(matchedEmployee, 'Employee');
-      } else {
-        setErrorMessage('Invalid Email/Phone or Password. Please check credentials set by Admin.');
+      try {
+        const credential = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
+        const snapshot = await get(ref(db, 'lakshya_crm_central_db/employees'));
+        const matchedEmployee = Object.values(snapshot.val() || {}).find(employee => {
+          const savedPhone = getDigits(employee?.phone).slice(-10);
+          return String(employee?.email || '').trim().toLowerCase() === cleanEmail && savedPhone === cleanPhone;
+        });
+        if (!matchedEmployee || (matchedEmployee.status && matchedEmployee.status !== 'Active')) {
+          await signOut(auth);
+          setErrorMessage('Phone number and email do not match an active employee profile. Contact the Admin.');
+          return;
+        }
+        onLoginSuccess({ ...matchedEmployee, role: 'Employee', firebaseUid: credential.user.uid, authProvider: 'password' });
+      } catch (error) {
+        console.error('Employee sign-in failed', error);
+        setErrorMessage(error?.code === 'auth/operation-not-allowed'
+          ? 'Firebase Email/Password login is not enabled. Ask the Admin to enable it in Firebase Authentication.'
+          : 'Phone, email or password is incorrect, or Firebase access is not set up for this employee.');
       }
     }
   };
@@ -335,9 +336,18 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
             </div>
           )}
 
-          <div>
+          {loginMode === 'employee' ? <>
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block', color: 'var(--text-main)' }}>Allotted Mobile Number</label>
+              <input type="tel" required placeholder="98765 43210" value={employeePhoneInput} onChange={(e) => setEmployeePhoneInput(e.target.value)} className="form-input" />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block', color: 'var(--text-main)' }}>Official Employee Email</label>
+              <input type="email" required placeholder="name@company.com" value={employeeEmailInput} onChange={(e) => setEmployeeEmailInput(e.target.value)} className="form-input" />
+            </div>
+          </> : <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block', color: 'var(--text-main)' }}>
-              {loginMode === 'admin' ? 'Admin Username or Email' : 'Official Email, Mobile Phone No. or Username'}
+              {loginMode === 'admin' ? 'Admin Username or Email' : 'Institute Username or Email'}
             </label>
             <div style={{ position: 'relative' }}>
               <User
@@ -348,7 +358,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
               <input
                 type="text"
                 required
-                placeholder={loginMode === 'admin' ? 'admin' : 'Email, Phone (+91 98765...) or Username'}
+                placeholder={loginMode === 'admin' ? 'admin' : 'institute'}
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
                 className="form-input"
@@ -356,7 +366,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
               />
             </div>
 
-          </div>
+          </div>}
 
           <div>
             <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block', color: 'var(--text-main)' }}>

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, update } from "firebase/database";
+import { getDatabase, get, ref, onValue, set, update } from "firebase/database";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { initializeAuth, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
 
@@ -27,4 +27,4 @@ export const auth = initializeAuth(app, {
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-export { ref, onValue, set, update, storageRef, uploadBytes, getDownloadURL, signInWithEmailAndPassword, signInWithPopup, signOut };
+export { get, ref, onValue, set, update, storageRef, uploadBytes, getDownloadURL, signInWithEmailAndPassword, signInWithPopup, signOut };
