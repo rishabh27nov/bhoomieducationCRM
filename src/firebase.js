@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, update } from "firebase/database";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { initializeAuth, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
 
 // Production Firebase Configuration for Bhoomi CRM
 const firebaseConfig = {
@@ -27,4 +27,4 @@ export const auth = initializeAuth(app, {
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-export { ref, onValue, set, update, storageRef, uploadBytes, getDownloadURL, signInWithPopup, signOut };
+export { ref, onValue, set, update, storageRef, uploadBytes, getDownloadURL, signInWithEmailAndPassword, signInWithPopup, signOut };

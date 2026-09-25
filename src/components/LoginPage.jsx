@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import LakshyaLogo from './LakshyaLogo';
 import { Shield, User, Lock, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Eye, EyeOff, Building2, Chrome, Loader2 } from 'lucide-react';
 import { ADMIN_CREDENTIALS, INSTITUTE_CREDENTIALS } from '../data/mockData';
-import { auth, googleProvider, signInWithPopup, signOut } from '../firebase';
+import { auth, googleProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from '../firebase';
 
 export default function LoginPage({ onLoginSuccess, employees = [] }) {
   const [loginMode, setLoginMode] = useState('admin'); // 'admin', 'institute', 'employee'
@@ -13,7 +13,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
   const [googleLoading, setGoogleLoading] = useState(false);
 
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -28,13 +28,26 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
     const getDigits = (str) => (str ? String(str).replace(/\D/g, '') : '');
     const userDigits = getDigits(cleanUser);
 
+    const signInWithExistingPassword = async (account, role = account.role) => {
+      try {
+        const credential = await signInWithEmailAndPassword(auth, account.email, cleanPass);
+        onLoginSuccess({ ...account, role, firebaseUid: credential.user.uid, authProvider: 'password' });
+      } catch (error) {
+        console.error('Password sign-in failed', error);
+        const missingAccount = ['auth/user-not-found', 'auth/invalid-credential'].includes(error?.code);
+        setErrorMessage(missingAccount
+          ? 'This CRM ID is valid, but its Firebase access has not been set up yet. Ask the Admin to create the Firebase account with this employee email and the same password.'
+          : `Login could not be completed (${error?.code || 'unknown-error'}).`);
+      }
+    };
+
     if (loginMode === 'admin') {
       if (
         (cleanUser.toLowerCase() === ADMIN_CREDENTIALS.username.toLowerCase() ||
           cleanUser.toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase()) &&
         cleanPass === ADMIN_CREDENTIALS.password
       ) {
-        onLoginSuccess(ADMIN_CREDENTIALS);
+        await signInWithExistingPassword(ADMIN_CREDENTIALS, 'Admin');
       } else {
         setErrorMessage('Invalid Admin Credentials. Default: admin / admin123');
       }
@@ -44,7 +57,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
           cleanUser.toLowerCase() === INSTITUTE_CREDENTIALS.email.toLowerCase()) &&
         cleanPass === INSTITUTE_CREDENTIALS.password
       ) {
-        onLoginSuccess(INSTITUTE_CREDENTIALS);
+        await signInWithExistingPassword(INSTITUTE_CREDENTIALS, 'Institute');
       } else {
         const matchedInst = employees.find((emp) =>
           (emp.role === 'Institute' || emp.role === 'Manager') &&
@@ -54,10 +67,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
           emp.password === cleanPass
         );
         if (matchedInst) {
-          onLoginSuccess({
-            ...matchedInst,
-            role: 'Institute'
-          });
+          await signInWithExistingPassword(matchedInst, 'Institute');
         } else {
           setErrorMessage('Invalid Institute Credentials. Default: institute / inst123');
         }
@@ -81,10 +91,7 @@ export default function LoginPage({ onLoginSuccess, employees = [] }) {
       });
 
       if (matchedEmployee) {
-        onLoginSuccess({
-          ...matchedEmployee,
-          role: 'Employee' // Enforce Employee role permissions strictly
-        });
+        await signInWithExistingPassword(matchedEmployee, 'Employee');
       } else {
         setErrorMessage('Invalid Email/Phone or Password. Please check credentials set by Admin.');
       }
