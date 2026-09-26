@@ -26,6 +26,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
   const [useTemplate, setUseTemplate] = useState(true);
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateLoadError, setTemplateLoadError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState({ success: 0, failed: 0, skipped: 0 });
@@ -41,15 +42,29 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
     document.body.style.overflow = 'hidden';
     
     // Fetch available templates
+    setTemplateLoadError('');
     whatsappFetch(`/api/whatsapp/settings?t=${Date.now()}`)
-      .then(res => res.json())
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Templates could not be loaded');
+        return data;
+      })
       .then(data => {
         if (data && data.templates && data.templates.length > 0) {
           setAvailableTemplates(data.templates);
           setSelectedTemplate(data.templates.includes(initialTemplate) ? initialTemplate : data.templates[0]);
+        } else {
+          setAvailableTemplates([]);
+          setSelectedTemplate('');
+          setTemplateLoadError('No approved template is saved. Add its exact Meta template name in WhatsApp API Setup.');
         }
       })
-      .catch(err => console.error("Failed to load templates", err));
+      .catch(err => {
+        console.error("Failed to load templates", err);
+        setAvailableTemplates([]);
+        setSelectedTemplate('');
+        setTemplateLoadError(err.message || 'Templates could not be loaded. Please log in again and retry.');
+      });
 
     return () => {
       document.body.style.overflow = 'auto';
@@ -61,7 +76,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
 
   const handleSendBulk = async (e) => {
     e.preventDefault();
-    if ((!message.trim() && !useTemplate) || totalLeads === 0) return;
+    if ((!message.trim() && !useTemplate) || (useTemplate && !selectedTemplate) || totalLeads === 0) return;
 
     setIsSending(true);
     let successCount = 0;
@@ -264,6 +279,7 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
                     <select
                       value={selectedTemplate}
                       onChange={(e) => setSelectedTemplate(e.target.value)}
+                      disabled={isSending || availableTemplates.length === 0}
                       style={{
                         width: '100%',
                         padding: '0.5rem',
@@ -274,10 +290,12 @@ export default function BulkWhatsAppModal({ selectedLeads, onClose, onSuccess, i
                         fontSize: '0.95rem'
                       }}
                     >
+                      <option value="">{availableTemplates.length ? 'Choose an approved template' : 'No template available'}</option>
                       {availableTemplates.map(t => (
                         <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
+                    {templateLoadError && <div style={{ marginBottom: '0.5rem', color: '#b45309', fontStyle: 'normal', fontSize: '0.82rem' }}>{templateLoadError}</div>}
                     <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#64748b' }}>
                       (The exact message content for the selected template will be sent automatically to the student.)
                     </div>
